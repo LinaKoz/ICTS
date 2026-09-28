@@ -83,10 +83,20 @@ sample-data/  workers.csv, contract-changes-shortage.csv
 | `rosters` | id, month date, status (DRAFT, APPROVED), forbid_adjacent_shifts bool DEFAULT false, row_version, generation_meta jsonb, updated_at/by | month UNIQUE, CHECK day=1 |
 | `roster_assignments` | id, roster_id FK CASCADE, worker_id FK RESTRICT, date, shift, role (the slot role, snapshotted) | UNIQUE(roster_id, worker_id, date, shift); index (roster_id, date, shift); index (worker_id) |
 | `roster_approvals` | id, roster_id, roster_version, approved_by, approved_at, acknowledged_warnings jsonb, reason, revoked_at, revoked_by, revoke_cause (EDIT, REGENERATE, CONTRACT_CHANGE, WORKER_CHANGE), revoke_ref | index (roster_id, approved_at DESC) |
+| `worker_field_history` | id, worker_id FK RESTRICT, field (STATUS, ROLE), old_value, new_value, effective_at timestamptz, changed_by | index (worker_id, field, effective_at DESC); insert-only, no UPDATE/DELETE (trigger, as `contract_versions`) |
 
 **Contract resolution** for month M: `effective_month ≤ M`, ordered by `effective_month DESC, version_no DESC`, first row. A future version can never resolve for an earlier month. There is no current-contract pointer, and the UI's "current contract" means resolved for the current Israel month.
 
 **Violations, warnings and costs** are never stored. `rosters.evaluation` computes violations and warnings on read with the engine's `validate_roster` / `roster_metrics` (§4.2) against the current data. `rosters.costs` computes estimated costs on read (§6). Workers without an applicable contract become violation `NO_CONTRACT_FOR_MONTH` in the application layer.
+
+**Worker status/role history (D9, resolved as (b)):** every PATCH that changes `status` or `role` inserts one `worker_field_history` row with `effective_at = now_israel()`, in the same transaction as the worker update. This is in addition to the worker row's current value, which is what the engine and generation always use for free (upcoming) shifts.
+- `resolve_worker_state(worker_id, at: datetime) -> {status, role}`: the current worker row, with each field replaced by the `old_value` of the oldest history row for that field with `effective_at > at`, if one exists (that is, undo every change that happened after `at`). With no such row, the current value already holds at `at`.
+- **Used only for locked (already-started) assignments.** `rosters.evaluation` checks each locked assignment's `INACTIVE_WORKER` / `WRONG_ROLE` against `resolve_worker_state(worker_id, shift_start(date, shift))`, not against the worker's current row.
+  - A worker deactivated or given a new role after a shift started never turns that shift into a violation.
+  - A worker who was already inactive or in a different role *before* the shift started still shows the violation, unchanged from today's behaviour.
+- **Free (upcoming) shifts are unaffected:** their `INACTIVE_WORKER` / `WRONG_ROLE` checks (in the engine, in generation, and in P10 edits) always use the current worker row, since a future assignment must reflect current truth.
+- The engine itself is not changed: it only ever sees the current worker row (via `WorkerInput`) and validates fixed assignments against it as before. The history-based override happens one layer up, in `rosters.evaluation`, which replaces the engine's `INACTIVE_WORKER`/`WRONG_ROLE` entries for locked-assignment keys with the historically resolved result before returning `preexisting_violations` to the API. Every other violation code from the engine passes through unchanged.
+- History is read-only and small (one row per status/role change), so this adds one indexed lookup per locked assignment on read, not a new write path elsewhere.
 
 **Concurrency:**
 - Every write that touches scheduling data first takes one transaction-scoped Postgres advisory lock, `pg_advisory_xact_lock(SCHED)`. That covers worker edits, contract/import apply, roster save, edits and approval.
@@ -527,7 +537,7 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
 
 **Deferred (P1):** Hypothesis property-based tests on random small instances.
 
-## 5. Application policies (all proposed; confirm them in D2)
+## 5. Application policies (accepted, D2, §12)
 - **P1 Same-month revisions:** allowed. A new version with the same `effective_month` supersedes the earlier one because its `version_no` is higher. Both are kept.
 - **P2 Past effective months:** allowed. The preview labels them "retroactive" and lists the affected rosters.
   - **Locked-violation warning (D8):** before a retroactive contract change is confirmed, through the UI or a CSV import, the preview states the consequences if the change creates new hard violations in shifts that have already started.
@@ -545,7 +555,8 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
 - **P6 Worker deletion:** hard delete only if the worker has no contract versions and no assignments. Otherwise the API returns 409 `WORKER_IN_USE`, and the UI offers "deactivate" instead. History is preserved.
 - **P7 Status and role changes** (not month-versioned):
   - Applying one revalidates the affected rosters (current and future months that contain the worker). Approved rosters that gain hard violations return to draft and their approval is revoked (`WORKER_CHANGE`), the same as for contract changes.
-  - Assignments keep their snapshotted slot role, so a role change shows up as a `WRONG_ROLE` violation. Nothing moves silently.
+  - Assignments keep their snapshotted slot role, so a role change shows up as a `WRONG_ROLE` violation on *upcoming* shifts. Nothing moves silently.
+  - **Locked (already-started) shifts are evaluated against the worker's status/role as of when the shift started (D9(b)), not against the value after this change.** Every status/role change is recorded in `worker_field_history` for this (§3). A change made mid-month therefore cannot turn an already-worked shift into `INACTIVE_WORKER` or `WRONG_ROLE`; it only affects shifts that had not started yet when the change was applied.
   - The detailed impact preview before apply (the list of affected rosters) is deferred (P1). Until then the UI shows a simple confirmation.
 - **P8 Duplicate national IDs in one file:** every row with that ID is INVALID (`DUPLICATE_IN_FILE`). Other rows are processed.
 - **P9 Repeated confirmation:** the second confirm returns 409 `ALREADY_CONFIRMED` with the stored result. Nothing is applied twice.
@@ -574,7 +585,7 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
   - PLANNER: workers, contracts, CSV import/export, generation, drafts, edits. Editing an approved roster needs an explicit acknowledgement and returns it to draft.
   - MANAGER: everything a planner can do, plus approve.
   - The worker role SUPERVISOR is unrelated to app permissions.
-- **P13 Export version:** one row per worker with the version effective for the chosen month (default: the current month), otherwise the next future version. Workers with no contract at all are skipped and counted in the response. Rows carry the version's own `effective_month`, so re-importing an unmodified export gives all rows UNCHANGED.
+- **P13 Export version:** one row per worker with the version effective for the chosen month (default: the current month), otherwise the next future version. **(D10, accepted)** Workers with no applicable contract are still exported, with the contract columns empty and `effective_month` empty; they are counted separately in the response as "no contract" rather than skipped, matching the brief's "full worker list". Rows with contract data carry the version's own `effective_month`, so re-importing an unmodified export gives all rows UNCHANGED. Importing a worker-only row (no contract columns filled) is valid and creates or updates the worker with no contract version.
 - **P14 CSV format:**
   - Encoding: UTF-8 (a BOM is accepted on import and written on export, for Hebrew in Excel).
   - **Columns are matched by header name, in any order.**
@@ -596,10 +607,11 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
       - A missing required column returns 400 `MISSING_COLUMNS` with the list.
       - Two headers that normalize to the same name return 400 `DUPLICATE_COLUMN`.
       - Unknown columns are ignored and listed as a warning in the preview.
-    - **Required:** `national_id`, `full_name`, `role`, `hourly_rate_ils`, `min_monthly_hours`, `max_monthly_hours`, and availability in one of the two forms below.
-    - **Optional:**
-      - `status`: default ACTIVE.
-      - `effective_month` (YYYY-MM): default is the current Israel month, shown in the preview. (Proposed; see §12.)
+    - **Always required:** `national_id`, `full_name`, `role`.
+    - **Contract columns** (`hourly_rate_ils`, `min_monthly_hours`, `max_monthly_hours`, and availability in one of the two forms below): required together as a group, unless every one of them is empty for that row, which makes it a worker-only row with no contract version (D10). A row with some contract columns filled and others empty is INVALID `INCOMPLETE_CONTRACT`.
+    - **Optional, with defaults (D11, accepted):**
+      - `status`: missing column or empty cell defaults to ACTIVE.
+      - `effective_month` (YYYY-MM): missing column or empty cell defaults to the current Israel month (from `now_israel()`, frozen per import). The preview always shows the resolved value, not blank.
   - **Values.** Role and status are matched case-insensitively, with spaces, hyphens and underscores treated as equal.
     - GENERAL_GUARD ← `General Guard`, `general-guard`, `GENERAL_GUARD`, `Guard`
     - SCREENER ← `Screener`
@@ -771,12 +783,12 @@ Invalid and skipped rows are never applied. Valid ones are unaffected by them.
 | T3 | Roster slice backend | `app/contracts/` resolution (read path), `app/rosters/{problem_builder,evaluation,generation,save,costs}.py`, `approval.revoke` | §3, §4.2, §4.5, §4.6, §6 rosters, P3, P4, P15 | Resolution: past, current and future months, same-month supersede, no contract. Problem builder: inactive, no contract, `free_from` from a frozen clock (before midnight, mid-shift, exactly at a shift start), fixed from stored started shifts, neighbor-month assignments passed only where the adjacency rule applies (this roster's flag, the neighbor's flag, neither). Save stores `forbid_adjacent_shifts`, and a flag mismatch against the fingerprint gives 409. Generate returns each outcome type, and a failure never persists. Save: fingerprint mismatch gives 409, including a shift that started between generate and save; a changed started shift gives 422 `LOCKED_SHIFT`; replace needs the flag and version; new hard violations give 422, while existing ones in locked shifts do not. Costs: per shift/worker/month, missing contract counted as unknown, `Decimal` rounding. The busy guard returns 429 and is released after success, error and cancellation. Mocked INFEASIBLE gives 500 `ENGINE_ERROR`, and the existing roster is unchanged. Pool recovery: a mocked `BrokenProcessPool` gives 500 `ENGINE_ERROR`, and the next generation succeeds on a new executor. Two callers that fail on the same broken executor cause exactly one replacement (identity check). Warm-up runs in the child and imports `ortools`; a warm-up failure shows as `engine: not_ready` on `/api/health` |
 | T4 | Frontend slice | `frontend/src/{api,auth,layout,errors}`, `frontend/src/features/roster` (read, generate, save) | §6 contract, §7 | Generated types compile. Login and the 401 redirect work. The error mapper has a unit test. Manual walkthrough on seeded data: pick a month → generate → grid shows assignments, gaps, shortfalls and costs → save as draft |
 | ★M1 | Vertical slice works end to end on a clean `docker compose up` | | | |
-| T5 | Workers, contract versions and change-set service (backend and UI) | `app/workers/`, `app/contracts/` (write path), `app/changes/`, `frontend/src/features/workers` | §6, P1, P2, P5, P6, P7 | Israeli-ID checksum valid/invalid cases. CRUD and the 409 on in-use delete. A version-conflict test. Contract change impact lists the affected rosters. Apply keeps assignments, sends invalid approved rosters to draft (`CONTRACT_CHANGE`) and keeps the revoked approval row. A role/status change does the same with `WORKER_CHANGE`. Stale base gives 409 with nothing applied. The P2 warning: a retroactive change that creates a hard violation in a started shift returns `locked_violations` in the preview, and after apply the roster stays unapproved with the violation visible. A same-month correcting version (P1) removes the violation, and both versions stay in history. A change that creates violations only in free shifts returns an empty `locked_violations` |
+| T5 | Workers, contract versions and change-set service (backend and UI) | `app/workers/`, `app/contracts/` (write path), `app/changes/` (incl. `worker_field_history`), `frontend/src/features/workers` | §6, P1, P2, P5, P6, P7, D9 | Israeli-ID checksum valid/invalid cases. CRUD and the 409 on in-use delete. A version-conflict test. Contract change impact lists the affected rosters. Apply keeps assignments, sends invalid approved rosters to draft (`CONTRACT_CHANGE`) and keeps the revoked approval row. A role/status change does the same with `WORKER_CHANGE`, records a `worker_field_history` row, and is checked with `resolve_worker_state`: deactivating (or changing the role of) a worker with an already-started shift this month leaves that shift's `INACTIVE_WORKER`/`WRONG_ROLE` status unchanged (no new violation), while an upcoming shift is affected immediately. A worker already inactive (or in a different role) before the shift started still shows the violation. Stale base gives 409 with nothing applied. The P2 warning: a retroactive change that creates a hard violation in a started shift returns `locked_violations` in the preview, and after apply the roster stays unapproved with the violation visible. A same-month correcting version (P1) removes the violation, and both versions stay in history. A change that creates violations only in free shifts returns an empty `locked_violations` |
 | T6 | CSV import/export and sample data (backend and UI) | `app/csvio/`, `sample-data/`, `frontend/src/features/imports` | §6 CSV, P8, P9, P13, P14 | Partial success: invalid rows do not block valid ones. Duplicate-in-file handling. Repeated confirm gives 409. Stale gives 409. A confirmed import that invalidates an approved roster sends it to draft with `CONTRACT_CHANGE` and the import id. Round trip: an unmodified export gives all UNCHANGED.
 
 Review-CSV support:
 - **Header matching:** columns in a shuffled order and header aliases (`Name`, `Israeli ID`, `Hourly Cost`) are matched. A missing required column gives 400 `MISSING_COLUMNS`. Duplicate normalized headers give 400. Unknown columns become a warning.
-- **Optional columns:** a missing `status` defaults to ACTIVE, and a missing `effective_month` defaults to the current Israel month (frozen clock).
+- **Optional columns and worker-only rows:** a missing `status` defaults to ACTIVE, and a missing `effective_month` defaults to the current Israel month (frozen clock), shown resolved in the preview (D11). A row with every contract column empty imports as worker-only, with no contract version (D10). A row with only some contract columns empty gives `INCOMPLETE_CONTRACT`.
 - **Role and status aliases:** `General Guard`, `general-guard` and `Guard` map to GENERAL_GUARD. Mixed-case `Screener`, `Supervisor`, `Active` and `Inactive` are accepted. An unknown role is INVALID.
 - **Availability:**
   - `available_days=Sun|Mon` with `available_shifts=A|C` gives exactly the 4 pairs.
@@ -903,26 +915,13 @@ Backend tests run with pytest against a Postgres test database in compose, with 
   - **Suggestions:** §2.4 already requires manual moving and adding, so the plain add action is core. The bonus is the ranked candidates with reasons and the one-click apply, which go beyond the mandatory manual editing. It qualifies, provided the README and demo present it as distinct from manual add.
   - **Condition for both:** "fully implemented" means API, UI and tests (T7, T8), plus the README rationale (T9).
 - **D8 Hard violations in started shifts:** started shifts are immutable, and violations stay visible and block approval. Wrong data is corrected through versioning; genuine violations leave the roster unapproved, with no bypass. A focused warning appears before confirming (P2, P3, P11).
+- **D9 Worker status/role changes mid-month:** option (b). `worker_field_history` (§3) records every status/role change with an effective timestamp. Locked (already-started) shifts are checked against the worker's status/role as of when the shift started (`resolve_worker_state`), not the current value, so a mid-month deactivation or role change never retroactively invalidates a shift already worked. Upcoming shifts always use the current value.
+- **D10 P13 versus the brief:** accepted. Export includes every worker; one with no applicable contract gets empty contract columns and is counted separately as "no contract" rather than skipped. Import accepts a worker-only row with every contract column empty and creates or updates the worker with no new contract version.
+- **D11 Review-CSV defaults:** accepted. A missing `status` column or empty cell defaults to ACTIVE; a missing `effective_month` column or empty cell defaults to the current Israel month. Both resolved values are shown in the preview rather than left blank.
 
-**D2 policies: status**
-- **Accepted:** P2 (retroactive changes, with the D8 warning), P3 (history lock; started shifts immutable), P6 (delete), P12 (two roles), P15 (estimated costs, core).
-- **Accepted with clarification:** P11. Only soft shortages can be acknowledged; hard violations never can.
-- **Shaped by earlier decisions but not yet confirmed as a whole:**
-  - P7: status/role changes revalidate and revoke approval; the detailed preview is deferred.
-  - P10: repair rule using keys and magnitudes.
-- **Not yet reviewed:**
-  - P1: same-month revisions supersede by `version_no`.
-  - P4: an active worker without a contract is excluded from the engine and suggestions, and is flagged.
-  - P5: identical data creates no new version.
-  - P8: duplicate IDs in one file make every such row INVALID.
-  - P9: a repeated confirm returns 409 with the stored result.
-  - P13: export picks the version effective for the month, otherwise the next future version. Workers with no contract are skipped. See D10.
-  - P14 as a whole. The review-CSV support, escaping and limits are approved. The `status` and `effective_month` defaults are proposed (D11).
+**D2 policies: all of P1–P15 are accepted.**
+- **Accepted as written:** P1 (same-month revisions), P4 (worker without a contract excluded and flagged), P5 (identical data creates no version), P6 (delete), P8 (duplicate IDs in a file INVALID), P9 (repeated confirm, 409 with stored result), P12 (two roles).
+- **Accepted with amendment:** P2 (retroactive changes, with the D8 locked-violation warning), P3 (history lock; started shifts immutable), P7 (status/role changes; locked shifts use `resolve_worker_state`, D9), P10 (repair rule using keys and magnitudes, `worsened(before, after)`), P11 (only soft shortages can be acknowledged; hard violations never can), P13 (D10: full export, worker-only rows), P14 (D11: defaulted `status`/`effective_month`), P15 (estimated costs, core).
 
 **Open**
-- **D9 Worker status/role changes in the current month.** P7 changes are not month-versioned. Deactivating a worker or changing their role mid-month turns their already-started shifts into `INACTIVE_WORKER` / `WRONG_ROLE` violations. Under D8, those are locked and block approval for the rest of the month. Options:
-  - (a) Accept this as is.
-  - (b) Evaluate status and role against locked assignments as they were when the shift started. This needs status/role history, or an effective date on the change.
-  - (c) Leave locked assignments out of the status and role checks only.
-- **D10 P13 versus the brief.** The brief says "Export the full worker list (including contract fields)". P13 skips workers with no contract. Option: export them with empty contract fields, and let import accept a worker-only row whose contract fields are all empty.
-- **D11 Review-CSV defaults.** A missing `status` column defaults to ACTIVE, and a missing `effective_month` defaults to the current Israel month. The alternative is to reject the file (400 `MISSING_COLUMNS`).
+- None. All of D1–D11 and P1–P15 are resolved.
