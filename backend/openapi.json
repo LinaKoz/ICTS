@@ -1,0 +1,175 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ICTS Rostering API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/meta": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Get Meta",
+        "operationId": "get_meta_api_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CsvAliasesOut": {
+        "properties": {
+          "header_aliases": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Header Aliases"
+          },
+          "role_aliases": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Role Aliases"
+          },
+          "status_aliases": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Status Aliases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "header_aliases",
+          "role_aliases",
+          "status_aliases"
+        ],
+        "title": "CsvAliasesOut",
+        "description": "P14 documented header and value aliases."
+      },
+      "DemandEntry": {
+        "properties": {
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "headcount": {
+            "type": "integer",
+            "title": "Headcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "shift",
+          "role",
+          "headcount"
+        ],
+        "title": "DemandEntry"
+      },
+      "MetaOut": {
+        "properties": {
+          "shifts": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "A",
+                "B",
+                "C"
+              ]
+            },
+            "type": "array",
+            "title": "Shifts"
+          },
+          "roles": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "GENERAL_GUARD",
+                "SCREENER",
+                "SUPERVISOR"
+              ]
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "demand": {
+            "items": {
+              "$ref": "#/components/schemas/DemandEntry"
+            },
+            "type": "array",
+            "title": "Demand"
+          },
+          "csv_aliases": {
+            "$ref": "#/components/schemas/CsvAliasesOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "shifts",
+          "roles",
+          "demand",
+          "csv_aliases"
+        ],
+        "title": "MetaOut"
+      }
+    }
+  }
+}

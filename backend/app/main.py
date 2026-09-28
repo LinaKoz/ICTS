@@ -1,0 +1,88 @@
+"""FastAPI application entrypoint.
+
+Startup (§2): `alembic upgrade head`, then an idempotent seed, then
+uvicorn. This module implements the lifespan that does the first two
+steps (as documented stubs pending T2) and warms up the engine pool
+(§2 "Generation execution").
+"""
+from __future__ import annotations
+
+import logging
+import subprocess
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+from app.config import settings
+from app.db import dispose_engine
+from app.engine_pool import engine_pool
+from app.errors import register_exception_handlers
+from app.routers.meta import router as meta_router
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=settings.log_level)
+
+
+def _run_migrations() -> None:
+    """Runs `alembic upgrade head`. TODO(T2): populated once
+    `alembic/` and the models exist; a missing alembic.ini is a no-op
+    for now so T0's skeleton can start against an empty database."""
+    try:
+        subprocess.run(["alembic", "upgrade", "head"], check=True, cwd="/app")
+    except FileNotFoundError:
+        logger.warning("alembic not available yet; skipping migrations (T2 pending)")
+    except subprocess.CalledProcessError:
+        logger.exception("alembic upgrade head failed")
+        raise
+
+
+async def _seed() -> None:
+    """Idempotent seed: creates demo users, and if the workers table is
+    empty, loads sample-data/workers.csv and contracts (§2). TODO(T2):
+    implement against real models; currently a documented no-op."""
+    logger.info("seed stub: no models yet (T2 pending)")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if not settings.session_secret:
+        logger.warning(
+            "SESSION_SECRET is empty; generating a random secret for this process. "
+            "Sessions will reset on restart."
+        )
+    _run_migrations()
+    await _seed()
+    await engine_pool.start()
+    try:
+        yield
+    finally:
+        await engine_pool.shutdown()
+        await dispose_engine()
+
+
+app = FastAPI(title="ICTS Rostering API", version="0.1.0", lifespan=lifespan)
+register_exception_handlers(app)
+app.include_router(meta_router)
+
+
+@app.get("/api/health")
+async def health() -> dict:
+    return {
+        "status": "ok",
+        "engine": "ready" if engine_pool.ready else "not_ready",
+    }
+
+
+def export_openapi(path: str = "openapi.json") -> None:
+    """Writes the current app's OpenAPI schema to `path`. Used by
+    `scripts/export_openapi.py` (§8 T0 "OpenAPI export... a script")."""
+    import json
+
+    with open(path, "w") as f:
+        json.dump(app.openapi(), f, indent=2)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000)
