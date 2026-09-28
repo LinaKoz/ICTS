@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-icts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icts}
+      POSTGRES_DB: ${POSTGRES_DB:-icts}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-icts} -d ${POSTGRES_DB:-icts}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-icts}:${POSTGRES_PASSWORD:-icts}@db:5432/${POSTGRES_DB:-icts}
+      PLANNER_PASSWORD: ${PLANNER_PASSWORD:-planner-demo}
+      MANAGER_PASSWORD: ${MANAGER_PASSWORD:-manager-demo}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:
