@@ -537,7 +537,7 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
 
 **Deferred (P1):** Hypothesis property-based tests on random small instances.
 
-## 5. Application policies (all proposed; confirm them in D2)
+## 5. Application policies (accepted, D2, §12)
 - **P1 Same-month revisions:** allowed. A new version with the same `effective_month` supersedes the earlier one because its `version_no` is higher. Both are kept.
 - **P2 Past effective months:** allowed. The preview labels them "retroactive" and lists the affected rosters.
   - **Locked-violation warning (D8):** before a retroactive contract change is confirmed, through the UI or a CSV import, the preview states the consequences if the change creates new hard violations in shifts that have already started.
@@ -919,19 +919,9 @@ Backend tests run with pytest against a Postgres test database in compose, with 
 - **D10 P13 versus the brief:** accepted. Export includes every worker; one with no applicable contract gets empty contract columns and is counted separately as "no contract" rather than skipped. Import accepts a worker-only row with every contract column empty and creates or updates the worker with no new contract version.
 - **D11 Review-CSV defaults:** accepted. A missing `status` column or empty cell defaults to ACTIVE; a missing `effective_month` column or empty cell defaults to the current Israel month. Both resolved values are shown in the preview rather than left blank.
 
-**D2 policies: status**
-- **Accepted:** P2 (retroactive changes, with the D8 warning), P3 (history lock; started shifts immutable), P6 (delete), P12 (two roles), P15 (estimated costs, core).
-- **Accepted with clarification:** P11. Only soft shortages can be acknowledged; hard violations never can.
-- **Accepted (D10, D11):** P13 (with the D10 amendment, full export, worker-only rows), P14 (with the D11 amendment, defaulted `status`/`effective_month`).
-- **Shaped by earlier decisions but not yet confirmed as a whole:**
-  - P7: status/role changes revalidate and revoke approval for upcoming shifts; locked shifts use `resolve_worker_state` (D9); the detailed preview is deferred.
-  - P10: repair rule using keys and magnitudes.
-- **Not yet reviewed:**
-  - P1: same-month revisions supersede by `version_no`.
-  - P4: an active worker without a contract is excluded from the engine and suggestions, and is flagged.
-  - P5: identical data creates no new version.
-  - P8: duplicate IDs in one file make every such row INVALID.
-  - P9: a repeated confirm returns 409 with the stored result.
+**D2 policies: all of P1–P15 are accepted.**
+- **Accepted as written:** P1 (same-month revisions), P4 (worker without a contract excluded and flagged), P5 (identical data creates no version), P6 (delete), P8 (duplicate IDs in a file INVALID), P9 (repeated confirm, 409 with stored result), P12 (two roles).
+- **Accepted with amendment:** P2 (retroactive changes, with the D8 locked-violation warning), P3 (history lock; started shifts immutable), P7 (status/role changes; locked shifts use `resolve_worker_state`, D9), P10 (repair rule using keys and magnitudes, `worsened(before, after)`), P11 (only soft shortages can be acknowledged; hard violations never can), P13 (D10: full export, worker-only rows), P14 (D11: defaulted `status`/`effective_month`), P15 (estimated costs, core).
 
 **Open**
-- None. D1–D11 are resolved. Remaining unreviewed items are P1, P4, P5, P7 (as a whole), P8, P9 and P10 (as a whole), listed above.
+- None. All of D1–D11 and P1–P15 are resolved.
