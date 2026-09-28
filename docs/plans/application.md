@@ -46,9 +46,26 @@ sample-data/  workers.csv, contract-changes-shortage.csv
   - The backend entrypoint runs `alembic upgrade head`, then an idempotent seed, then uvicorn (one worker).
   - The seed creates the demo users. If the workers table is empty, it also loads the sample workers and contracts, so the vertical slice (§8) works on first start.
   - `docker compose up` needs no manual database step.
+- **Configuration and demo credentials (D4):**
+  - `docker-compose.yml` passes `PLANNER_PASSWORD`, `MANAGER_PASSWORD` and `SESSION_SECRET` to the backend.
+    - The passwords use Compose interpolation with demo defaults (`${PLANNER_PASSWORD:-…}`), so `docker compose up` works with no preparation.
+  - `.env.example` lists the same variables with the same demo values. Copying it to `.env` (which is gitignored) and editing it is optional, and is how the defaults are overridden.
+  - If `SESSION_SECRET` is empty, the backend generates a random secret at startup and logs a warning. Sessions then reset on restart. No secret is hardcoded.
+  - The seed creates missing users only; it never overwrites a password. After changing passwords in `.env`, reset with `docker compose down -v`. The README documents this.
+  - The README lists the demo credentials and states that they are for local demo use only.
 - **Generation execution:**
-  - The engine runs in a `ProcessPoolExecutor(max_workers=1)` via `run_in_executor`, so CPU work never blocks the API event loop or other requests.
-  - A non-blocking process-local guard allows one generation at a time. A second request gets 429 `GENERATION_IN_PROGRESS`.
+  - The engine runs in a `ProcessPoolExecutor(max_workers=1, mp_context=multiprocessing.get_context("spawn"))` via `run_in_executor`, so CPU work never blocks the API event loop or other requests.
+    - `spawn` avoids forking a process that holds the event loop, database connections and threads.
+  - **Warm-up:** at startup, the app lifespan submits `_warm_up()` to the pool.
+    - In the child, `_warm_up()` imports `ortools.sat.python.cp_model` and solves a one-variable model, so both the import and the native solver are exercised.
+    - A warm-up failure is logged, and `/api/health` reports `engine: not_ready`. Requests still try.
+  - **Pool ownership:** one `EnginePool` object holds the current executor and an `asyncio.Lock`.
+    - On `BrokenProcessPool` (the child crashed or was OOM-killed), the failing call enters the lock. It replaces the executor only if the current one is still the executor that failed; a caller that finds a newer executor skips the replacement.
+    - Replacement shuts the old executor down (`wait=False, cancel_futures=True`), creates a new one and warms it up.
+    - So concurrent failures can never create competing replacements.
+    - The failing request gets 500 `ENGINE_ERROR`. It is not retried automatically, because a deterministic crash would repeat.
+    - The lifespan shuts the executor down on exit.
+  - A non-blocking process-local guard allows one generation at a time. A second request gets 429 `GENERATION_IN_PROGRESS`. The guard is released in `finally`, on success, error and cancellation.
   - Requests are synchronous, about the solver time limit plus overhead. There is no queue infrastructure.
   - CP-SAT uses `num_workers = min(8, cpu_count)`.
 - **Time:** one helper, `now_israel()`, based on `zoneinfo("Asia/Jerusalem")`, decides the current month and which shifts have started. The container clock is UTC.
@@ -200,7 +217,18 @@ The constraints:
   - A fixed pair that is already adjacent stays as it is and is reported.
 - **No overstaffing:** `Σ_{w∈r} x[w,d,s] ≤ max(0, demand_of(s,r) − fixed_slot(d,s,r))`. Free slots have no fixed assignments today, but the rule is written generally.
 - **Duplicates:** there is at most one variable per `(w,d,s)` and none where a fixed assignment exists.
-- **Invariant:** setting every `x` to 0 is always feasible. INFEASIBLE therefore signals a bug.
+- **Invariant: zero new assignments is always feasible.** Set every `x` to 0:
+  - **Monthly, daily and overstaffing:** the left side is 0, and every right side has the form `max(0, …)`, which is ≥ 0.
+  - **Adjacency:** `0 + 0 ≤ 1`.
+  - **`uncovered[d,s,r]`** equals the remaining demand of its slot, which lies inside its domain `[0, max(0, demand_of(s,r) − fixed_slot(d,s,r))]`.
+  - **`short[w]`** can take `max(0, min_hours_w − fixed_hours_w)`, which lies inside its domain `[0, min_hours_w]` because `fixed_hours_w ≥ 0`.
+  - **Coverage and minimum hours are soft.** They are slack terms in the objective, never hard constraints.
+  - **Fixed assignments are never constraints.** They only lower right-hand sides (floored at 0) or stop variables from being created. So an existing fixed violation can never produce an unsatisfiable row; §4.5 reports it instead.
+  - Implementation note: the model builder must declare exactly these domains. A test checks the invariant (§4.9).
+- **Unexpected INFEASIBLE:**
+  - It is handled gracefully, never as a crash. The engine returns `EngineError(solver_status=INFEASIBLE)` with diagnostics and timings.
+  - The application logs it with a problem summary (month, worker count, `free_from`, fixed count) and persists nothing. The API returns 500 `ENGINE_ERROR`, and the existing roster is untouched.
+  - The UI shows the error panel with "nothing was changed".
 - **Not enforced, by design:** rest rules beyond the adjacency ban. For example, C followed by the next day's B (an 8-hour gap) is allowed.
 
 ### 4.4 Objective (one weighted solve)
@@ -212,7 +240,11 @@ The constraints:
 
 **Minimize** `W · Σ uncovered + Σ short`.
 
-Coverage gaps in locked shifts are the same in every solution. They are left out of the model as `locked_uncovered` and added back from `roster_metrics`.
+**Locked and free shortages are counted separately.**
+- Locked slots (before `free_from`) and free slots (at or after `free_from`) are disjoint and together cover the whole month.
+- **Locked slots:** the model has no variables and no `uncovered` terms for them. Their gaps are the same in every solution. They are computed once by `roster_metrics` over locked slots only, as `locked_uncovered`.
+- **Free slots:** the objective's `U` is `U_free`, the uncovered total over free slots only. Fixed hours appear only inside `short[w]`, never in `uncovered`.
+- Every gap is counted exactly once: `total_uncovered = locked_uncovered + U_free`.
 
 **Why the priority holds:**
 - The cap `short[w] ≤ min_hours_w` makes `0 ≤ Σ short ≤ S_max < W` hold in every feasible solution, not only at the optimum.
@@ -225,7 +257,11 @@ Coverage gaps in locked shifts are the same in every solution. They are left out
 - **Rounding, conservatively:**
   - `B = ceil(objective_bound − 1e-6)`. The objective is an integer; the epsilon stops float noise such as `12.0000001` from rounding up to 13 and overstating the bound.
   - Then `LB_free = max(0, ceil_div(B − S_max, W))`, computed in integers.
-- **Reported value:** `coverage.lower_bound = locked_uncovered + max(LB_free, diagnostic LB over free slots)`. Both terms are valid bounds.
+- **Reported value:** `coverage.lower_bound = locked_uncovered + max(LB_free, LB_diag_free)`.
+  - Both terms inside `max` bound `U_free` only.
+  - `LB_free` comes from an objective that contains free slots only.
+  - `LB_diag_free` is the proven diagnostic bound of §4.7, which is computed over free slots only.
+  - Neither term includes locked shortages, so nothing is counted twice. The maximum of two valid lower bounds on the same quantity is itself a valid lower bound.
 - **Exact when tight:** if `objective_bound = W·U* + S*`, then `(S_max − S*) / W < 1`, so the formula returns exactly U*. At OPTIMAL it equals `total_uncovered`.
 
 **Timeout limitations** (documented in the README):
@@ -296,21 +332,45 @@ EngineError: solver_status, message, diagnostics|None, timings
 ```
 - Outcomes without a roster carry no roster metrics. An empty roster is never passed off as generated.
 - **Proof of impossibility:** full coverage of the free shifts is proven impossible only if `lower_bound − locked_uncovered ≥ 1`. Locked gaps have already happened and are reported separately.
+- **API mapping:**
+
+  | Outcome | HTTP |
+  |---|---|
+  | `Solved` | 200 |
+  | `NoSolutionWithinLimit` | 200, with an outcome type and no roster |
+  | `InvalidInput` | 422 |
+  | `EngineError` (including an unexpected INFEASIBLE and a crashed pool) | 500 `ENGINE_ERROR` |
+
+  Nothing is persisted in any of these cases.
 
 ### 4.7 Diagnostics (`diagnose`, pure and cheap, active workers, free shifts only)
-**Proven facts** (lower bounds that hold in every solution):
-- **Slot deficit:** `eligible(slot) < remaining demand`. That slot is missing at least the difference in every solution.
-  - Eligible means a variable would exist for the worker (§4.3) and the worker has remaining monthly capacity of at least 1.
-- **Worker capacity:** `cap_w = min(remaining_max_shifts_w, Σ_free d day_cap(w,d))`.
-  - `day_cap = min(max(0, 2 − fixed_day(w,d)), largest non-adjacent subset of w's eligible free shifts that day)`. The subset has size 2 only for {A, C}.
-  - Cross-day adjacency is ignored, so this is a relaxation: weaker, never wrong.
-- **Role deficit:** if `Σ_{w∈r} cap_w < remaining demand_r`, role r has at least the difference uncovered.
-- **Role lower bound:** `LB_r = max(Σ slot deficits in r, role deficit)`. The total diagnostic lower bound is `Σ_r LB_r`.
-- **Worker shortfall:** if `8·cap_w + fixed_hours_w < min_hours_w`, that worker's shortfall is at least the difference.
+**Definitions (free slots only):**
+- `remaining_demand(d,s,r) = max(0, demand_of(s,r) − fixed_slot(d,s,r))` for a free `(d,s)`.
+- `remaining_demand_r = Σ_{free (d,s)} remaining_demand(d,s,r)`.
+- `remaining_max_shifts_w = floor(max(0, max_hours_w − fixed_hours_w) / 8)`, the right side of the monthly limit in §4.3.
+
+**Proven facts.** Each one is a lower bound that holds in every feasible solution of §4.3. None is a heuristic.
+- **Slot deficit:** `slot_deficit(d,s,r) = max(0, remaining_demand(d,s,r) − eligible(d,s,r))`.
+  - `eligible` counts the workers of role r that satisfy all of these:
+    - `x[w,d,s]` exists (§4.3)
+    - `remaining_max_shifts_w ≥ 1`
+    - `max(0, 2 − fixed_day(w,d)) ≥ 1`
+  - *Proof:* only those workers can take the slot, each at most once (x is boolean), so at most `eligible` workers fill it.
+- **Worker capacity:** `cap_w = min(remaining_max_shifts_w, Σ_{free d} day_cap(w,d))`.
+  - `day_cap(w,d) = min(max(0, 2 − fixed_day(w,d)), largest non-adjacent subset of the free shifts on d where x[w,d,·] exists)`. The subset has size 2 only for {A, C}.
+  - *Proof:* the monthly limit, the daily limit and same-day adjacency each cap w's new shifts. Ignoring cross-day adjacency only drops a constraint, so `cap_w` stays an upper bound on the new shifts of w.
+- **Role deficit:** `role_deficit_r = max(0, remaining_demand_r − Σ_{w∈r} cap_w)`.
+  - *Proof:* a worker only fills slots of its own role, one unit each, so role r gets at most `Σ cap_w` of its free slots filled.
+- **Role lower bound:** `LB_r = max(Σ_{free slots of r} slot_deficit, role_deficit_r)`.
+  - *Proof:* `U_free,r` is the sum of per-slot uncovered counts, so the per-slot bounds add up. The maximum of two valid bounds is valid.
+- **Total:** `LB_diag_free = Σ_r LB_r`. Roles partition the free slots, so the sum is valid.
+  - It excludes locked slots by construction, so it never includes `locked_uncovered` (§4.4).
+- **Worker shortfall:** `max(0, min_hours_w − fixed_hours_w − 8·cap_w)` is a lower bound on `short[w]`, because `8·cap_w` bounds the new hours.
 - **From the solver:** the bound described in §4.4.
 
 **Suspected causes:**
 - In each gap, `proven_missing` is the slot-deficit part. Any gap beyond it is labelled `SUSPECTED`, with a hint such as "eligible workers at max hours, at the daily limit, or blocked by an adjacent shift".
+- `SUSPECTED` labels and hints are UI explanations only. They never feed into `LB_diag_free` or any reported bound.
 - A proven minimum gap count does not mean these particular slots must stay unfilled in every solution, so gap locations are never presented as proven.
 - Proving that a specific slot can never be filled would need a separate solve per slot; that is out of scope.
 
@@ -395,6 +455,16 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
 - `locked_uncovered` is added
 - the result is the maximum with the diagnostic bound
 
+**Locked/free separation and feasibility invariant**
+- Mid-month fixture with gaps in both locked and free slots:
+  - `locked_uncovered` equals the gaps in locked slots only
+  - `LB_free ≤ U_free` and `LB_diag_free ≤ U_free`
+  - `lower_bound ≤ total_uncovered`
+  - `total_uncovered = locked_uncovered + U_free`
+  - no locked gap is counted in either inner bound
+- A fixture whose locked slots are all uncovered and whose free slots are fully coverable: `lower_bound = locked_uncovered`.
+- Zero-roster invariant: on the retroactive-conflict fixture (cap below the fixed hours, a fixed adjacent pair, a fixed inactive worker), add `x = 0` for every variable and solve. The result must be OPTIMAL. This guards the variable domains of §4.3.
+
 **Status paths (mocked `_run_cp_sat`)**
 - OPTIMAL: both statuses OPTIMAL, `lexicographically_optimal = true`, lower bound equals `total_uncovered`
 - FEASIBLE: coverage FEASIBLE with the derived bound, minimum hours FEASIBLE with no bound, `lexicographically_optimal = false`
@@ -414,7 +484,8 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
 - `day_cap` respects adjacency and fixed shifts
 - inactive workers are excluded
 - gaps beyond `proven_missing` are marked `SUSPECTED`
-- the diagnostic lower bound is ≤ `total_uncovered` on every solver fixture
+- `LB_diag_free ≤ U_free` on every solver fixture, including the mid-month ones
+- worker-shortfall lower bound ≤ the returned `short[w]` on every solver fixture
 
 **Independence**
 - The engine never imports sqlalchemy, fastapi, or any `app.*` module outside `scheduling`. Checked by an import-linter contract or a test.
@@ -441,7 +512,16 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
   - An edit, including a move as remove+add, is accepted only if `worsened(before, after)` is empty. Adjacency is checked against neighbor-month rosters too.
   - A removal always passes. Coverage and hour warnings never block.
   - Generation and manual edits on a clean roster therefore enforce all hard constraints. Only contract/worker changes may introduce violations.
-- **P11 Approving with warnings:** a manager may approve despite coverage or min-hour warnings only with `acknowledge_warnings=true` and a non-empty reason, both stored. Hard violations always block (422).
+- **P11 Approving with warnings.** Soft shortages and hard violations are separate categories. The acknowledgement covers soft shortages only.
+  - **Soft shortages (can be acknowledged):** coverage gaps, in both locked and upcoming shifts, and minimum-hour shortfalls. Nothing else is soft.
+  - **Hard violations (can never be acknowledged):** every code in §4.5, plus `NO_CONTRACT_FOR_MONTH`.
+    - Any hard violation blocks approval with 422 `HARD_VIOLATIONS` and the list, whatever `acknowledge_warnings` says.
+    - There is no override parameter, flag or role that bypasses this.
+  - With soft shortages present, a manager may approve only with `acknowledge_warnings=true`, a non-empty reason, and a `warnings_fingerprint` (a hash of the soft shortages the UI showed).
+    - A fingerprint mismatch returns 409 `STALE_PREVIEW`, so the acknowledgement always matches the stored snapshot.
+    - The snapshot (`acknowledged_warnings`) and the reason are stored with the approval.
+  - With no soft shortages, approval needs no acknowledgement.
+  - Hard violations in shifts that have already started also block. How they get resolved is open (D8).
 - **P12 Permissions:**
   - PLANNER: workers, contracts, CSV import/export, generation, drafts, edits. Editing an approved roster needs an explicit acknowledgement and returns it to draft.
   - MANAGER: everything a planner can do, plus approve.
@@ -452,6 +532,21 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
   - A header row is required. Columns: `national_id, full_name, role, status, effective_month (YYYY-MM), hourly_rate_ils, min_monthly_hours, max_monthly_hours, availability`.
   - Availability looks like `MON:AB|TUE:ABC|FRI:C`.
   - The ID must be exactly 9 digits and pass the checksum; there is no auto-padding.
+  - **Formula protection (reversible escaping, applied to `full_name`, the only free-text field):**
+    - Trigger set `T = { = + - @ TAB CR ' }`. The apostrophe is in T so the escaping stays reversible.
+    - **Export:** if the value starts with a character in T, write `'` followed by the value.
+    - **Import:** if the value starts with `'` and its second character is in T, drop exactly that first `'`. Otherwise keep the value verbatim.
+    - **Round trip:** export escapes exactly the values whose first character is in T. Each escaped value is `'` plus a character in T, which import unescapes. An unescaped value never starts with `'`, since `'` is in T, so import leaves it alone. So `import(export(x)) = x` for every name, including names that begin with an apostrophe.
+    - **Hand-typed files:** a lone apostrophe before a non-trigger (`'Neil`) is kept verbatim. `''Neil` or `'=x` is read as escaped. The README documents this.
+    - All other exported fields are validated (digits, enums, non-negative numbers) and cannot start with a trigger. Export asserts this.
+  - **Limits:** 1 MB (1,048,576 bytes) per file and 5,000 data rows. The header and blank lines do not count.
+    - **Bytes, enforced while reading:**
+      - `POST /imports` takes the raw CSV body (`Content-Type: text/csv`), not multipart. The handler reads `request.stream()` in chunks and counts bytes.
+      - A `Content-Length` over the limit is rejected before reading. A stream that goes past the limit is aborted at once, with 413 `FILE_TOO_LARGE`.
+      - Reason: with multipart, Starlette parses the whole body before the handler runs, so a check inside the handler is too late. Verify this against the pinned Starlette version in T6. If that version supports a streaming limit, multipart can stay.
+      - nginx `client_max_body_size 2m` is an outer backstop only.
+    - **Rows, enforced during parsing:** `csv.reader` counts data rows as it iterates and stops at row 5,001 with 413 `TOO_MANY_ROWS`. Nothing is stored.
+    - **Decoding:** UTF-8, with an optional BOM, strict. Invalid bytes return 400 `INVALID_ENCODING`.
 - **P15 Estimated costs:**
   - Cost of an assignment = 8 h × the worker's hourly rate from the contract resolved for the roster's month.
   - Shown per shift, per worker and as a monthly total, labelled "estimated". Premiums (night, weekend, overtime) are not modelled.
@@ -463,8 +558,10 @@ Tests assert totals and invariants, never exact assignments (except where fixed 
 Every route is under `/api`. Errors use one shape, `{"error":{"code","message","details"}}`, with these statuses:
 - 400, 401, 403, 404
 - 409: `VERSION_CONFLICT`, `STALE_PREVIEW`, `ALREADY_CONFIRMED`, `WORKER_IN_USE`, `APPROVED_EDIT_NOT_ACKNOWLEDGED`
-- 422: validation, a hard violation (with a violations list), or `LOCKED_SHIFT`
-- 429
+- 413: `FILE_TOO_LARGE`, `TOO_MANY_ROWS`
+- 422: validation, a hard violation (with a violations list), `HARD_VIOLATIONS` on approve, or `LOCKED_SHIFT`
+- 429: `GENERATION_IN_PROGRESS`
+- 500: `ENGINE_ERROR` (engine error, unexpected INFEASIBLE, crashed process pool). Nothing is persisted.
 
 **Shared API contract:**
 - The Pydantic schemas in `app/api_schemas/` are written in T0 for the vertical-slice endpoints: meta, the generate outcome, save, and roster read.
@@ -486,7 +583,7 @@ Every route is under `/api`. Errors use one shape, `{"error":{"code","message","
 - `POST /workers/{id}/contracts/preview` and `POST /workers/{id}/contracts` (with the preview fingerprint) share the change-set service with CSV.
 
 **CSV**
-- `POST /imports` (multipart) returns the preview: each row classified NEW, UNCHANGED, CHANGED or INVALID with errors; old/new diffs; effective month; affected rosters; and an `invalidates_approved` flag.
+- `POST /imports` (raw `text/csv` body, streamed with byte and row limits; P14) returns the preview: each row classified NEW, UNCHANGED, CHANGED or INVALID with errors; old/new diffs; effective month; affected rosters; and an `invalidates_approved` flag.
 - `GET /imports/{id}`.
 - `POST /imports/{id}/confirm` with `{decisions:{national_id: APPROVE|SKIP}}`.
 - `GET /exports/workers.csv?month=`.
@@ -523,7 +620,7 @@ Invalid and skipped rows are never applied. Valid ones are unaffected by them.
   - Every one is checked under P10, including adjacency against neighbor months.
   - A move runs in one transaction: remove plus add, checked together. On failure nothing changes.
 - `GET /rosters/{month}/suggestions?date=&shift=&role=` returns candidates. An apply is just the add endpoint, revalidated.
-- `POST /rosters/{month}/approve` (MANAGER) takes `{expected_version, acknowledge_warnings, reason}`.
+- `POST /rosters/{month}/approve` (MANAGER) takes `{expected_version, acknowledge_warnings, reason, warnings_fingerprint}` (P11).
 - `GET /meta` returns shifts, roles and demand.
 
 **Suggestions** (`rosters/suggestions.py`, pure, takes a Problem plus assignments):
@@ -566,13 +663,29 @@ Commits should be small and coherent. ★ marks a review checkpoint. The first m
 | T0 | Skeleton and shared contracts | compose, Dockerfiles, `app/main,config,db,errors`, `scheduling/types.py` (Assignment with role, Violation with key/magnitude, Problem, results; frozen), `app/api_schemas/` for the slice endpoints, OpenAPI export plus TS type generation, frontend scaffold | §2, §4.2, §4.5, §4.6, §6 | A clean `docker compose up` gives a healthy `/api/health` and serves the frontend. The error-shape test passes. The OpenAPI file is committed and the generated TS types compile |
 | T1 | Scheduling engine | `app/scheduling/`, `tests/scheduling/`, `bench/` | §4 | All tests in §4.9 pass; the benchmark table (§4.8) is produced from the actual model |
 | T2 | DB schema, auth and seed | `alembic/`, `app/*/models.py`, `app/auth/`, seed (users plus sample workers/contracts) | §3, P12 | Migration from empty works. The immutability trigger rejects UPDATE/DELETE. Constraint tests cover the ID regex, min≤max and unique month. Login/me/logout work; `require_role` returns 403. The seed is idempotent |
-| T3 | Roster slice backend | `app/contracts/` resolution (read path), `app/rosters/{problem_builder,evaluation,generation,save,costs}.py`, `approval.revoke` | §3, §4.2, §4.5, §4.6, §6 rosters, P3, P4, P15 | Resolution: past, current and future months, same-month supersede, no contract. Problem builder: inactive, no contract, `free_from` from a frozen clock (before midnight, mid-shift, exactly at a shift start), fixed from stored started shifts, neighbor-month assignments. Generate returns each outcome type, and a failure never persists. Save: fingerprint mismatch gives 409, including a shift that started between generate and save; a changed started shift gives 422 `LOCKED_SHIFT`; replace needs the flag and version; new hard violations give 422, while existing ones in locked shifts do not. Costs: per shift/worker/month, missing contract counted as unknown, `Decimal` rounding. The busy guard returns 429 |
+| T3 | Roster slice backend | `app/contracts/` resolution (read path), `app/rosters/{problem_builder,evaluation,generation,save,costs}.py`, `approval.revoke` | §3, §4.2, §4.5, §4.6, §6 rosters, P3, P4, P15 | Resolution: past, current and future months, same-month supersede, no contract. Problem builder: inactive, no contract, `free_from` from a frozen clock (before midnight, mid-shift, exactly at a shift start), fixed from stored started shifts, neighbor-month assignments. Generate returns each outcome type, and a failure never persists. Save: fingerprint mismatch gives 409, including a shift that started between generate and save; a changed started shift gives 422 `LOCKED_SHIFT`; replace needs the flag and version; new hard violations give 422, while existing ones in locked shifts do not. Costs: per shift/worker/month, missing contract counted as unknown, `Decimal` rounding. The busy guard returns 429 and is released after success, error and cancellation. Mocked INFEASIBLE gives 500 `ENGINE_ERROR`, and the existing roster is unchanged. Pool recovery: a mocked `BrokenProcessPool` gives 500 `ENGINE_ERROR`, and the next generation succeeds on a new executor. Two callers that fail on the same broken executor cause exactly one replacement (identity check). Warm-up runs in the child and imports `ortools`; a warm-up failure shows as `engine: not_ready` on `/api/health` |
 | T4 | Frontend slice | `frontend/src/{api,auth,layout,errors}`, `frontend/src/features/roster` (read, generate, save) | §6 contract, §7 | Generated types compile. Login and the 401 redirect work. The error mapper has a unit test. Manual walkthrough on seeded data: pick a month → generate → grid shows assignments, gaps, shortfalls and costs → save as draft |
 | ★M1 | Vertical slice works end to end on a clean `docker compose up` | | | |
 | T5 | Workers, contract versions and change-set service (backend and UI) | `app/workers/`, `app/contracts/` (write path), `app/changes/`, `frontend/src/features/workers` | §6, P1, P2, P5, P6, P7 | Israeli-ID checksum valid/invalid cases. CRUD and the 409 on in-use delete. A version-conflict test. Contract change impact lists the affected rosters. Apply keeps assignments, sends invalid approved rosters to draft (`CONTRACT_CHANGE`) and keeps the revoked approval row. A role/status change does the same with `WORKER_CHANGE`. Stale base gives 409 with nothing applied |
-| T6 | CSV import/export and sample data (backend and UI) | `app/csvio/`, `sample-data/`, `frontend/src/features/imports` | §6 CSV, P8, P9, P13, P14 | Partial success: invalid rows do not block valid ones. Duplicate-in-file handling. Repeated confirm gives 409. Stale gives 409. A confirmed import that invalidates an approved roster sends it to draft with `CONTRACT_CHANGE` and the import id. Round trip: an unmodified export gives all UNCHANGED. Sample CSV of about 23 workers (9 GG, 9 SCR, 5 SUP) covers a full month under the adjacency rule; the shortage file creates supervisor gaps |
+| T6 | CSV import/export and sample data (backend and UI) | `app/csvio/`, `sample-data/`, `frontend/src/features/imports` | §6 CSV, P8, P9, P13, P14 | Partial success: invalid rows do not block valid ones. Duplicate-in-file handling. Repeated confirm gives 409. Stale gives 409. A confirmed import that invalidates an approved roster sends it to draft with `CONTRACT_CHANGE` and the import id. Round trip: an unmodified export gives all UNCHANGED.
+
+Formula protection:
+- names starting with `=`, `+`, `-`, `@`, TAB and CR are exported with a leading `'`
+- names that originally begin with an apostrophe (`'Neil`, `''x`, `'=x`) are exported escaped
+- all of these round-trip to the identical name with status UNCHANGED
+- a hand-typed `'Neil` imports verbatim
+
+Limits:
+- exactly 1 MB is accepted
+- 1 MB + 1 byte gives 413 `FILE_TOO_LARGE`, and the stream is not read past the limit plus one chunk (tested with a counting stream)
+- an oversized `Content-Length` is rejected before reading
+- 5,000 data rows are accepted
+- 5,001 rows give 413 `TOO_MANY_ROWS`, with nothing stored
+- invalid UTF-8 gives 400
+
+Sample data (D5): the sample CSV starts at 23 workers (9 GG, 9 SCR, 5 SUP). An integration test generates a 28-day, a 30-day and a 31-day month from it and requires OPTIMAL with 0 gaps and 0 shortfalls under all constraints (availability, daily limit, adjacency, min/max hours). If it fails, add workers until it passes. The separate shortage fixture creates proven supervisor gaps |
 | T7 | Manual edits and suggestions (backend and UI) | `app/rosters/{edits,suggestions}.py`, roster edit UI | P10, §6 | Add/remove/move valid cases. A failed move leaves the original intact. Rejected edits: a new violation, and a worsened one (same key, higher magnitude). Adjacency is rejected within a day, across days, and across a month boundary against the neighbor roster. Removal is allowed on an invalid roster. Editing an approved roster needs the acknowledgement and goes to draft with history kept. Suggestions: eligibility (including adjacency), ranking, reasons, and an apply that is revalidated |
-| T8 | Approval (backend and UI) | `app/rosters/approval.py`, approval panel | P11, P12 | A planner gets 403 and a manager succeeds. Hard violations give 422. Warnings without an acknowledgement and reason give 422. Approver and time are recorded. Version conflict gives 409 |
+| T8 | Approval (backend and UI) | `app/rosters/approval.py`, approval panel | P11, P12 | A planner gets 403 and a manager succeeds. Hard violations give 422 `HARD_VIOLATIONS` even with `acknowledge_warnings=true` and a reason, including a hard violation in a started shift. Soft shortages without an acknowledgement and reason give 422. Soft shortages with an acknowledgement, a reason and a matching `warnings_fingerprint` are approved, with the snapshot stored. A stale `warnings_fingerprint` gives 409. A roster with no shortages is approved without an acknowledgement. Approver and time are recorded. Version conflict gives 409 |
 | ★M2 | Full submission feature-complete | | | |
 | T9 | End-to-end and README | `README.md`, `tests/e2e/` (httpx against the running stack) | everything | Clean database, compose up, scripted flows pass. README covers architecture, schema, indexes, setup, CSV format, feature value, assumptions, trade-offs and limitations. It also covers the scheduling design, including the weight derivation, the timeout limitations and the benchmark results. The adjacency rule is described as a product decision, and costs as estimates |
 | ★M3 | Final | | | |
@@ -616,8 +729,30 @@ Backend tests run with pytest against a Postgres test database in compose, with 
 - **C3 Workers not in the engine input:** the engine reports them as `UNKNOWN_WORKER`. The application maps that to `NO_CONTRACT_FOR_MONTH`. No engine change.
 
 ## 12. Decisions needed from you
-- **D1 Repository location.** This plan is saved at `/Users/koz/docs/plans/application.md`. Recommendation: a new git repo `/Users/koz/icts-rostering` with the plan moved to its `docs/plans/application.md`.
-- **D2** Confirm or change policies P1–P15. The riskiest are P2 (retroactive changes), P3 (history and locked shifts), P6 (delete), P11 (warning approval) and P12 (permissions).
-- **D4** Seeded demo credentials, and whether the README may list them plainly.
-- **D5** Sample data size: about 23 workers so a full month is covered at 2/2/1 demand under the adjacency rule (verify with the benchmark generator), plus a separate shortage file.
-- **D7** Name the two selected additional features, so §10 and the README can list them explicitly.
+**Resolved**
+- **D1 Repository:** https://github.com/LinaKoz/ICTS, cloned to `/Users/koz/icts-rostering`. The plan lives at `docs/plans/application.md`.
+- **D4 Demo credentials:** option (b). Environment configuration, with demo defaults in `.env.example` and the credentials documented. See §2 for details.
+- **D5 Sample data:** start with 23 workers (9 GG, 9 SCR, 5 SUP) and verify feasibility under all constraints with the T6 integration test. Add workers if it fails. The shortage fixture stays separate.
+- **Finding 8 (process pool):** approved. `spawn`, a warm-up that imports the solver, coordinated pool replacement, and the guard released in `finally` (§2, T3).
+- **Finding 9 (CSV):** approved. Reversible formula escaping, a 1 MB limit enforced while reading, and a 5,000-row limit enforced while parsing (P14, T6).
+
+**D2 policies: status**
+- **Accepted:** P2 (retroactive changes), P3 (history lock and locked shifts), P6 (delete), P12 (two roles), P15 (estimated costs).
+- **Accepted with clarification:** P11. Only soft shortages can be acknowledged; hard violations never can.
+- **Shaped by earlier decisions but not yet confirmed as a whole:**
+  - P7: status/role changes revalidate and revoke approval; the detailed preview is deferred.
+  - P10: repair rule using keys and magnitudes.
+- **Not yet reviewed:**
+  - P1: same-month revisions supersede by `version_no`.
+  - P4: an active worker without a contract is excluded from the engine and suggestions, and is flagged.
+  - P5: identical data creates no new version.
+  - P8: duplicate IDs in one file make every such row INVALID.
+  - P9: a repeated confirm returns 409 with the stored result.
+  - P13: export picks the version effective for the month, otherwise the next future version.
+  - P14: CSV format, exactly 9 digits with no auto-padding. The escaping and limits are approved.
+
+**Open**
+- **D7 Two additional features:** the assignment brief was found locally. The choice stays open until you decide.
+- **D8 Hard violations in started shifts:**
+  - A retroactive change can create hard violations in shifts that have already started, and these block approval (P11).
+  - Decide how they are resolved: correct the contract, allow editing or removing past assignments, or approve the future part only.
