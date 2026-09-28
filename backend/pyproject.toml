@@ -13,6 +13,9 @@ dependencies = [
     "ortools>=9.11,<10.0",
     "pydantic>=2.9,<3.0",
     "pydantic-settings>=2.5,<3.0",
+    "passlib[bcrypt]>=1.7,<2.0",
+    "bcrypt>=4.0,<4.1",  # passlib 1.7's bcrypt backend probe breaks on bcrypt>=4.1
+    "itsdangerous>=2.2,<3.0",
 ]
 
 [project.optional-dependencies]

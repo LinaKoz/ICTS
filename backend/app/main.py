@@ -2,8 +2,7 @@
 
 Startup (§2): `alembic upgrade head`, then an idempotent seed, then
 uvicorn. This module implements the lifespan that does the first two
-steps (as documented stubs pending T2) and warms up the engine pool
-(§2 "Generation execution").
+steps and warms up the engine pool (§2 "Generation execution").
 """
 from __future__ import annotations
 
@@ -13,34 +12,29 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+import app.models  # noqa: F401  (registers every table on Base.metadata)
+from app.auth.router import router as auth_router
 from app.config import settings
-from app.db import dispose_engine
+from app.db import async_session_factory, dispose_engine
 from app.engine_pool import engine_pool
 from app.errors import register_exception_handlers
 from app.routers.meta import router as meta_router
+from app.seed import seed
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=settings.log_level)
 
 
 def _run_migrations() -> None:
-    """Runs `alembic upgrade head`. TODO(T2): populated once
-    `alembic/` and the models exist; a missing alembic.ini is a no-op
-    for now so T0's skeleton can start against an empty database."""
-    try:
-        subprocess.run(["alembic", "upgrade", "head"], check=True, cwd="/app")
-    except FileNotFoundError:
-        logger.warning("alembic not available yet; skipping migrations (T2 pending)")
-    except subprocess.CalledProcessError:
-        logger.exception("alembic upgrade head failed")
-        raise
+    """Runs `alembic upgrade head`."""
+    subprocess.run(["alembic", "upgrade", "head"], check=True, cwd="/app")
 
 
 async def _seed() -> None:
-    """Idempotent seed: creates demo users, and if the workers table is
-    empty, loads sample-data/workers.csv and contracts (§2). TODO(T2):
-    implement against real models; currently a documented no-op."""
-    logger.info("seed stub: no models yet (T2 pending)")
+    """Idempotent seed: creates demo users, and if `workers` is empty,
+    a small sample of workers and contracts (§2, §8 T2)."""
+    async with async_session_factory() as session:
+        await seed(session)
 
 
 @asynccontextmanager
@@ -63,6 +57,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="ICTS Rostering API", version="0.1.0", lifespan=lifespan)
 register_exception_handlers(app)
 app.include_router(meta_router)
+app.include_router(auth_router)
 
 
 @app.get("/api/health")
