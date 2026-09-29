@@ -4,17 +4,22 @@ import { ErrorPanel } from '../../errors/ErrorPanel'
 import { ApiError } from '../../errors/ApiError'
 import type { Role, WorkerOut, WorkerStatus } from '../../api/schemas'
 import { useCreateWorker, useDeleteWorker, useUpdateWorker, useWorkers, type WorkerFilters } from './api'
-import { fieldErrors, isWorkerInUse } from './logic'
+import { fieldErrors, isWorkerInUse, validateWorkerForm } from './logic'
 import { ROLES, roleLabel } from './labels'
 
 function CreateWorkerForm({ onDone }: { onDone: () => void }) {
   const create = useCreateWorker()
   const [form, setForm] = useState({ national_id: '', full_name: '', role: 'GENERAL_GUARD' as Role, status: 'ACTIVE' as WorkerStatus })
-  const errors = fieldErrors(create.error)
-  const otherError = create.isError && Object.keys(errors).length === 0
+  const [showErrors, setShowErrors] = useState(false)
+  const serverErrors = fieldErrors(create.error)
+  const clientErrors = validateWorkerForm(form)
+  const errors = { ...serverErrors, ...(showErrors ? clientErrors : {}) }
+  const otherError = create.isError && Object.keys(serverErrors).length === 0
 
   function submit(e: FormEvent) {
     e.preventDefault()
+    setShowErrors(true)
+    if (Object.keys(clientErrors).length > 0) return
     create.mutate({ ...form, national_id: form.national_id.trim(), full_name: form.full_name.trim() }, { onSuccess: onDone })
   }
   const err = (f: string) => errors[f] && <span className="field-error" role="alert">{errors[f]}</span>
@@ -53,7 +58,21 @@ function WorkerRow({ w, onDelete, deleting }: { w: WorkerOut; onDelete: (w: Work
       <td>{roleLabel(w.role)}</td>
       <td><span className={`badge ${w.status === 'ACTIVE' ? 'badge-approved' : ''}`}>{w.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></td>
       <td>{c ? `₪${c.hourly_rate_ils}/h · ${c.min_hours}-${c.max_hours} h` : <span className="muted">no contract</span>}</td>
-      <td className="actions-cell"><button disabled={deleting} onClick={() => onDelete(w)}>Delete</button></td>
+      <td className="actions-cell"><button
+        className="icon-btn"
+        disabled={deleting}
+        onClick={() => onDelete(w)}
+        aria-label={`Delete ${w.full_name}`}
+        title="Delete"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 6h18" />
+          <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+        </svg>
+      </button></td>
     </tr>
   )
 }
@@ -116,10 +135,12 @@ export function WorkersPage() {
       {workers.isError && <ErrorPanel error={workers.error} onRetry={() => workers.refetch()} />}
       {workers.data && (
         workers.data.length === 0 ? <p className="muted">No workers match.</p> : (
-          <table className="table">
-            <thead><tr><th>Name</th><th>National ID</th><th>Role</th><th>Status</th><th>Contract (this month)</th><th /></tr></thead>
-            <tbody>{workers.data.map((w) => <WorkerRow key={w.id} w={w} onDelete={remove} deleting={del.isPending} />)}</tbody>
-          </table>
+          <div className="table-scroll">
+            <table className="table">
+              <thead><tr><th>Name</th><th>National ID</th><th>Role</th><th>Status</th><th>Contract (this month)</th><th /></tr></thead>
+              <tbody>{workers.data.map((w) => <WorkerRow key={w.id} w={w} onDelete={remove} deleting={del.isPending} />)}</tbody>
+            </table>
+          </div>
         )
       )}
       {workers.isFetching && !workers.isPending && <p className="muted" aria-live="polite">Updating…</p>}

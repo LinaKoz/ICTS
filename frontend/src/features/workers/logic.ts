@@ -156,3 +156,26 @@ export function diffPatch(
   if (form.status !== w.status) { patch.status = form.status; dirty = true }
   return dirty ? patch : null
 }
+
+/** Mirrors backend app/workers/national_id.py: 9 ASCII digits plus the Israeli ID checksum. */
+export function nationalIdError(id: string): string | null {
+  if (!/^[0-9]{9}$/.test(id)) {
+    const hint = /^[0-9]+$/.test(id) && id.length < 9 ? ` (got ${id.length}); spreadsheets often drop leading zeros` : ''
+    return `National ID must be exactly 9 digits${hint}`
+  }
+  let total = 0
+  for (let i = 0; i < 9; i++) {
+    const n = Number(id[i]) * (1 + (i % 2))
+    total += n > 9 ? n - 9 : n
+  }
+  return total % 10 === 0 ? null : 'National ID fails the Israeli ID checksum'
+}
+
+/** Client-side check of the worker details form; the server stays authoritative. */
+export function validateWorkerForm(f: { national_id: string; full_name: string }): Record<string, string> {
+  const errors: Record<string, string> = {}
+  const idError = nationalIdError(f.national_id.trim())
+  if (idError) errors.national_id = idError
+  if (f.full_name.trim() === '') errors.full_name = 'Enter the full name'
+  return errors
+}

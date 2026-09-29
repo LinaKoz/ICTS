@@ -4,7 +4,7 @@ import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { ContractOut, Role, WorkerDetailOut, WorkerStatus, WorkerUpdateOut } from '../../api/schemas'
 import { useUpdateWorker, useWorker } from './api'
 import { ContractsSection } from './ContractsSection'
-import { diffPatch, fieldErrors, roleStatusChangeLines } from './logic'
+import { diffPatch, fieldErrors, roleStatusChangeLines, validateWorkerForm } from './logic'
 import { ROLES, roleLabel } from './labels'
 
 function UpdateResult({ result }: { result: WorkerUpdateOut }) {
@@ -33,8 +33,11 @@ function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: 
   const [form, setForm] = useState({ national_id: worker.national_id, full_name: worker.full_name, role: worker.role as Role, status: worker.status as WorkerStatus })
   const [confirming, setConfirming] = useState<string[] | null>(null)
   const patch = diffPatch(worker, form)
-  const errors = fieldErrors(update.error)
-  const otherError = update.isError && Object.keys(errors).length === 0
+  const [showErrors, setShowErrors] = useState(false)
+  const serverErrors = fieldErrors(update.error)
+  const clientErrors = validateWorkerForm(form)
+  const errors = { ...serverErrors, ...(showErrors ? clientErrors : {}) }
+  const otherError = update.isError && Object.keys(serverErrors).length === 0
 
   function save() {
     if (!patch) return
@@ -45,6 +48,8 @@ function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: 
   function submit(e: FormEvent) {
     e.preventDefault()
     if (!patch) return
+    setShowErrors(true)
+    if (Object.keys(clientErrors).length > 0) return
     const lines = roleStatusChangeLines(worker, patch)
     if (lines.length > 0) setConfirming(lines)
     else save()
@@ -112,19 +117,17 @@ function History({ worker }: { worker: WorkerDetailOut }) {
   )
 }
 
-export function WorkerDetailPage() {
-  const id = Number(useParams().id)
+/** The worker's details, status/role history and contracts. Used as a page and inside the roster's worker dialog. */
+export function WorkerDetail({ id, embedded = false }: { id: number; embedded?: boolean }) {
   const worker = useWorker(id)
   const [result, setResult] = useState<WorkerUpdateOut | null>(null)
-  if (!Number.isInteger(id)) return <p>Unknown worker.</p>
   return (
     <div>
-      <p><Link to="/workers">Back to workers</Link></p>
       {worker.isPending && <div className="skeleton" aria-busy="true" />}
       {worker.isError && <ErrorPanel error={worker.error} onRetry={() => worker.refetch()} />}
       {worker.data && (
         <>
-          <h2 className="page-title">{worker.data.full_name} <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : ''}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></h2>
+          {!embedded && <h2 className="page-title">{worker.data.full_name} <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : ''}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></h2>}
           {/* keyed by version so a reload after a conflict resets the form to the stored values */}
           <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} />
           {result && <UpdateResult result={result} />}
@@ -132,6 +135,17 @@ export function WorkerDetailPage() {
           <ContractsSection workerId={id} currentContract={worker.data.current_contract as ContractOut | null} />
         </>
       )}
+    </div>
+  )
+}
+
+export function WorkerDetailPage() {
+  const id = Number(useParams().id)
+  if (!Number.isInteger(id)) return <p>Unknown worker.</p>
+  return (
+    <div>
+      <p><Link to="/workers">Back to workers</Link></p>
+      <WorkerDetail id={id} />
     </div>
   )
 }

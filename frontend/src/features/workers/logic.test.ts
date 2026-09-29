@@ -3,7 +3,7 @@ import { ApiError } from '../../errors/ApiError'
 import type { AffectedRosterOut } from '../../api/schemas'
 import {
   availabilitySummary, diffPatch, fieldErrors, formFromContract, isStalePreview, isWorkerInUse, lockedViolationWarnings,
-  normalizeAvailability, previewHeadline, rosterEffect, roleStatusChangeLines, toContractInput, toggleToken, validateContractForm,
+  nationalIdError, normalizeAvailability, previewHeadline, rosterEffect, roleStatusChangeLines, toContractInput, toggleToken, validateContractForm, validateWorkerForm,
 } from './logic'
 
 const roster = (over: Partial<AffectedRosterOut> = {}): AffectedRosterOut => ({
@@ -114,5 +114,30 @@ describe('worker edits', () => {
     expect(roleStatusChangeLines(w, { full_name: 'x' } as never)).toEqual([])
     expect(roleStatusChangeLines(w, { status: 'INACTIVE' })).toEqual(['Status active to inactive'])
     expect(roleStatusChangeLines(w, { status: 'ACTIVE', role: 'SUPERVISOR' })).toEqual(['Role general guard to supervisor'])
+  })
+})
+
+describe('nationalIdError', () => {
+  it('accepts a valid Israeli ID', () => {
+    expect(nationalIdError('000000018')).toBeNull()
+    expect(nationalIdError('111111118')).toBeNull()
+  })
+  it('rejects wrong length and non-digits, hinting at dropped zeros', () => {
+    expect(nationalIdError('')).toMatch(/exactly 9 digits/)
+    expect(nationalIdError('12345678')).toMatch(/got 8.*leading zeros/)
+    expect(nationalIdError('12345678a')).not.toMatch(/leading zeros/)
+    expect(nationalIdError('1234567890')).toMatch(/exactly 9 digits/)
+  })
+  it('rejects a bad checksum', () => {
+    expect(nationalIdError('123456789')).toMatch(/checksum/)
+  })
+})
+
+describe('validateWorkerForm', () => {
+  it('returns no errors for a valid form and trims input', () => {
+    expect(validateWorkerForm({ national_id: ' 000000018 ', full_name: ' Alice ' })).toEqual({})
+  })
+  it('flags a bad ID and blank name', () => {
+    expect(Object.keys(validateWorkerForm({ national_id: '123', full_name: '  ' })).sort()).toEqual(['full_name', 'national_id'])
   })
 })

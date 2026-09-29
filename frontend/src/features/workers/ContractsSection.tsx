@@ -121,7 +121,7 @@ function NewVersionForm({ workerId, base, onApplied }: { workerId: number; base:
 
   const err = (f: string) => errors[f] && <span className="field-error" role="alert">{errors[f]}</span>
   const apiError = (previewMut.error ?? applyMut.error) as unknown
-  const showApiError = apiError && Object.keys(serverErrors).length === 0 && !isStalePreview(apiError)
+  const showApiError = Boolean(apiError) && Object.keys(serverErrors).length === 0 && !isStalePreview(apiError)
 
   return (
     <section className="panel form" aria-label="New contract version">
