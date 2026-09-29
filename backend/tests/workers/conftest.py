@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.errors import register_exception_handlers
-from tests.rosters.conftest import PASSWORD, seed_login_user
+from tests.rosters.conftest import PASSWORD, make_duo, seed_login_user
 
 TZ = ZoneInfo("Asia/Jerusalem")
 DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
@@ -21,6 +21,8 @@ DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 def make_app() -> FastAPI:
     import app.models  # noqa: F401  (registers every table, as app.main does)
     from app.auth.router import router as auth_router
+    from app.rosters.approval import router as approval_router
+    from app.rosters.edits import router as edits_router
     from app.rosters.router import router as rosters_router
     from app.workers.router import router as workers_router
 
@@ -29,6 +31,8 @@ def make_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(rosters_router)
     app.include_router(workers_router)
+    app.include_router(edits_router)
+    app.include_router(approval_router)
     return app
 
 
@@ -39,6 +43,11 @@ def planner(db):
     with TestClient(make_app()) as client:
         assert client.post("/api/auth/login", json={"username": "planner", "password": PASSWORD}).status_code == 200
         yield client, user_id
+
+
+@pytest.fixture()
+def duo(db):
+    yield from make_duo(db, make_app())
 
 
 @pytest.fixture()

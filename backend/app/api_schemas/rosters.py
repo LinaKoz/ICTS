@@ -67,12 +67,31 @@ class SaveResponseOut(BaseModel):
     status: Literal["DRAFT", "APPROVED"]
 
 
+class AcknowledgedWarningsOut(BaseModel):
+    """The soft shortages a manager acknowledged (P11), frozen at approval time."""
+
+    warnings_fingerprint: str
+    coverage_gaps: list[CoverageGapOut]
+    hour_shortfalls: list[HourShortfallOut]
+
+
 class ApprovalEventOut(BaseModel):
+    """One approval and, if it ended, its revocation (audit trail, bonus 1).
+
+    `approved_by` / `revoked_by` are user display names. The history is
+    ordered oldest first (approved_at, id).
+    """
+
     approved_by: str
     approved_at: str
     reason: str | None
     revoked_at: str | None
-    revoke_cause: Literal["EDIT", "REGENERATE", "CONTRACT_CHANGE", "WORKER_CHANGE"] | None
+    revoke_cause: Literal["EDIT", "REGENERATE", "CONTRACT_CHANGE", "WORKER_CHANGE", "MANUAL"] | None
+    id: int
+    roster_version: int  # the roster's row_version when it was approved
+    acknowledged_warnings: AcknowledgedWarningsOut | None = None  # None when approved with no shortages
+    revoke_ref: str | None = None  # contract_version:{id}, worker:{id}, import:{id}; None for EDIT/REGENERATE/MANUAL
+    revoked_by: str | None = None
 
 
 class RosterOut(BaseModel):

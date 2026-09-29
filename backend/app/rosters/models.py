@@ -19,7 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 ROSTER_STATUSES = ("DRAFT", "APPROVED")
-REVOKE_CAUSES = ("EDIT", "REGENERATE", "CONTRACT_CHANGE", "WORKER_CHANGE")
+REVOKE_CAUSES = ("EDIT", "REGENERATE", "CONTRACT_CHANGE", "WORKER_CHANGE", "MANUAL")
 
 
 class Roster(Base):
@@ -62,7 +62,7 @@ class RosterApproval(Base):
     __tablename__ = "roster_approvals"
     __table_args__ = (
         CheckConstraint(
-            "revoke_cause IN ('EDIT', 'REGENERATE', 'CONTRACT_CHANGE', 'WORKER_CHANGE') OR revoke_cause IS NULL",
+            "revoke_cause IN ('EDIT', 'REGENERATE', 'CONTRACT_CHANGE', 'WORKER_CHANGE', 'MANUAL') OR revoke_cause IS NULL",
             name="ck_roster_approvals_revoke_cause",
         ),
         Index("ix_roster_approvals_roster_approved_at", "roster_id", text("approved_at DESC")),

@@ -283,6 +283,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rosters/{month}/approval-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Approval Preview
+         * @description The hard violations and soft shortages approval would face, and the
+         *     fingerprint to send back with the acknowledgement.
+         */
+        get: operations["approval_preview_api_rosters__month__approval_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_rosters__month__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Approval
+         * @description Manager revokes the current approval by hand (cause MANUAL); the roster returns to DRAFT.
+         */
+        post: operations["revoke_approval_api_rosters__month__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -304,6 +362,18 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AcknowledgedWarningsOut
+         * @description The soft shortages a manager acknowledged (P11), frozen at approval time.
+         */
+        AcknowledgedWarningsOut: {
+            /** Warnings Fingerprint */
+            warnings_fingerprint: string;
+            /** Coverage Gaps */
+            coverage_gaps: components["schemas"]["CoverageGapOut"][];
+            /** Hour Shortfalls */
+            hour_shortfalls: components["schemas"]["HourShortfallOut"][];
+        };
         /** AddAssignmentRequest */
         AddAssignmentRequest: {
             /** Worker Id */
@@ -357,7 +427,13 @@ export interface components {
             /** Revokes Approval */
             revokes_approval: boolean;
         };
-        /** ApprovalEventOut */
+        /**
+         * ApprovalEventOut
+         * @description One approval and, if it ended, its revocation (audit trail, bonus 1).
+         *
+         *     `approved_by` / `revoked_by` are user display names. The history is
+         *     ordered oldest first (approved_at, id).
+         */
         ApprovalEventOut: {
             /** Approved By */
             approved_by: string;
@@ -368,7 +444,68 @@ export interface components {
             /** Revoked At */
             revoked_at: string | null;
             /** Revoke Cause */
-            revoke_cause: ("EDIT" | "REGENERATE" | "CONTRACT_CHANGE" | "WORKER_CHANGE") | null;
+            revoke_cause: ("EDIT" | "REGENERATE" | "CONTRACT_CHANGE" | "WORKER_CHANGE" | "MANUAL") | null;
+            /** Id */
+            id: number;
+            /** Roster Version */
+            roster_version: number;
+            acknowledged_warnings?: components["schemas"]["AcknowledgedWarningsOut"] | null;
+            /** Revoke Ref */
+            revoke_ref?: string | null;
+            /** Revoked By */
+            revoked_by?: string | null;
+        };
+        /**
+         * ApprovalPreviewOut
+         * @description What approving would need right now, computed from current data.
+         */
+        ApprovalPreviewOut: {
+            /** Version */
+            version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "APPROVED";
+            /** Is History */
+            is_history: boolean;
+            /** Hard Violations */
+            hard_violations: components["schemas"]["ViolationOut"][];
+            /** Coverage Gaps */
+            coverage_gaps: components["schemas"]["CoverageGapOut"][];
+            /** Hour Shortfalls */
+            hour_shortfalls: components["schemas"]["HourShortfallOut"][];
+            /** Warnings Fingerprint */
+            warnings_fingerprint: string;
+            /** Requires Acknowledgement */
+            requires_acknowledgement: boolean;
+            /** Can Approve */
+            can_approve: boolean;
+        };
+        /** ApprovalResultOut */
+        ApprovalResultOut: {
+            /** Version */
+            version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "APPROVED";
+            event: components["schemas"]["ApprovalEventOut"];
+        };
+        /** ApproveRequest */
+        ApproveRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Acknowledge Warnings
+             * @default false
+             */
+            acknowledge_warnings: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Warnings Fingerprint */
+            warnings_fingerprint?: string | null;
         };
         /** AssignmentOut */
         AssignmentOut: {
@@ -831,6 +968,11 @@ export interface components {
              */
             acknowledge_approved_edit: boolean;
         };
+        /** RevokeRequest */
+        RevokeRequest: {
+            /** Expected Version */
+            expected_version: number;
+        };
         /**
          * Role
          * @enum {string}
@@ -1205,7 +1347,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1308,7 +1450,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1389,7 +1531,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1398,7 +1540,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1457,7 +1599,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1518,7 +1660,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1580,7 +1722,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1589,7 +1731,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1651,7 +1793,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1703,7 +1845,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1754,7 +1896,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1812,7 +1954,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1868,7 +2010,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1877,7 +2019,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1939,7 +2081,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1948,7 +2090,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2007,7 +2149,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2079,7 +2221,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2088,7 +2230,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2161,7 +2303,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2170,7 +2312,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2243,7 +2385,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2252,7 +2394,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2324,7 +2466,210 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    approval_preview_api_rosters__month__approval_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalPreviewOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    approve_api_rosters__month__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalResultOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    revoke_approval_api_rosters__month__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalResultOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
             422: {
                 headers: {
                     [name: string]: unknown;
