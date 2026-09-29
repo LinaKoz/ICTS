@@ -208,6 +208,81 @@ export interface paths {
         patch: operations["update_worker_api_workers__worker_id__patch"];
         trace?: never;
     };
+    "/api/rosters/{month}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Assignments
+         * @description Stored assignments with their ids (the ids `DELETE`/`move` address).
+         */
+        get: operations["list_assignments_api_rosters__month__assignments_get"];
+        put?: never;
+        /** Add Assignment */
+        post: operations["add_assignment_api_rosters__month__assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Assignment */
+        delete: operations["remove_assignment_api_rosters__month__assignments__assignment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/assignments/{assignment_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move Assignment
+         * @description Remove + add, checked together; on failure nothing changes.
+         */
+        post: operations["move_assignment_api_rosters__month__assignments__assignment_id__move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Suggestions */
+        get: operations["get_suggestions_api_rosters__month__suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -229,6 +304,33 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddAssignmentRequest */
+        AddAssignmentRequest: {
+            /** Worker Id */
+            worker_id: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Acknowledge Approved Edit
+             * @default false
+             */
+            acknowledge_approved_edit: boolean;
+        };
         /** AffectedRosterOut */
         AffectedRosterOut: {
             /** Month */
@@ -488,6 +590,44 @@ export interface components {
             /** Headcount */
             headcount: number;
         };
+        /** EditResultOut */
+        EditResultOut: {
+            /** Version */
+            version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "APPROVED";
+            /** Approval Revoked */
+            approval_revoked: boolean;
+            assignment?: components["schemas"]["EditableAssignmentOut"] | null;
+        };
+        /**
+         * EditableAssignmentOut
+         * @description A stored assignment with its row id (the edit endpoints address it).
+         */
+        EditableAssignmentOut: {
+            /** Id */
+            id: number;
+            /** Worker Id */
+            worker_id: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+        };
         /** ErrorBodyOut */
         ErrorBodyOut: {
             /** Code */
@@ -649,6 +789,27 @@ export interface components {
             /** Total Shortfall */
             total_shortfall: number;
         };
+        /**
+         * MoveAssignmentRequest
+         * @description Target slot; any field left out keeps the source's value.
+         */
+        MoveAssignmentRequest: {
+            /** Worker Id */
+            worker_id?: string | null;
+            /** Date */
+            date?: string | null;
+            /** Shift */
+            shift?: ("A" | "B" | "C") | null;
+            /** Role */
+            role?: ("GENERAL_GUARD" | "SCREENER" | "SUPERVISOR") | null;
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Acknowledge Approved Edit
+             * @default false
+             */
+            acknowledge_approved_edit: boolean;
+        };
         /** ObjectiveOut */
         ObjectiveOut: {
             /** Weight */
@@ -660,6 +821,21 @@ export interface components {
             /** Bound */
             bound: number;
         };
+        /** RemoveAssignmentRequest */
+        RemoveAssignmentRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Acknowledge Approved Edit
+             * @default false
+             */
+            acknowledge_approved_edit: boolean;
+        };
+        /**
+         * Role
+         * @enum {string}
+         */
+        Role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
         /** RosterOut */
         RosterOut: {
             /**
@@ -735,6 +911,11 @@ export interface components {
              */
             status: "DRAFT" | "APPROVED";
         };
+        /**
+         * Shift
+         * @enum {string}
+         */
+        Shift: "A" | "B" | "C";
         /** ShiftCostOut */
         ShiftCostOut: {
             /**
@@ -751,6 +932,48 @@ export interface components {
             amount_ils: string;
             /** Unknown Cost Assignments */
             unknown_cost_assignments: number;
+        };
+        /** SuggestionOut */
+        SuggestionOut: {
+            /** Worker Id */
+            worker_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Assigned Hours */
+            assigned_hours: number;
+            /** Min Hours */
+            min_hours: number;
+            /** Hours Below Minimum */
+            hours_below_minimum: number;
+            /** Shifts That Day */
+            shifts_that_day: number;
+            /** Reasons */
+            reasons: string[];
+        };
+        /** SuggestionsOut */
+        SuggestionsOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /**
+             * Slot State
+             * @enum {string}
+             */
+            slot_state: "OPEN" | "FILLED" | "LOCKED";
+            /** Candidates */
+            candidates: components["schemas"]["SuggestionOut"][];
         };
         /** UserOut */
         UserOut: {
@@ -1718,6 +1941,382 @@ export interface operations {
             };
             /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    list_assignments_api_rosters__month__assignments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditableAssignmentOut"][];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    add_assignment_api_rosters__month__assignments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResultOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    remove_assignment_api_rosters__month__assignments__assignment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResultOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    move_assignment_api_rosters__month__assignments__assignment_id__move_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResultOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_suggestions_api_rosters__month__suggestions_get: {
+        parameters: {
+            query: {
+                date: string;
+                shift: components["schemas"]["Shift"];
+                role: components["schemas"]["Role"];
+            };
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionsOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

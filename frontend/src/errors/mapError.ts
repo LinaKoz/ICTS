@@ -37,6 +37,14 @@ export function mapError(err: unknown): MappedError {
   if (err.status === 403) {
     return { title: 'Not allowed', message: 'You do not have permission to do this.', presentation: 'panel', action: 'none' }
   }
+  if (err.status === 409 && err.code === 'APPROVED_EDIT_NOT_ACKNOWLEDGED') {
+    return {
+      title: 'Approved roster',
+      message: 'This roster is approved. Editing it returns it to draft and revokes the approval; confirm to continue.',
+      presentation: 'panel',
+      action: 'none',
+    }
+  }
   if (err.status === 409) {
     return {
       title: 'Data changed',

@@ -1,8 +1,8 @@
 import type { AssignmentOut, CoverageGapOut, Role, Shift, ShiftCostOut, WorkerRefOut } from '../../api/schemas'
+import { isLockedShift } from './edit'
 import { ils, nameLookup, shiftCostLookup } from './names'
 
 const ROLE_LABEL: Record<Role, string> = { GENERAL_GUARD: 'GG', SCREENER: 'SCR', SUPERVISOR: 'SUP' }
-const SHIFT_ORDER: Shift[] = ['A', 'B', 'C']
 
 interface Props {
   month: string
@@ -14,15 +14,11 @@ interface Props {
   freeFrom: [string, Shift] | null
   workers: WorkerRefOut[] | null | undefined
   perShiftCosts: ShiftCostOut[] | null | undefined
+  /** When set, assignment chips and open gaps are buttons that open the edit panel. */
+  edit?: { onAssignment: (a: AssignmentOut) => void; onGap: (slot: { date: string; shift: Shift; role: Role }) => void }
 }
 
-function isLocked(date: string, shift: Shift, freeFrom: [string, Shift] | null): boolean {
-  if (!freeFrom) return false
-  if (date !== freeFrom[0]) return date < freeFrom[0]
-  return SHIFT_ORDER.indexOf(shift) < SHIFT_ORDER.indexOf(freeFrom[1])
-}
-
-export function RosterGrid({ month, shifts, roles, demand, assignments, gaps, freeFrom, workers, perShiftCosts }: Props) {
+export function RosterGrid({ month, shifts, roles, demand, assignments, gaps, freeFrom, workers, perShiftCosts, edit }: Props) {
   const nameOf = nameLookup(workers)
   const costOf = shiftCostLookup(perShiftCosts)
   const [y, m] = month.split('-').map(Number) as [number, number]
@@ -51,7 +47,7 @@ export function RosterGrid({ month, shifts, roles, demand, assignments, gaps, fr
               <tr key={date}>
                 <th scope="row">{date.slice(8)} <span className="muted">{dow}</span></th>
                 {shifts.map((s) => {
-                  const locked = isLocked(date, s, freeFrom)
+                  const locked = isLockedShift(date, s, freeFrom)
                   return (
                     <td key={s} className={locked ? 'cell locked' : 'cell'}>
                       {locked && <span className="lock" title="Shift already started">locked</span>}
@@ -62,11 +58,15 @@ export function RosterGrid({ month, shifts, roles, demand, assignments, gaps, fr
                         return (
                           <div key={r} className="slot">
                             <span className="role">{ROLE_LABEL[r]}</span>
-                            {names.map((a) => <span key={a.worker_id} className="chip" title={`Worker #${a.worker_id}`}>{nameOf(a.worker_id)}</span>)}
+                            {names.map((a) => (edit && !locked
+                              ? <button key={a.worker_id} className="chip chip-btn" title="Remove or move" onClick={() => edit.onAssignment(a)}>{nameOf(a.worker_id)}</button>
+                              : <span key={a.worker_id} className="chip" title={`Worker #${a.worker_id}`}>{nameOf(a.worker_id)}</span>))}
                             {missing > 0 && (
                               gap?.locked || locked
                                 ? <span className="chip gap past" title="Uncovered in a shift that already started">past gap ×{missing}</span>
-                                : <span className="chip gap" title="Uncovered position">gap ×{missing}</span>
+                                : edit
+                                  ? <button className="chip gap chip-btn" title="Show suggestions" onClick={() => edit.onGap({ date, shift: s, role: r })}>gap ×{missing}</button>
+                                  : <span className="chip gap" title="Uncovered position">gap ×{missing}</span>
                             )}
                           </div>
                         )

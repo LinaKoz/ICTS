@@ -1075,6 +1075,529 @@
         }
       }
     },
+    "/api/rosters/{month}/assignments": {
+      "get": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "List Assignments",
+        "description": "Stored assignments with their ids (the ids `DELETE`/`move` address).",
+        "operationId": "list_assignments_api_rosters__month__assignments_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EditableAssignmentOut"
+                  },
+                  "title": "Response List Assignments Api Rosters  Month  Assignments Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Add Assignment",
+        "operationId": "add_assignment_api_rosters__month__assignments_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddAssignmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResultOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/assignments/{assignment_id}": {
+      "delete": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Remove Assignment",
+        "operationId": "remove_assignment_api_rosters__month__assignments__assignment_id__delete",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          },
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveAssignmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResultOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/assignments/{assignment_id}/move": {
+      "post": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Move Assignment",
+        "description": "Remove + add, checked together; on failure nothing changes.",
+        "operationId": "move_assignment_api_rosters__month__assignments__assignment_id__move_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          },
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveAssignmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResultOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/suggestions": {
+      "get": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Get Suggestions",
+        "operationId": "get_suggestions_api_rosters__month__suggestions_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Date"
+            }
+          },
+          {
+            "name": "shift",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Shift"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionsOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Health",
@@ -1098,6 +1621,56 @@
   },
   "components": {
     "schemas": {
+      "AddAssignmentRequest": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "title": "Worker Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          },
+          "acknowledge_approved_edit": {
+            "type": "boolean",
+            "title": "Acknowledge Approved Edit",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "date",
+          "shift",
+          "role",
+          "expected_version"
+        ],
+        "title": "AddAssignmentRequest"
+      },
       "AffectedRosterOut": {
         "properties": {
           "month": {
@@ -1820,6 +2393,88 @@
         ],
         "title": "DemandEntry"
       },
+      "EditResultOut": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          },
+          "approval_revoked": {
+            "type": "boolean",
+            "title": "Approval Revoked"
+          },
+          "assignment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EditableAssignmentOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "status",
+          "approval_revoked"
+        ],
+        "title": "EditResultOut"
+      },
+      "EditableAssignmentOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "worker_id",
+          "date",
+          "shift",
+          "role"
+        ],
+        "title": "EditableAssignmentOut",
+        "description": "A stored assignment with its row id (the edit endpoints address it)."
+      },
       "ErrorBodyOut": {
         "properties": {
           "code": {
@@ -2298,6 +2953,81 @@
         ],
         "title": "MinHoursStatusOut"
       },
+      "MoveAssignmentRequest": {
+        "properties": {
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "shift": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "GENERAL_GUARD",
+                  "SCREENER",
+                  "SUPERVISOR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          },
+          "acknowledge_approved_edit": {
+            "type": "boolean",
+            "title": "Acknowledge Approved Edit",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_version"
+        ],
+        "title": "MoveAssignmentRequest",
+        "description": "Target slot; any field left out keeps the source's value."
+      },
       "ObjectiveOut": {
         "properties": {
           "weight": {
@@ -2325,6 +3055,33 @@
           "bound"
         ],
         "title": "ObjectiveOut"
+      },
+      "RemoveAssignmentRequest": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          },
+          "acknowledge_approved_edit": {
+            "type": "boolean",
+            "title": "Acknowledge Approved Edit",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_version"
+        ],
+        "title": "RemoveAssignmentRequest"
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "GENERAL_GUARD",
+          "SCREENER",
+          "SUPERVISOR"
+        ],
+        "title": "Role"
       },
       "RosterOut": {
         "properties": {
@@ -2517,6 +3274,15 @@
         ],
         "title": "SaveResponseOut"
       },
+      "Shift": {
+        "type": "string",
+        "enum": [
+          "A",
+          "B",
+          "C"
+        ],
+        "title": "Shift"
+      },
       "ShiftCostOut": {
         "properties": {
           "date": {
@@ -2550,6 +3316,104 @@
           "unknown_cost_assignments"
         ],
         "title": "ShiftCostOut"
+      },
+      "SuggestionOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "assigned_hours": {
+            "type": "integer",
+            "title": "Assigned Hours"
+          },
+          "min_hours": {
+            "type": "integer",
+            "title": "Min Hours"
+          },
+          "hours_below_minimum": {
+            "type": "integer",
+            "title": "Hours Below Minimum"
+          },
+          "shifts_that_day": {
+            "type": "integer",
+            "title": "Shifts That Day"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "full_name",
+          "assigned_hours",
+          "min_hours",
+          "hours_below_minimum",
+          "shifts_that_day",
+          "reasons"
+        ],
+        "title": "SuggestionOut"
+      },
+      "SuggestionsOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "slot_state": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "FILLED",
+              "LOCKED"
+            ],
+            "title": "Slot State"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestionOut"
+            },
+            "type": "array",
+            "title": "Candidates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "shift",
+          "role",
+          "slot_state",
+          "candidates"
+        ],
+        "title": "SuggestionsOut"
       },
       "UserOut": {
         "properties": {

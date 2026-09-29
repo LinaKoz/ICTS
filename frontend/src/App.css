@@ -64,3 +64,11 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 .availability { width: auto; } .availability th, .availability td { text-align: center; padding: 2px 8px; }
 .preview { display: grid; gap: 4px; }
 .table .badge { margin-left: 6px; }
+.chip-btn { font: inherit; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); }
+.edit-panel h3 { display: flex; justify-content: space-between; align-items: center; }
+.edit-panel label { display: grid; gap: 2px; margin: 6px 0; }
+.edit-panel select, .edit-panel input { width: 100%; }
+.suggestion { border-top: 1px solid var(--border); padding: 6px 0; display: grid; gap: 4px; }
+.suggestion .reasons { font-size: 0.8em; opacity: 0.85; }
+.ack { border: 1px solid #d9a400; border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
