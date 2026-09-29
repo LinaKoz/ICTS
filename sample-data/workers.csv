@@ -1,0 +1,24 @@
+national_id,full_name,role,status,effective_month,hourly_rate_ils,min_monthly_hours,max_monthly_hours,availability,available_days,available_shifts
+012345674,Avi Cohen,General Guard,Active,,42.00,100,192,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310000971,Noa Levi,General Guard,Active,,44.50,100,184,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310001946,Yossi Mizrahi,General Guard,Active,,41.00,96,176,,Sun|Mon|Tue|Wed|Thu|Fri,A|B|C
+310002910,Tamar Peretz,General Guard,Active,,43.00,80,168,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B
+310003884,Omer Biton,General Guard,Active,,40.50,80,168,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,B|C
+310004858,Lior Dahan,General Guard,Active,,45.00,88,176,,Mon|Tue|Wed|Thu|Fri,A|B|C
+310005822,Shira Azoulay,General Guard,Active,,39.00,64,160,,Sun|Mon|Tue|Wed|Thu,A|B|C
+310006796,Eyal Friedman,General Guard,Active,,46.00,72,168,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|C
+310007760,Dana Katz,General Guard,Active,,41.50,80,176,MON:ABC|TUE:ABC|WED:ABC|THU:ABC|FRI:AB|SAT:ABC|SUN:ABC,,
+310008735,Ron Shapiro,Screener,Active,,52.00,100,192,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310009709,Maya Goldberg,Screener,Active,,54.50,100,184,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310010673,Itai Barak,Screener,Active,,51.00,96,176,,Sun|Mon|Tue|Wed|Thu|Fri,A|B|C
+310011648,Yael Segal,Screener,Active,,53.00,80,168,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B
+310012612,Gal Amar,Screener,Active,,50.50,80,168,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,B|C
+310013586,Hila Ben-David,Screener,Active,,55.00,88,176,,Mon|Tue|Wed|Thu|Fri,A|B|C
+310014550,Nir Golan,Screener,Active,,49.00,64,160,,Sun|Mon|Tue|Wed|Thu,A|B|C
+310015524,Sarit Haim,Screener,Active,,56.00,72,168,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|C
+310016498,Tomer Rosen,Screener,Active,,51.50,80,176,MON:ABC|TUE:ABC|WED:ABC|THU:ABC|FRI:AB|SAT:ABC|SUN:ABC,,
+310017462,Rachel Stern,Supervisor,Active,,68.00,120,192,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310018437,Daniel Weiss,Supervisor,Active,,70.00,120,192,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310019401,Michal Ohana,Supervisor,Active,,66.50,112,184,,Sun|Mon|Tue|Wed|Thu|Fri|Sat,A|B|C
+310020375,Guy Tal,Supervisor,Active,,72.00,104,176,,Sun|Mon|Tue|Wed|Thu|Fri,A|B|C
+310021340,Efrat Nachum,Supervisor,Active,,69.00,104,176,MON:ABC|TUE:ABC|WED:ABC|THU:ABC|FRI:ABC|SAT:ABC|SUN:ABC,,

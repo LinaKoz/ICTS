@@ -63,3 +63,6 @@ def count(db, table: str) -> int:
     with db.cursor() as cur:
         cur.execute(f"SELECT count(*) FROM {table}")
         return cur.fetchone()[0]
+
+
+from tests.rosters.conftest import inline_pool  # noqa: E402,F401  (fixture: in-process engine, no spawn)
