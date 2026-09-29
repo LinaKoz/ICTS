@@ -10,10 +10,10 @@ any `AppError` into the shape above with the right HTTP status.
 Error codes are grouped by the families listed in §6:
 - 400/404/401/403: general request errors
 - 409: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_CONFIRMED, WORKER_IN_USE,
-  APPROVED_EDIT_NOT_ACKNOWLEDGED
+  APPROVED_EDIT_NOT_ACKNOWLEDGED, ALREADY_APPROVED, NOT_APPROVED
 - 413: FILE_TOO_LARGE, TOO_MANY_ROWS
 - 415: unsupported content type on /imports
-- 422: validation, HARD_VIOLATIONS, LOCKED_SHIFT
+- 422: validation, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED
 - 429: GENERATION_IN_PROGRESS
 - 500: ENGINE_ERROR
 """
@@ -96,6 +96,14 @@ class ApprovedEditNotAcknowledgedError(ConflictError):
     code = "APPROVED_EDIT_NOT_ACKNOWLEDGED"
 
 
+class AlreadyApprovedError(ConflictError):
+    code = "ALREADY_APPROVED"
+
+
+class NotApprovedError(ConflictError):
+    code = "NOT_APPROVED"
+
+
 # --- 413: request too large ------------------------------------------------
 
 
@@ -134,6 +142,12 @@ class HardViolationsError(ValidationAppError):
 
 class LockedShiftError(ValidationAppError):
     code = "LOCKED_SHIFT"
+
+
+class WarningsNotAcknowledgedError(ValidationAppError):
+    """Approval with soft shortages needs acknowledge_warnings, a reason and the fingerprint (P11)."""
+
+    code = "WARNINGS_NOT_ACKNOWLEDGED"
 
 
 # --- 429: rate limiting ------------------------------------------------------

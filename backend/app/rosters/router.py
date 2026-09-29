@@ -12,15 +12,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api_schemas.common import error_responses
-from app.api_schemas.rosters import ApprovalEventOut, RosterOut
+from app.api_schemas.rosters import RosterOut
 from app.auth.models import User
 from app.auth.session import require_role
 from app.db import get_session
 from app.errors import NotFoundError
+from app.rosters.approval import load_approval_history
 from app.rosters.costs import compute_costs
 from app.rosters.evaluation import evaluate
 from app.rosters.generation import router as generate_router
-from app.rosters.models import Roster, RosterApproval, RosterAssignment
+from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, is_history_month, parse_month
 from app.rosters.save import router as save_router
 from app.rosters.serialize import assignment_to_out, coverage_gap_to_out, costs_to_out, hour_shortfall_to_out, load_worker_refs, violation_to_out
@@ -51,25 +52,7 @@ async def get_roster(
     no_contract_ids = {str(wid) for wid in ev.no_contract_worker_ids}
     costs = compute_costs(assignments, ev.built.contract_by_worker_id)
 
-    approvals = (
-        (
-            await session.execute(
-                select(RosterApproval).where(RosterApproval.roster_id == roster.id).order_by(RosterApproval.approved_at.desc())
-            )
-        )
-        .scalars()
-        .all()
-    )
-    approval_history = [
-        ApprovalEventOut(
-            approved_by=str(ap.approved_by),
-            approved_at=ap.approved_at.isoformat(),
-            reason=ap.reason,
-            revoked_at=ap.revoked_at.isoformat() if ap.revoked_at else None,
-            revoke_cause=ap.revoke_cause,
-        )
-        for ap in approvals
-    ]
+    approval_history = await load_approval_history(session, roster.id)
 
     return RosterOut(
         month=roster.month,
