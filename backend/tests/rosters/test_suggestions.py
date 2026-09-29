@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from app.rosters.suggestions import suggest
+from app.rosters.suggestions import replacements, suggest
 from app.scheduling.types import DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput
 from tests.conftest import requires_db
 from tests.rosters.helpers import insert_assignment, insert_contract, insert_roster, insert_worker
@@ -29,6 +29,25 @@ def _ids(cands):
 
 
 # --- pure ----------------------------------------------------------------------
+
+
+def test_replacements_swap_out_an_inactive_worker_and_cap_at_five():
+    workers = [_w("gone", active=False)] + [_w(f"w{i}") for i in range(7)] + [_w("scr", role=Role.SCREENER)]
+    target = Assignment("gone", D5, Shift.A, Role.GENERAL_GUARD)
+    state, cands = replacements(_problem(workers), [target], target, {})
+    assert state == "FILLED"
+    assert len(cands) == 5
+    assert "gone" not in _ids(cands) and "scr" not in _ids(cands)
+
+
+def test_replacements_skip_workers_who_would_break_a_rule_and_locked_shifts():
+    workers = [_w("gone", active=False), _w("busy"), _w("free"), _w("unavail", availability=frozenset())]
+    target = Assignment("gone", D5, Shift.A, Role.GENERAL_GUARD)
+    already = Assignment("busy", D5, Shift.A, Role.GENERAL_GUARD)
+    state, cands = replacements(_problem(workers), [target, already], target, {})
+    assert _ids(cands) == ["free"]
+    locked = _problem(workers, free_from=(date(2099, 1, 6), Shift.A))
+    assert replacements(locked, [target], target, {}) == ("LOCKED", [])
 
 
 def test_eligibility_filters_role_active_availability_and_max_hours():
@@ -157,3 +176,22 @@ def test_suggestions_endpoint_boundary_adjacency_and_validation(planner, db):
     assert _get(client, "2099-01", "2099-01-01", "B").json()["candidates"] != []
     assert _get(client, "2099-01", "2099-02-01", "A").status_code == 422  # date outside the month
     assert _get(client, "2099-05", "2099-05-01", "A").status_code == 404
+
+
+@requires_db
+def test_replacements_endpoint_offers_swaps_for_an_inactive_worker_and_apply_fixes_it(planner, db):
+    client, uid = planner
+    gone = _worker(db, uid, "111111118", "Gone", status="INACTIVE")
+    ok = _worker(db, uid, "222222226", "Okay")
+    roster = insert_roster(db, JAN, uid)
+    ra = insert_assignment(db, roster, gone, date(2099, 1, 5), "A", GG)
+    resp = client.get(f"/api/rosters/2099-01/assignments/{ra}/replacements")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert [c["full_name"] for c in body["candidates"]] == ["Okay"] and body["slot_state"] == "FILLED"
+
+    # apply = the move endpoint with a new worker; the violation is gone afterwards
+    move = client.post(f"/api/rosters/2099-01/assignments/{ra}/move", json={"worker_id": str(ok), "expected_version": 1})
+    assert move.status_code == 200, move.text
+    assert client.get("/api/rosters/2099-01").json()["violations"] == []
+    assert client.get("/api/rosters/2099-01/assignments/999999/replacements").status_code == 404

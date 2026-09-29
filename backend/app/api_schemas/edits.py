@@ -44,6 +44,14 @@ class MoveAssignmentRequest(BaseModel):
     acknowledge_approved_edit: bool = False
 
 
+class SwapAssignmentRequest(BaseModel):
+    """Exchange the workers of two assignments of the same role in different slots (the day or shift may differ)."""
+
+    other_assignment_id: int
+    expected_version: int
+    acknowledge_approved_edit: bool = False
+
+
 class EditResultOut(BaseModel):
     version: int  # the roster's new row_version
     status: Literal["DRAFT", "APPROVED"]

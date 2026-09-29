@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api_schemas.common import (
     AssignmentOut,
@@ -23,6 +23,8 @@ from app.api_schemas.common import (
 
 class GenerateRequest(BaseModel):
     forbid_adjacent_shifts: bool = False
+    # Solver seed. Same data + same seed gives the same roster; default 0.
+    random_seed: int = Field(default=0, ge=0, le=2**31 - 1)
 
 
 class ObjectiveOut(BaseModel):
@@ -92,6 +94,7 @@ class ApprovalEventOut(BaseModel):
     acknowledged_warnings: AcknowledgedWarningsOut | None = None  # None when approved with no shortages
     revoke_ref: str | None = None  # contract_version:{id}, worker:{id}, import:{id}; None for EDIT/REGENERATE/MANUAL
     revoked_by: str | None = None
+    revoke_reason: str | None = None  # the manager's free-text reason; only MANUAL revocations carry one
 
 
 class RosterOut(BaseModel):

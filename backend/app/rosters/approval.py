@@ -57,6 +57,7 @@ async def revoke(
     ref: str | None,
     revoked_by: int,
     now: datetime | None = None,
+    reason: str | None = None,
 ) -> None:
     """Revokes the roster's current (unrevoked) approval, if any, and
     returns the roster to DRAFT. A no-op on the approval row if the
@@ -74,6 +75,7 @@ async def revoke(
         approval.revoked_by = revoked_by
         approval.revoke_cause = cause
         approval.revoke_ref = ref
+        approval.revoke_reason = reason
     roster.status = "DRAFT"
 
 
@@ -143,6 +145,7 @@ def _event_out(r: RosterApproval, names: dict[int, str]) -> ApprovalEventOut:
         else None,
         revoke_ref=r.revoke_ref,
         revoked_by=names.get(r.revoked_by, "unknown") if r.revoked_by is not None else None,
+        revoke_reason=r.revoke_reason,
     )
 
 
@@ -276,7 +279,8 @@ async def revoke_approval(
         )
     if roster.status != "APPROVED":
         raise NotApprovedError("this roster is not approved")
-    await revoke(session, roster, cause="MANUAL", ref=None, revoked_by=user.id)
+    reason = (body.reason or "").strip() or None
+    await revoke(session, roster, cause="MANUAL", ref=None, revoked_by=user.id, reason=reason)
     await session.flush()
     history = await load_approval_history(session, roster.id)
     await session.commit()

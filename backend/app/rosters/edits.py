@@ -30,6 +30,7 @@ from app.api_schemas.edits import (
     RemoveAssignmentRequest,
     SuggestionOut,
     SuggestionsOut,
+    SwapAssignmentRequest,
 )
 from app.auth.models import User
 from app.auth.session import require_role
@@ -47,7 +48,7 @@ from app.rosters.approval import revoke
 from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, BuiltProblem, _pos, build_problem, is_history_month, parse_month
 from app.rosters.serialize import load_worker_refs, violation_to_out
-from app.rosters.suggestions import suggest
+from app.rosters.suggestions import replacements, suggest
 from app.scheduling.types import Assignment, Role, Shift, validate_roster, worsened
 from app.workers.models import Worker
 
@@ -251,6 +252,50 @@ async def move_assignment(
     return await _finish(session, roster, revoked, target)
 
 
+@router.post(
+    "/{month}/assignments/{assignment_id}/swap",
+    response_model=EditResultOut,
+    responses=error_responses(400, 401, 403, 404, 409, 422),
+)
+async def swap_assignments(
+    month: MonthPath,
+    assignment_id: int,
+    body: SwapAssignmentRequest,
+    user: User = Depends(require_role("PLANNER", "MANAGER")),
+    session: AsyncSession = Depends(get_session),
+) -> EditResultOut:
+    """Exchange the workers of two assignments (same role, different slots;
+    the shift letter and day may differ) in one transaction, checked
+    together like a move."""
+    roster, built, stored = await _begin_edit(session, month, body.expected_version)
+    by_id = {ra.id: ra for ra in stored}
+    first = by_id.get(assignment_id)
+    second = by_id.get(body.other_assignment_id)
+    if first is None or second is None:
+        raise NotFoundError(f"no such assignment in the roster of {month}")
+    if first.id == second.id or first.worker_id == second.worker_id:
+        raise BadRequestError("a swap needs two assignments of different workers")
+    if first.role != second.role:
+        raise BadRequestError("only assignments of the same role can be swapped")
+    if first.date == second.date and first.shift == second.shift:
+        raise BadRequestError("the assignments are in the same slot, so swapping them changes nothing")
+    a, b = _to_assignment(first), _to_assignment(second)
+    _reject_locked(built, [(a.date, a.shift), (b.date, b.shift)])
+    new_a = Assignment(b.worker_id, a.date, a.shift, a.role)
+    new_b = Assignment(a.worker_id, b.date, b.shift, b.role)
+    before = [_to_assignment(ra) for ra in stored]
+    rest = [x for x in before if x not in (a, b)]
+    for moved in (new_a, new_b):
+        if any(x.worker_id == moved.worker_id and x.date == moved.date and x.shift == moved.shift for x in rest):
+            raise ValidationAppError(f"worker {moved.worker_id} already works {moved.date} shift {moved.shift.value}")
+    _gate(built, before, [*rest, new_a, new_b])
+
+    revoked = await _commit_edit(session, roster, user, body.acknowledge_approved_edit)
+    first.worker_id, second.worker_id = second.worker_id, first.worker_id
+    await session.flush()
+    return await _finish(session, roster, revoked, first)
+
+
 @router.get(
     "/{month}/suggestions",
     response_model=SuggestionsOut,
@@ -280,6 +325,55 @@ async def get_suggestions(
         date=date_,
         shift=shift,
         role=role,
+        slot_state=state,  # type: ignore[arg-type]
+        candidates=[
+            SuggestionOut(
+                worker_id=c.worker_id,
+                full_name=c.full_name,
+                assigned_hours=c.assigned_hours,
+                min_hours=c.min_hours,
+                hours_below_minimum=c.hours_below_minimum,
+                shifts_that_day=c.shifts_that_day,
+                reasons=list(c.reasons),
+            )
+            for c in candidates
+        ],
+    )
+
+
+@router.get(
+    "/{month}/assignments/{assignment_id}/replacements",
+    response_model=SuggestionsOut,
+    responses=error_responses(400, 401, 403, 404, 422),
+)
+async def get_replacements(
+    month: MonthPath,
+    assignment_id: int,
+    _user: User = Depends(require_role("PLANNER", "MANAGER")),
+    session: AsyncSession = Depends(get_session),
+) -> SuggestionsOut:
+    """Up to five workers who could take over an existing assignment (the
+    "fix" options for a violation). Applying one is the move endpoint with
+    a new `worker_id`, so it is revalidated there."""
+    month_date = parse_month(month)
+    roster = (await session.execute(select(Roster).where(Roster.month == month_date))).scalar_one_or_none()
+    if roster is None:
+        raise NotFoundError(f"no roster for {month}")
+    stored = await _load_stored(session, roster)
+    target = next((ra for ra in stored if ra.id == assignment_id), None)
+    if target is None:
+        raise NotFoundError(f"no assignment {assignment_id} in the roster of {month}")
+    built = await build_problem(session, month_date, roster.forbid_adjacent_shifts)
+    names = {w.worker_id: w.full_name for w in await load_worker_refs(session)}
+    state, candidates = replacements(
+        built.problem, [_to_assignment(ra) for ra in stored], _to_assignment(target), names
+    )
+    if is_history_month(month_date):
+        state, candidates = "LOCKED", []
+    return SuggestionsOut(
+        date=target.date,
+        shift=target.shift,
+        role=target.role,
         slot_state=state,  # type: ignore[arg-type]
         candidates=[
             SuggestionOut(

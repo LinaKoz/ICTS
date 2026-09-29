@@ -350,3 +350,70 @@ def test_requires_login_and_strict_month(planner, db):
     assert client.post("/api/rosters/2099-1/assignments", json={}).status_code == 422
     client.post("/api/auth/logout")
     assert _add(client, "2099-01", 1, D5, "A", 1).status_code == 401
+
+
+# --- swap --------------------------------------------------------------------
+
+
+def _swap(client, month, a_id, b_id, version, **kw):
+    body = {"other_assignment_id": b_id, "expected_version": version, **kw}
+    return client.post(f"/api/rosters/{month}/assignments/{a_id}/swap", json=body)
+
+
+@requires_db
+def test_swap_exchanges_workers_across_days_and_bumps_version(planner, db):
+    client, uid = planner
+    w1, w2 = _worker(db, uid, "111111118"), _worker(db, uid, "222222226")
+    roster = insert_roster(db, JAN, uid)
+    a = insert_assignment(db, roster, w1, D5, "A", GG)
+    b = insert_assignment(db, roster, w2, date(2099, 1, 7), "A", GG)
+    resp = _swap(client, "2099-01", a, b, 1)
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["version"] == 2
+    rows = dict(_q(db, "SELECT id, worker_id FROM roster_assignments WHERE roster_id = %s", roster))
+    assert rows == {a: w2, b: w1}
+
+
+@requires_db
+def test_swap_may_cross_shifts(planner, db):
+    client, uid = planner
+    w1, w2 = _worker(db, uid, "111111118"), _worker(db, uid, "222222226")
+    roster = insert_roster(db, JAN, uid)
+    a = insert_assignment(db, roster, w1, D5, "A", GG)
+    b = insert_assignment(db, roster, w2, date(2099, 1, 7), "B", GG)
+    resp = _swap(client, "2099-01", a, b, 1)
+    assert resp.status_code == 200, resp.text
+    rows = dict(_q(db, "SELECT id, worker_id FROM roster_assignments WHERE roster_id = %s", roster))
+    assert rows == {a: w2, b: w1}
+
+
+@requires_db
+def test_swap_rejects_bad_pairs_and_worsening(planner, db):
+    client, uid = planner
+    w1 = _worker(db, uid, "111111118")
+    w2 = _worker(db, uid, "222222226")
+    w3 = _worker(db, uid, "333333334", role="SCREENER")
+    roster = insert_roster(db, JAN, uid)
+    a = insert_assignment(db, roster, w1, D5, "A", GG)
+    same_slot = insert_assignment(db, roster, w2, D5, "A", GG)
+    other_shift = insert_assignment(db, roster, w2, date(2099, 1, 7), "B", GG)
+    other_role = insert_assignment(db, roster, w3, date(2099, 1, 7), "A", "SCREENER")
+    assert _swap(client, "2099-01", a, same_slot, 1).status_code == 400
+    assert _swap(client, "2099-01", a, other_role, 1).status_code == 400
+    assert _swap(client, "2099-01", a, a, 1).status_code == 400
+    assert _swap(client, "2099-01", a, 999999, 1).status_code == 404
+    assert _swap(client, "2099-01", a, other_shift, 7).status_code == 409
+    assert _version(db, JAN) == 1
+
+
+@requires_db
+def test_swap_rejected_when_it_would_break_a_rule_and_when_approved_unacknowledged(planner, db):
+    client, uid = planner
+    w1 = _worker(db, uid, "111111118")
+    w2 = _worker(db, uid, "222222226", availability=["MON:A"])
+    roster = insert_roster(db, JAN, uid)
+    a = insert_assignment(db, roster, w1, date(2099, 1, 7), "A", GG)  # Wednesday
+    b = insert_assignment(db, roster, w2, D5, "A", GG)  # Monday: w2 is only available Mondays
+    resp = _swap(client, "2099-01", a, b, 1)
+    assert resp.status_code == 422 and _code(resp) == "HARD_VIOLATIONS"
+    assert _version(db, JAN) == 1
