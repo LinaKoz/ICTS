@@ -10,6 +10,7 @@ export function AppLayout() {
         <strong>ICTS Rostering</strong>
         <nav>
           <NavLink to="/roster">Roster</NavLink>
+          <NavLink to="/workers">Workers</NavLink>
         </nav>
         <span className="spacer" />
         <span className="muted">{user?.display_name} ({user?.app_role.toLowerCase()})</span>
