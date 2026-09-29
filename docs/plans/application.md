@@ -835,6 +835,15 @@ Sample data (D5): the sample CSV starts at 23 workers (9 GG, 9 SCR, 5 SUP). An i
 
 Backend tests run with pytest against a Postgres test database in compose, with each test rolled back.
 
+### Status after T6 and T8 (M2 feature-complete, pending sign-off)
+T6 (CSV import/export, sample data) and T8 (approval, audit trail) are merged. Open items for T9 and the README:
+- **Seed vs sample data:** the dev stack still starts with the 5 seed workers. The 23-worker sample (`sample-data/workers.csv`) is loaded through the Import page. Auto-loading it would need `sample-data/` copied into the backend image; the README should say how to load it.
+- **`MANUAL` revoke cause:** added by T8 (with a migration) for the Revoke button. It stores no revoke reason. Add a `revoke_reason` column if there is time; otherwise document it.
+- **Revoke references:** `contract_version:{id}`, `worker:{id}` and `import:{id}` (set through `ChangeSet.contract_change_ref`).
+- **Approval on the current month:** started shifts with no assignment appear as "(past)" shortages and must be acknowledged, so a current-month roster generated after its start needs the acknowledgement.
+- **Preview storage:** a CSV preview is stored whole as JSONB in `csv_imports`; a 5,000-row import is a large document. Fine for the demo, document it as a limitation.
+- **Test gaps to close if time allows:** no API test for revoke on a history month, no component tests for `ApprovalPanel` and `ImportPage` (covered by browser runs), no mock-API routes for imports, approval, edits and workers under `VITE_API_MOCK=1`.
+
 ### Status after T5 and T7
 T5 (workers, contract versions, change-set service) and T7 (manual edits, suggestions) are merged. Carry-over for the remaining tasks:
 - **T6 reuses** `app/changes/service.py` (`preview_change_set` / `apply_change_set`, so a confirmed import is one change set) and `app/contracts/availability.py`. Availability is stored in MON..SUN then A..C order, matching the seed, not lexicographic order. The CSV import must use the same helper so an unchanged row classifies as UNCHANGED.
