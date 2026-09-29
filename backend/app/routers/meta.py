@@ -4,23 +4,25 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api_schemas.meta import CsvAliasesOut, DemandEntry, MetaOut
+from app.csvio.parse import HEADER_ALIASES
 from app.scheduling.types import DEFAULT_DEMAND
 
 router = APIRouter(prefix="/api", tags=["meta"])
 
-_HEADER_ALIASES = {
-    "national_id": ["id", "israeli_id", "id_number"],
-    "full_name": ["name"],
-    "hourly_rate_ils": ["hourly_rate", "hourly_cost"],
-    "min_monthly_hours": ["min_hours"],
-    "max_monthly_hours": ["max_hours"],
-    "available_days": ["days"],
-    "available_shifts": ["shifts"],
-}
+
+def _header_aliases() -> dict[str, list[str]]:
+    """Canonical column -> its aliases, derived from the parser so the two never drift."""
+    out: dict[str, list[str]] = {}
+    for alias, canonical in HEADER_ALIASES.items():
+        out.setdefault(canonical, []).append(alias)
+    return out
+
+
+_HEADER_ALIASES = _header_aliases()
 _ROLE_ALIASES = {
-    "GENERAL_GUARD": ["General Guard", "general-guard", "Guard"],
-    "SCREENER": ["Screener"],
-    "SUPERVISOR": ["Supervisor"],
+    "GENERAL_GUARD": ["General Guard", "general-guard", "Guard", "GG"],
+    "SCREENER": ["Screener", "SCR"],
+    "SUPERVISOR": ["Supervisor", "SUP"],
 }
 _STATUS_ALIASES = {
     "ACTIVE": ["Active"],

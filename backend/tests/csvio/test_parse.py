@@ -276,3 +276,81 @@ def test_hebrew_names_roundtrip_utf8():
 
 def test_max_bytes_constant():
     assert MAX_BYTES == 1_048_576
+
+
+# --- lenient input (integration): delimiters, UTF-16, header names, rate cells ---------
+
+LENIENT_HEADER = "national_id,full_name,role,hourly_rate_ils,min_monthly_hours,max_monthly_hours,available_days,available_shifts"
+
+
+def _lenient(text: str, delimiter: str = ",", encoding: str = "utf-8") -> bytes:
+    return text.replace(",", delimiter).encode(encoding)
+
+
+@pytest.mark.parametrize("delimiter", [",", ";", "\t"])
+def test_delimiter_is_detected_from_the_header(delimiter):
+    line = f"{ID},Noa Levi,Screener,44.5,100,184,Sun|Mon|Tue,A|B"
+    parsed = parse_csv(_lenient(f"{LENIENT_HEADER}\n{line}\n", delimiter), DEFAULT)
+    (r,) = parsed.rows
+    assert not r.errors and r.full_name == "Noa Levi" and r.contract.availability == ["MON:A", "MON:B", "TUE:A", "TUE:B", "SUN:A", "SUN:B"]
+
+
+def test_quoted_delimiters_inside_cells_do_not_change_the_delimiter():
+    from app.csvio.parse import detect_delimiter
+
+    text = f'{LENIENT_HEADER}\n{ID},"Levi; Noa, MSc",Screener,44.5,100,184,"Sun,Mon;Tue","A,B"\n'
+    assert detect_delimiter(text) == ","
+    (r,) = parse_csv(text.encode(), DEFAULT).rows
+    assert r.full_name == "Levi; Noa, MSc" and not r.errors
+    semi = (LENIENT_HEADER.replace(",", ";") + f'\n{ID};"Levi, Noa";Screener;44,5;100;184;Sun|Mon;A\n').encode()
+    assert detect_delimiter(semi.decode()) == ";"
+    assert parse_csv(semi, DEFAULT).rows[0].full_name == "Levi, Noa"
+
+
+def test_a_single_column_file_still_reports_the_missing_columns():
+    with pytest.raises(MissingColumnsError):
+        parse_csv(b"national_id\n" + ID.encode() + b"\n", DEFAULT)
+
+
+def test_utf16_with_bom_is_read_like_excel_unicode_text():
+    text = f"{LENIENT_HEADER}\n{ID},נועה לוי,Screener,44.5,100,184,Sun|Mon,A|B\n"
+    (r,) = parse_csv(_lenient(text, "\t", "utf-16"), DEFAULT).rows
+    assert r.full_name == "נועה לוי" and not r.errors
+
+
+def test_windows_1255_is_rejected_with_an_actionable_message():
+    text = f"{LENIENT_HEADER}\n{ID},נועה לוי,Screener,44.5,100,184,Sun|Mon,A|B\n"
+    with pytest.raises(InvalidEncodingError) as exc:
+        parse_csv(text.encode("cp1255"), DEFAULT)
+    assert "UTF-8" in exc.value.message and "CSV UTF-8" in exc.value.message
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        ["Israeli ID", "Name", "Position", "Hourly Cost (ILS)", "Min Monthly Hours", "Max Monthly Hours", "Days", "Shifts"],
+        ["ID Number", "Full Name", "Job Title", "Rate", "Minimum Hours", "Maximum Hours", "Available Days", "Available Shifts"],
+        ["ID No.", "Worker Name", "Role", "Cost per hour", "Min Hours", "Max Hours", "Working Days", "Availability Shifts"],
+    ],
+)
+def test_more_header_names_are_recognised(header):
+    r = one(header, [ID, "Dana", "Guard", "45", "0", "160", "Sun|Mon", "A|B"])
+    assert not r.errors and r.role == "GENERAL_GUARD" and str(r.contract.hourly_rate_ils) == "45.00"
+
+
+@pytest.mark.parametrize("rate", ["44,5", "44.50", "₪44.50", "44.5 ILS", "NIS 44,50", " 44.5 "])
+def test_rate_cells_accept_decimal_comma_and_currency_markers(rate):
+    r = one(LENIENT_HEADER.split(","), [ID, "Dana", "Guard", rate, "0", "160", "Sun|Mon", "A"])
+    assert not r.errors and str(r.contract.hourly_rate_ils) == "44.50"
+
+
+@pytest.mark.parametrize("rate", ["-5", "0", "abc", "1,234.5", "44.555"])
+def test_bad_rates_are_still_invalid(rate):
+    r = one(LENIENT_HEADER.split(","), [ID, "Dana", "Guard", rate, "0", "160", "Sun|Mon", "A"])
+    assert codes(r) == ["INVALID_RATE"]
+
+
+@pytest.mark.parametrize("role", ["GG", "gg", "SCR", "Sup", "general_guard"])
+def test_short_role_codes(role):
+    r = one(LENIENT_HEADER.split(","), [ID, "Dana", role, "44", "0", "160", "Sun", "A"])
+    assert r.role is not None and not r.errors

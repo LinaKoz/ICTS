@@ -1,7 +1,8 @@
 """Pure CSV parsing and row validation (P8, P14). No database access.
 
-`parse_csv(data, default_month)` decodes strictly (UTF-8, optional BOM),
-matches columns by normalised header name and alias, counts data rows
+`parse_csv(data, default_month)` decodes strictly (UTF-8 with optional BOM,
+or UTF-16 with a BOM), detects the delimiter (comma, semicolon or tab) from
+the header line, matches columns by normalised header name and alias, counts data rows
 while iterating (`TOO_MANY_ROWS` at row 5,001) and validates every row.
 Row-level problems never raise: they become `RowError`s and the row is
 INVALID; other rows are unaffected (partial success).
@@ -33,13 +34,38 @@ HEADER_ALIASES: dict[str, str] = {
     "id": "national_id",
     "israeli_id": "national_id",
     "id_number": "national_id",
+    "israeli_id_number": "national_id",
+    "national_id_number": "national_id",
+    "identity_number": "national_id",
+    "id_no": "national_id",
+    "teudat_zehut": "national_id",
     "name": "full_name",
+    "fullname": "full_name",
+    "worker_name": "full_name",
+    "employee_name": "full_name",
+    "position": "role",
+    "job": "role",
+    "job_title": "role",
+    "worker_role": "role",
     "hourly_rate": "hourly_rate_ils",
     "hourly_cost": "hourly_rate_ils",
+    "hourly_cost_ils": "hourly_rate_ils",
+    "rate": "hourly_rate_ils",
+    "cost_per_hour": "hourly_rate_ils",
+    "rate_per_hour": "hourly_rate_ils",
     "min_hours": "min_monthly_hours",
+    "minimum_hours": "min_monthly_hours",
+    "minimum_monthly_hours": "min_monthly_hours",
+    "min_monthly": "min_monthly_hours",
     "max_hours": "max_monthly_hours",
+    "maximum_hours": "max_monthly_hours",
+    "maximum_monthly_hours": "max_monthly_hours",
+    "max_monthly": "max_monthly_hours",
     "days": "available_days",
+    "availability_days": "available_days",
+    "working_days": "available_days",
     "shifts": "available_shifts",
+    "availability_shifts": "available_shifts",
 }
 KNOWN_COLUMNS = (
     "national_id",
@@ -60,8 +86,11 @@ REQUIRED_COLUMNS = ("national_id", "full_name", "role")
 ROLE_ALIASES = {
     "general guard": "GENERAL_GUARD",
     "guard": "GENERAL_GUARD",
+    "gg": "GENERAL_GUARD",
     "screener": "SCREENER",
+    "scr": "SCREENER",
     "supervisor": "SUPERVISOR",
+    "sup": "SUPERVISOR",
 }
 STATUS_ALIASES = {"active": "ACTIVE", "inactive": "INACTIVE"}
 
@@ -119,16 +148,60 @@ class ParsedFile:
     columns: list[str]  # canonical names present, file order
 
 
+_HEADER_PUNCT = re.compile(r"[^\w]", re.UNICODE)
+
+
 def normalize_header(raw: str) -> str:
+    """Case, spaces, hyphens and punctuation are ignored: `Hourly Cost (ILS)` is `hourly_cost_ils`."""
     h = _SPACES.sub("_", raw.strip().lower())
+    h = _HEADER_PUNCT.sub("", h).strip("_")
     return HEADER_ALIASES.get(h, h)
 
 
+_ENCODING_HINT = (
+    "; save the file as UTF-8 (in Excel: Save As, 'CSV UTF-8 (Comma delimited)'). "
+    "Windows-1255 and other legacy code pages are not guessed, because a wrong guess would silently garble names"
+)
+
+
 def decode(data: bytes) -> str:
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):  # UTF-16 with a BOM: Excel's 'Unicode Text'
+        try:
+            return data.decode("utf-16")
+        except UnicodeDecodeError as exc:
+            raise InvalidEncodingError(f"the file looks like UTF-16 but is not valid (byte offset {exc.start})") from None
     try:
         return data.decode("utf-8-sig")  # strict; a leading BOM is dropped
     except UnicodeDecodeError as exc:
-        raise InvalidEncodingError(f"the file is not valid UTF-8 (byte offset {exc.start})") from None
+        raise InvalidEncodingError(f"the file is not valid UTF-8 (byte offset {exc.start}){_ENCODING_HINT}") from None
+
+
+_DELIMITERS = (",", ";", "\t")
+
+
+def detect_delimiter(text: str) -> str:
+    """The delimiter that splits the header line into the most fields (comma on a tie).
+
+    Only the first non-blank line is read, and column names never contain a
+    delimiter, so cells with commas or semicolons inside quotes cannot fool it.
+    """
+    first = next((ln for ln in text.splitlines() if ln.strip()), "")
+    best, best_n = ",", 1
+    for d in _DELIMITERS:
+        n = len(next(csv.reader([first], delimiter=d), []))
+        if n > best_n:
+            best, best_n = d, n
+    return best
+
+
+_CURRENCY = re.compile(r"(?i)(₪|nis|ils|shekels?|ש\"ח)")
+_DECIMAL_COMMA = re.compile(r"[0-9]{1,8},[0-9]{1,2}")
+
+
+def clean_rate(raw: str) -> str:
+    """`44,5`, `₪44.50` and `44.5 ILS` are all accepted as a plain decimal."""
+    v = _CURRENCY.sub("", raw).strip()
+    return v.replace(",", ".") if _DECIMAL_COMMA.fullmatch(v) else v
 
 
 def per_day_form(availability: list[str]) -> str:
@@ -310,6 +383,7 @@ def _validate_row(cells: dict[str, str], line: int, default_month: date) -> Pars
             if not av_filled:
                 errors.append(RowError("MISSING_AVAILABILITY", "availability is required when contract columns are filled", "availability"))
             rate: Decimal | None = None
+            rate_raw = clean_rate(rate_raw)
             if not _DECIMAL.fullmatch(rate_raw) or Decimal(rate_raw) <= 0:
                 errors.append(RowError("INVALID_RATE", f"hourly_rate_ils must be a positive amount with at most 2 decimals (got {rate_raw!r})", "hourly_rate_ils"))
             else:
@@ -336,7 +410,7 @@ def _validate_row(cells: dict[str, str], line: int, default_month: date) -> Pars
 
 def parse_csv(data: bytes, default_month: date, max_rows: int = MAX_ROWS) -> ParsedFile:
     text = decode(data)
-    reader = csv.reader(io.StringIO(text, newline=""))
+    reader = csv.reader(io.StringIO(text, newline=""), delimiter=detect_delimiter(text))
     header: list[str] | None = None
     for record in reader:
         if any(c.strip() for c in record):
