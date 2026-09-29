@@ -3,8 +3,8 @@
  * Mirrors the §6 contract shapes and the error envelope. Demo logins: planner/manager, password "demo".
  */
 import type {
-  AssignmentOut, CoverageGapOut, GenerateOutcomeOut, HourShortfallOut, Role, RosterOut, SaveRequest, Shift,
-} from '../rosterContract'
+  AssignmentOut, CoverageGapOut, GenerateOutcomeOut, HourShortfallOut, Role, RosterOut, SaveRequest, Shift, ShiftCostOut, WorkerRefOut,
+} from '../schemas'
 import type { components } from '../types'
 
 type User = components['schemas']['UserOut']
@@ -24,6 +24,12 @@ const META: components['schemas']['MetaOut'] = {
   ]),
   csv_aliases: { header_aliases: {}, role_aliases: {}, status_aliases: {} },
 }
+
+const ROLE_OF_PREFIX: Record<string, Role> = { GG: 'GENERAL_GUARD', SCR: 'SCREENER', SUP: 'SUPERVISOR' }
+/** Mock worker ids are the same codes the old grid showed, with a readable name. */
+const workerRef = (id: string): WorkerRefOut => ({
+  worker_id: id, full_name: `Mock ${id}`, role: ROLE_OF_PREFIX[id.replace(/\d+$/, '')] ?? 'GENERAL_GUARD', status: 'ACTIVE',
+})
 
 const saved = new Map<string, RosterOut>()
 let nextRosterId = 1
@@ -84,10 +90,19 @@ function buildRoster(month: string, forbidAdjacent: boolean) {
   const per_worker = Object.entries(hours).map(([worker_id, h]) => ({
     worker_id, hours: h, amount_ils: worker_id === 'GG09' ? null : (h * 45).toFixed(2),
   }))
+  const perShiftMap = new Map<string, ShiftCostOut>()
+  for (const a of assignments) {
+    const k = `${a.date}|${a.shift}`
+    const cell = perShiftMap.get(k) ?? { date: a.date, shift: a.shift, amount_ils: '0.00', unknown_cost_assignments: 0 }
+    if (a.worker_id === 'GG09') cell.unknown_cost_assignments += 1
+    else cell.amount_ils = (Number(cell.amount_ils) + 8 * 45).toFixed(2)
+    perShiftMap.set(k, cell)
+  }
+  const workers = Object.keys(hours).sort().map(workerRef)
   const total = per_worker.reduce((s, w) => s + (w.amount_ils ? Number(w.amount_ils) : 0), 0)
   return {
-    assignments, gaps, shortfalls,
-    costs: { per_worker, monthly_total_ils: total.toFixed(2), unknown_cost_worker_count: 1 },
+    assignments, gaps, shortfalls, workers,
+    costs: { per_shift: [...perShiftMap.values()], per_worker, monthly_total_ils: total.toFixed(2), unknown_cost_worker_count: 1 },
     forbidAdjacent,
   }
 }
@@ -107,15 +122,19 @@ export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}
   }
   if (path === '/auth/logout' && method === 'POST') {
     sessionStorage.removeItem(SESSION_KEY)
-    return new Response(null, { status: 204 })
+    return json(200, { status: 'ok' })
   }
   const user = currentUser()
   if (!user) return err(401, 'UNAUTHORIZED', 'Not authenticated')
   if (path === '/auth/me') return json(200, user)
   if (path === '/meta') return json(200, META)
 
-  const m = path.match(/^\/rosters\/(\d{4}-\d{2})(\/generate|\/save)?$/)
-  if (!m) return err(404, 'NOT_FOUND', `No mock for ${method} ${path}`)
+  const m = path.match(/^\/rosters\/(\d{4}-(?:0[1-9]|1[0-2]))(\/generate|\/save)?$/)
+  if (!m) {
+    return /^\/rosters\//.test(path)
+      ? err(422, 'VALIDATION_ERROR', 'The request is invalid: month must be YYYY-MM')
+      : err(404, 'NOT_FOUND', `No mock for ${method} ${path}`)
+  }
   const month = m[1]!
   if (!m[2] && method === 'GET') {
     const r = saved.get(month)
@@ -134,6 +153,7 @@ export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}
       lexicographically_optimal: true,
       preexisting_violations: [],
       costs: b.costs,
+      workers: b.workers,
       fingerprint: `mock-${month}-${b.forbidAdjacent}`,
       warnings: [],
     }
@@ -150,7 +170,8 @@ export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}
       month: `${month}-01`, status: 'DRAFT', version: (existing?.version ?? 0) + 1, is_history: false,
       free_from: [`${month}-01`, 'A'], forbid_adjacent_shifts: req.forbid_adjacent_shifts,
       assignments: req.assignments, violations: [], coverage_gaps: b.gaps, hour_shortfalls: b.shortfalls,
-      costs: b.costs, approval_history: [],
+      costs: b.costs, workers: b.workers, approval_history: [],
+      updated_at: new Date().toISOString(), updated_by: user.display_name,
     }
     saved.set(month, roster)
     return json(200, { roster_id: nextRosterId++, version: roster.version, status: 'DRAFT' })

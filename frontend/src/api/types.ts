@@ -47,7 +47,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Logout */
+        /**
+         * Logout
+         * @description Always 200 `{"status": "ok"}`, also when no session exists; clears the cookie.
+         */
         post: operations["logout_api_auth_logout_post"];
         delete?: never;
         options?: never;
@@ -64,6 +67,57 @@ export interface paths {
         };
         /** Me */
         get: operations["me_api_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate */
+        post: operations["generate_api_rosters__month__generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save */
+        post: operations["save_api_rosters__month__save_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Roster */
+        get: operations["get_roster_api_rosters__month__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -93,6 +147,95 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApprovalEventOut */
+        ApprovalEventOut: {
+            /** Approved By */
+            approved_by: string;
+            /** Approved At */
+            approved_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Revoke Cause */
+            revoke_cause: ("EDIT" | "REGENERATE" | "CONTRACT_CHANGE" | "WORKER_CHANGE") | null;
+        };
+        /** AssignmentOut */
+        AssignmentOut: {
+            /** Worker Id */
+            worker_id: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+        };
+        /** CostsOut */
+        CostsOut: {
+            /**
+             * Per Shift
+             * @default []
+             */
+            per_shift: components["schemas"]["ShiftCostOut"][];
+            /** Per Worker */
+            per_worker: components["schemas"]["WorkerCostOut"][];
+            /** Monthly Total Ils */
+            monthly_total_ils: string;
+            /** Unknown Cost Worker Count */
+            unknown_cost_worker_count: number;
+        };
+        /** CoverageGapOut */
+        CoverageGapOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /** Required */
+            required: number;
+            /** Assigned */
+            assigned: number;
+            /** Missing */
+            missing: number;
+            /** Proven Missing */
+            proven_missing: number;
+            /** Locked */
+            locked: boolean;
+        };
+        /** CoverageStatusOut */
+        CoverageStatusOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPTIMAL" | "FEASIBLE";
+            /** Total Uncovered */
+            total_uncovered: number;
+            /** Locked Uncovered */
+            locked_uncovered: number;
+            /** Lower Bound */
+            lower_bound: number;
+        };
         /**
          * CsvAliasesOut
          * @description P14 documented header and value aliases.
@@ -126,10 +269,82 @@ export interface components {
             /** Headcount */
             headcount: number;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
+        /** ErrorBodyOut */
+        ErrorBodyOut: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Details */
+            details?: unknown | null;
+        };
+        /**
+         * ErrorOut
+         * @description The one error shape of every non-2xx response (§6).
+         */
+        ErrorOut: {
+            error: components["schemas"]["ErrorBodyOut"];
+        };
+        /**
+         * GenerateOutcomeOut
+         * @description The engine outcome mapped to the API (§4.6 "API mapping").
+         */
+        GenerateOutcomeOut: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "solved" | "no_solution_within_limit" | "invalid_input" | "engine_error";
+            /** Assignments */
+            assignments?: components["schemas"]["AssignmentOut"][] | null;
+            /** Coverage Gaps */
+            coverage_gaps?: components["schemas"]["CoverageGapOut"][] | null;
+            /** Hour Shortfalls */
+            hour_shortfalls?: components["schemas"]["HourShortfallOut"][] | null;
+            coverage?: components["schemas"]["CoverageStatusOut"] | null;
+            min_hours?: components["schemas"]["MinHoursStatusOut"] | null;
+            /** Lexicographically Optimal */
+            lexicographically_optimal?: boolean | null;
+            /** Preexisting Violations */
+            preexisting_violations?: components["schemas"]["ViolationOut"][] | null;
+            objective?: components["schemas"]["ObjectiveOut"] | null;
+            costs?: components["schemas"]["CostsOut"] | null;
+            /** Workers */
+            workers?: components["schemas"]["WorkerRefOut"][] | null;
+            /** Fingerprint */
+            fingerprint?: string | null;
+            /** Coverage Lower Bound */
+            coverage_lower_bound?: number | null;
+            /** Errors */
+            errors?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** GenerateRequest */
+        GenerateRequest: {
+            /**
+             * Forbid Adjacent Shifts
+             * @default false
+             */
+            forbid_adjacent_shifts: boolean;
+        };
+        /** HourShortfallOut */
+        HourShortfallOut: {
+            /** Worker Id */
+            worker_id: string;
+            /** Min Hours */
+            min_hours: number;
+            /** Assigned Hours */
+            assigned_hours: number;
+            /** Missing Hours */
+            missing_hours: number;
         };
         /** LoginIn */
         LoginIn: {
@@ -137,6 +352,14 @@ export interface components {
             username: string;
             /** Password */
             password: string;
+        };
+        /** LogoutOut */
+        LogoutOut: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "ok";
         };
         /** MetaOut */
         MetaOut: {
@@ -147,6 +370,119 @@ export interface components {
             /** Demand */
             demand: components["schemas"]["DemandEntry"][];
             csv_aliases: components["schemas"]["CsvAliasesOut"];
+        };
+        /** MinHoursStatusOut */
+        MinHoursStatusOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPTIMAL" | "FEASIBLE";
+            /** Total Shortfall */
+            total_shortfall: number;
+        };
+        /** ObjectiveOut */
+        ObjectiveOut: {
+            /** Weight */
+            weight: number;
+            /** S Max */
+            s_max: number;
+            /** Value */
+            value: number;
+            /** Bound */
+            bound: number;
+        };
+        /** RosterOut */
+        RosterOut: {
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "APPROVED";
+            /** Version */
+            version: number;
+            /** Is History */
+            is_history: boolean;
+            /** Free From */
+            free_from: [
+                string,
+                "A" | "B" | "C"
+            ];
+            /** Forbid Adjacent Shifts */
+            forbid_adjacent_shifts: boolean;
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentOut"][];
+            /** Violations */
+            violations: components["schemas"]["ViolationOut"][];
+            /** Coverage Gaps */
+            coverage_gaps: components["schemas"]["CoverageGapOut"][];
+            /** Hour Shortfalls */
+            hour_shortfalls: components["schemas"]["HourShortfallOut"][];
+            costs: components["schemas"]["CostsOut"];
+            /** Workers */
+            workers: components["schemas"]["WorkerRefOut"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by: string;
+            /** Approval History */
+            approval_history: components["schemas"]["ApprovalEventOut"][];
+        };
+        /** SaveRequest */
+        SaveRequest: {
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentOut"][];
+            /** Fingerprint */
+            fingerprint: string;
+            /** Expected Version */
+            expected_version?: number | null;
+            /**
+             * Replace Existing
+             * @default false
+             */
+            replace_existing: boolean;
+            /**
+             * Forbid Adjacent Shifts
+             * @default false
+             */
+            forbid_adjacent_shifts: boolean;
+        };
+        /** SaveResponseOut */
+        SaveResponseOut: {
+            /** Roster Id */
+            roster_id: number;
+            /** Version */
+            version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "APPROVED";
+        };
+        /** ShiftCostOut */
+        ShiftCostOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /** Amount Ils */
+            amount_ils: string;
+            /** Unknown Cost Assignments */
+            unknown_cost_assignments: number;
         };
         /** UserOut */
         UserOut: {
@@ -162,14 +498,48 @@ export interface components {
              */
             app_role: "PLANNER" | "MANAGER";
         };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
+        /** ViolationOut */
+        ViolationOut: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "INACTIVE_WORKER" | "UNKNOWN_WORKER" | "WRONG_ROLE" | "UNAVAILABLE" | "OUT_OF_MONTH" | "DUPLICATE_ASSIGNMENT" | "DAILY_LIMIT" | "ADJACENT_SHIFTS" | "MAX_HOURS" | "OVERSTAFFED" | "NO_CONTRACT_FOR_MONTH";
+            /** Key */
+            key: unknown[];
+            /** Magnitude */
+            magnitude: number;
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentOut"][];
+        };
+        /** WorkerCostOut */
+        WorkerCostOut: {
+            /** Worker Id */
+            worker_id: string;
+            /** Hours */
+            hours: number;
+            /** Amount Ils */
+            amount_ils: string | null;
+        };
+        /**
+         * WorkerRefOut
+         * @description Display lookup for a worker id used by assignments, shortfalls and costs.
+         */
+        WorkerRefOut: {
+            /** Worker Id */
+            worker_id: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ACTIVE" | "INACTIVE";
         };
     };
     responses: never;
@@ -222,13 +592,22 @@ export interface operations {
                     "application/json": components["schemas"]["UserOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
@@ -248,9 +627,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LogoutOut"];
                 };
             };
         };
@@ -271,6 +648,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    generate_api_rosters__month__generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateOutcomeOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description GENERATION_IN_PROGRESS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description ENGINE_ERROR */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    save_api_rosters__month__save_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveResponseOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_roster_api_rosters__month__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };

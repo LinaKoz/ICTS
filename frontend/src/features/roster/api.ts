@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
 import type { components } from '../../api/types'
-import type { GenerateOutcomeOut, RosterOut, SaveRequest, SaveResponseOut } from '../../api/rosterContract'
+import type { GenerateOutcomeOut, RosterOut, SaveRequest, SaveResponseOut } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
 
 /** Month is YYYY-MM in the URL path (assumption: not yet in OpenAPI). */

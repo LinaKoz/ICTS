@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ErrorPanel } from '../../errors/ErrorPanel'
-import type { GenerateOutcomeOut, RosterOut } from '../../api/rosterContract'
+import type { GenerateOutcomeOut, RosterOut } from '../../api/schemas'
 import { rosterKey, useGenerate, useMeta, useRoster, useSave } from './api'
 import { describeOutcome } from './outcome'
 import { RosterGrid } from './RosterGrid'
@@ -74,12 +74,12 @@ export function RosterPage() {
   const view = previewUsable
     ? {
         assignments: preview!.assignments!, gaps: preview!.coverage_gaps ?? [], shortfalls: preview!.hour_shortfalls ?? [],
-        costs: preview!.costs ?? null, violations: preview!.preexisting_violations ?? [], freeFrom: existing?.free_from ?? null,
+        costs: preview!.costs ?? null, workers: preview!.workers ?? null, violations: preview!.preexisting_violations ?? [], freeFrom: existing?.free_from ?? null,
       }
     : existing
       ? {
           assignments: existing.assignments, gaps: existing.coverage_gaps, shortfalls: existing.hour_shortfalls,
-          costs: existing.costs, violations: existing.violations, freeFrom: existing.free_from,
+          costs: existing.costs, workers: existing.workers, violations: existing.violations, freeFrom: existing.free_from,
         }
       : null
 
@@ -107,7 +107,7 @@ export function RosterPage() {
         <div className={`panel outcome outcome-${summary.kind}`}>
           <strong>Generation result</strong>
           <ul>{summary.messages.map((m) => <li key={m}>{m}</li>)}</ul>
-          {preview?.warnings.map((w) => <p key={w} className="muted">{w}</p>)}
+          {preview?.warnings?.map((w) => <p key={w} className="muted">{w}</p>)}
           {preview?.outcome === 'invalid_input' && preview.errors && <pre>{JSON.stringify(preview.errors, null, 2)}</pre>}
           {previewUsable && (
             <div className="actions">
@@ -117,7 +117,11 @@ export function RosterPage() {
                 </button>
               ) : (
                 <>
-                  <span>This replaces {existing!.assignments.length} assignments in the existing {existing!.status.toLowerCase()} roster{existing!.status === 'APPROVED' ? ' and revokes its approval' : ''}.</span>
+                  <span>
+                    This replaces {existing!.assignments.length} assignments in the existing {existing!.status.toLowerCase()} roster
+                    (last edited by {existing!.updated_by}, {new Date(existing!.updated_at).toLocaleString('en-GB')})
+                    {existing!.status === 'APPROVED' ? ' and revokes its approval' : ''}.
+                  </span>
                   <button className="primary" disabled={save.isPending} onClick={doSave}>{save.isPending ? 'Saving…' : 'Replace and save as draft'}</button>
                   <button onClick={() => setConfirmReplace(false)}>Cancel</button>
                 </>
@@ -136,8 +140,9 @@ export function RosterPage() {
           <RosterGrid
             month={month} shifts={meta.data.shifts} roles={meta.data.roles} demand={meta.data.demand}
             assignments={view.assignments} gaps={view.gaps} freeFrom={view.freeFrom}
+            workers={view.workers} perShiftCosts={view.costs?.per_shift}
           />
-          <SidePanel violations={view.violations} gaps={view.gaps} shortfalls={view.shortfalls} costs={view.costs} />
+          <SidePanel violations={view.violations} gaps={view.gaps} shortfalls={view.shortfalls} costs={view.costs} workers={view.workers} />
         </div>
       )}
     </div>

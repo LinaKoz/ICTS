@@ -1,4 +1,4 @@
-import type { GenerateOutcomeOut } from '../../api/rosterContract'
+import type { GenerateOutcomeOut } from '../../api/schemas'
 
 export interface OutcomeSummary {
   kind: 'ok' | 'warning' | 'error'

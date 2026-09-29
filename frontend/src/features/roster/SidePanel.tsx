@@ -1,22 +1,23 @@
-import type { CostsOut, CoverageGapOut, HourShortfallOut, ViolationOut } from '../../api/rosterContract'
+import type { CostsOut, CoverageGapOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
+import { ils, nameLookup, violationLabel } from './names'
 
 interface Props {
   violations: ViolationOut[]
   gaps: CoverageGapOut[]
   shortfalls: HourShortfallOut[]
   costs: CostsOut | null
+  workers: WorkerRefOut[] | null | undefined
 }
 
-const ils = (v: string) => `₪${Number(v).toLocaleString('en-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-
-export function SidePanel({ violations, gaps, shortfalls, costs }: Props) {
+export function SidePanel({ violations, gaps, shortfalls, costs, workers }: Props) {
+  const nameOf = nameLookup(workers)
   const openGaps = gaps.filter((g) => g.missing > 0)
   return (
     <aside className="side">
       <section className="panel">
         <h3>Violations ({violations.length})</h3>
         {violations.length === 0 ? <p className="muted">None</p> : (
-          <ul>{violations.map((v, i) => <li key={i}>{v.code} (×{v.magnitude}) {v.assignments.map((a) => `${a.worker_id} ${a.date} ${a.shift}`).join('; ')}</li>)}</ul>
+          <ul>{violations.map((v, i) => <li key={i}>{violationLabel(v.code)} (×{v.magnitude}) {v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}</li>)}</ul>
         )}
       </section>
       <section className="panel">
@@ -33,7 +34,7 @@ export function SidePanel({ violations, gaps, shortfalls, costs }: Props) {
       <section className="panel">
         <h3>Hour shortfalls ({shortfalls.length})</h3>
         {shortfalls.length === 0 ? <p className="muted">None</p> : (
-          <ul>{shortfalls.map((s) => <li key={s.worker_id}>{s.worker_id}: {s.assigned_hours}/{s.min_hours} h ({s.missing_hours} h below minimum)</li>)}</ul>
+          <ul>{shortfalls.map((s) => <li key={s.worker_id}>{nameOf(s.worker_id)}: {s.assigned_hours}/{s.min_hours} h ({s.missing_hours} h below minimum)</li>)}</ul>
         )}
       </section>
       <section className="panel">
@@ -44,7 +45,7 @@ export function SidePanel({ violations, gaps, shortfalls, costs }: Props) {
             <table className="mini">
               <tbody>
                 {costs.per_worker.map((w) => (
-                  <tr key={w.worker_id}><td>{w.worker_id}</td><td>{w.hours} h</td><td>{w.amount_ils ? ils(w.amount_ils) : 'cost unknown'}</td></tr>
+                  <tr key={w.worker_id}><td>{nameOf(w.worker_id)}</td><td>{w.hours} h</td><td>{w.amount_ils ? ils(w.amount_ils) : 'cost unknown'}</td></tr>
                 ))}
               </tbody>
             </table>

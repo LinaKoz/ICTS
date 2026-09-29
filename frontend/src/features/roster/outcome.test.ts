@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { GenerateOutcomeOut } from '../../api/rosterContract'
+import type { GenerateOutcomeOut } from '../../api/schemas'
 import { describeOutcome } from './outcome'
 
 const base: GenerateOutcomeOut = { outcome: 'solved', warnings: [] }
