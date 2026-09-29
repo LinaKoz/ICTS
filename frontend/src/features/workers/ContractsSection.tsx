@@ -112,10 +112,11 @@ function NewVersionForm({ workerId, base, onApplied }: { workerId: number; base:
 
   function apply() {
     if (!preview) return
-    applyMut.mutate({ ...toContractInput(form), fingerprint: preview.fingerprint }, {
-      onSuccess: (r) => { setPreview(null); onApplied(r) },
-      onError: (e) => { if (isStalePreview(e)) { setStale(true); setPreview(null) } },
-    })
+    // mutateAsync, not mutate() callbacks: a successful apply refetches the versions, which remounts this form.
+    applyMut
+      .mutateAsync({ ...toContractInput(form), fingerprint: preview.fingerprint })
+      .then((r) => { setPreview(null); onApplied(r) })
+      .catch((e: unknown) => { if (isStalePreview(e)) { setStale(true); setPreview(null) } })
   }
 
   const err = (f: string) => errors[f] && <span className="field-error" role="alert">{errors[f]}</span>

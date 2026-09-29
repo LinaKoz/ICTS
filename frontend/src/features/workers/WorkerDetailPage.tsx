@@ -28,18 +28,18 @@ function UpdateResult({ result }: { result: WorkerUpdateOut }) {
   )
 }
 
-function DetailsForm({ worker }: { worker: WorkerDetailOut }) {
+function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: (r: WorkerUpdateOut) => void }) {
   const update = useUpdateWorker(worker.id)
   const [form, setForm] = useState({ national_id: worker.national_id, full_name: worker.full_name, role: worker.role as Role, status: worker.status as WorkerStatus })
   const [confirming, setConfirming] = useState<string[] | null>(null)
-  const [result, setResult] = useState<WorkerUpdateOut | null>(null)
   const patch = diffPatch(worker, form)
   const errors = fieldErrors(update.error)
   const otherError = update.isError && Object.keys(errors).length === 0
 
   function save() {
     if (!patch) return
-    update.mutate(patch, { onSuccess: (r) => { setResult(r); setConfirming(null) }, onError: () => setConfirming(null) })
+    // mutateAsync: the saved worker refetches with a new row_version, which remounts this (version-keyed) form.
+    update.mutateAsync(patch).then(onResult).catch(() => setConfirming(null))
   }
 
   function submit(e: FormEvent) {
@@ -86,7 +86,6 @@ function DetailsForm({ worker }: { worker: WorkerDetailOut }) {
         </div>
       )}
       {otherError && <ErrorPanel error={update.error} onReload={() => { update.reset(); window.location.reload() }} />}
-      {result && <UpdateResult result={result} />}
     </form>
   )
 }
@@ -116,6 +115,7 @@ function History({ worker }: { worker: WorkerDetailOut }) {
 export function WorkerDetailPage() {
   const id = Number(useParams().id)
   const worker = useWorker(id)
+  const [result, setResult] = useState<WorkerUpdateOut | null>(null)
   if (!Number.isInteger(id)) return <p>Unknown worker.</p>
   return (
     <div>
@@ -126,7 +126,8 @@ export function WorkerDetailPage() {
         <>
           <h2 className="page-title">{worker.data.full_name} <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : ''}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></h2>
           {/* keyed by version so a reload after a conflict resets the form to the stored values */}
-          <DetailsForm key={worker.data.row_version} worker={worker.data} />
+          <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} />
+          {result && <UpdateResult result={result} />}
           <History worker={worker.data} />
           <ContractsSection workerId={id} currentContract={worker.data.current_contract as ContractOut | null} />
         </>

@@ -63,3 +63,4 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 .panel-warning { border-color: #d9a400; }
 .availability { width: auto; } .availability th, .availability td { text-align: center; padding: 2px 8px; }
 .preview { display: grid; gap: 4px; }
+.table .badge { margin-left: 6px; }
