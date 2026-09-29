@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { GenerateOutcomeOut, RosterOut } from '../../api/schemas'
-import { rosterKey, useGenerate, useMeta, useRoster, useSave } from './api'
+import { rosterKey, useAssignmentIds, useGenerate, useMeta, useRoster, useSave } from './api'
+import { EditPanel, type Selection } from './EditPanel'
+import { idLookup } from './edit'
 import { describeOutcome } from './outcome'
 import { RosterGrid } from './RosterGrid'
 import { SidePanel } from './SidePanel'
@@ -23,6 +25,9 @@ function StatusBadge({ roster }: { roster: RosterOut | null | undefined }) {
   )
 }
 
+const selectionKey = (s: Selection) =>
+  s.kind === 'assignment' ? `a${s.id}` : `g${s.slot.date}${s.slot.shift}${s.slot.role}`
+
 export function RosterPage() {
   const qc = useQueryClient()
   const [month, setMonth] = useState(currentMonth)
@@ -30,6 +35,7 @@ export function RosterPage() {
   const [preview, setPreview] = useState<GenerateOutcomeOut | null>(null)
   const [confirmReplace, setConfirmReplace] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [selection, setSelection] = useState<Selection | null>(null)
 
   const meta = useMeta()
   const roster = useRoster(month)
@@ -39,10 +45,15 @@ export function RosterPage() {
   const existing = roster.data ?? null
   const summary = preview ? describeOutcome(preview) : null
   const previewUsable = preview?.outcome === 'solved' && preview.assignments != null && preview.fingerprint != null
+  // Manual edits work on the stored roster only: not on a preview, not on history.
+  const canEdit = existing != null && !existing.is_history && !previewUsable
+  const ids = useAssignmentIds(month, canEdit)
+  const idOf = idLookup(ids.data)
+  const editing = canEdit && ids.isSuccess
 
   function changeMonth(m: string) {
     if (!m) return
-    setMonth(m); setPreview(null); setConfirmReplace(false); setSaved(false)
+    setMonth(m); setPreview(null); setConfirmReplace(false); setSaved(false); setSelection(null)
     generate.reset(); save.reset()
   }
 
@@ -141,8 +152,17 @@ export function RosterPage() {
             month={month} shifts={meta.data.shifts} roles={meta.data.roles} demand={meta.data.demand}
             assignments={view.assignments} gaps={view.gaps} freeFrom={view.freeFrom}
             workers={view.workers} perShiftCosts={view.costs?.per_shift}
+            edit={editing ? {
+              onAssignment: (a) => { const id = idOf(a); if (id !== undefined) setSelection({ kind: 'assignment', assignment: a, id }) },
+              onGap: (slot) => setSelection({ kind: 'gap', slot }),
+            } : undefined}
           />
-          <SidePanel violations={view.violations} gaps={view.gaps} shortfalls={view.shortfalls} costs={view.costs} workers={view.workers} />
+          <div>
+            {editing && selection && existing && (
+              <EditPanel key={selectionKey(selection)} month={month} roster={existing} selection={selection} onClose={() => setSelection(null)} />
+            )}
+            <SidePanel violations={view.violations} gaps={view.gaps} shortfalls={view.shortfalls} costs={view.costs} workers={view.workers} />
+          </div>
         </div>
       )}
     </div>
