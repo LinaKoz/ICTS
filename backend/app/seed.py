@@ -34,7 +34,7 @@ _SAMPLE_WORKERS = (
     ("222222226", "Ben Guard", "GENERAL_GUARD"),
     ("333333334", "Cara Screener", "SCREENER"),
     ("444444442", "Dana Screener", "SCREENER"),
-    ("555555550", "Eli Supervisor", "SUPERVISOR"),
+    ("555555556", "Eli Supervisor", "SUPERVISOR"),
 )
 _SAMPLE_HOURLY_RATE = Decimal("45.00")
 _SAMPLE_MIN_HOURS = 0
