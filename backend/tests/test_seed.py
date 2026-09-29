@@ -27,10 +27,16 @@ def test_seed_is_idempotent(db):
         worker_count = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM contract_versions")
         contract_count = cur.fetchone()[0]
+        cur.execute(
+            "SELECT count(*), min(c.max_hours), max(c.max_hours), min(c.hourly_rate_ils), max(c.hourly_rate_ils) "
+            "FROM contract_versions c JOIN workers w ON w.id = c.worker_id WHERE w.national_id LIKE '9000%'"
+        )
+        extra = cur.fetchone()
 
     assert users == [("manager", "MANAGER"), ("planner", "PLANNER")]
-    assert worker_count == 5  # one insert only, not duplicated by the 2nd run
-    assert contract_count == 5
+    assert worker_count == 30  # one insert only, not duplicated by the 2nd run
+    assert contract_count == 30
+    assert extra == (25, 200, 200, 50, 50)
 
 
 @requires_db

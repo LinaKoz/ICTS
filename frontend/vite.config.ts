@@ -5,5 +5,19 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   // Dev server: forward /api to the backend (in compose, nginx does this).
-  server: { proxy: { '/api': 'http://localhost:8000' } },
+  // The backend rejects requests whose Origin differs from Host, so present the
+  // proxied request as coming from the backend's own origin.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (req) => {
+            if (req.getHeader('origin')) req.setHeader('origin', 'http://localhost:8000')
+          })
+        },
+      },
+    },
+  },
 })

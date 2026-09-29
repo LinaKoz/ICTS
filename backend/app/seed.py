@@ -21,6 +21,7 @@ from app.auth.security import hash_password
 from app.config import settings
 from app.contracts.models import ContractVersion
 from app.workers.models import Worker
+from app.workers.national_id import israeli_id_checksum_ok
 
 _DEMO_USERS = (
     ("planner", "Planner", settings.planner_password, "PLANNER"),
@@ -44,6 +45,22 @@ _SAMPLE_AVAILABILITY = [
     for day in ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
     for shift in ("A", "B", "C")
 ]
+
+# 25 extra workers: 200h/month cap, 50 ILS/hour. Roles are mixed.
+_EXTRA_ROLES = ("GENERAL_GUARD",) * 12 + ("SCREENER",) * 6 + ("SUPERVISOR",) * 7
+_EXTRA_HOURLY_RATE = Decimal("50.00")
+_EXTRA_MAX_HOURS = 200
+
+
+def _extra_national_id(n: int) -> str:
+    """Deterministic valid 9-digit ID: `9000` + 4-digit n + check digit."""
+    prefix = f"9000{n:04d}"
+    return next(prefix + str(d) for d in range(10) if israeli_id_checksum_ok(prefix + str(d)))
+
+
+_EXTRA_WORKERS = tuple(
+    (_extra_national_id(i), f"Worker {i:02d}", role) for i, role in enumerate(_EXTRA_ROLES, start=1)
+)
 
 
 async def seed(session: AsyncSession) -> None:
@@ -71,7 +88,35 @@ async def seed(session: AsyncSession) -> None:
                 )
             )
 
+    await _ensure_extra_workers(session, planner_id)
     await session.commit()
+
+
+async def _ensure_extra_workers(session: AsyncSession, planner_id: int) -> None:
+    """Add the extra workers missing by national ID (idempotent, so it also
+    tops up a DB that already has workers)."""
+    ids = [national_id for national_id, _, _ in _EXTRA_WORKERS]
+    present = set((await session.execute(select(Worker.national_id).where(Worker.national_id.in_(ids)))).scalars())
+    effective_month = date.today().replace(day=1)
+    for national_id, full_name, role in _EXTRA_WORKERS:
+        if national_id in present:
+            continue
+        worker = Worker(national_id=national_id, full_name=full_name, role=role, status="ACTIVE")
+        session.add(worker)
+        await session.flush()
+        session.add(
+            ContractVersion(
+                worker_id=worker.id,
+                version_no=1,
+                effective_month=effective_month,
+                hourly_rate_ils=_EXTRA_HOURLY_RATE,
+                min_hours=_SAMPLE_MIN_HOURS,
+                max_hours=_EXTRA_MAX_HOURS,
+                availability=_SAMPLE_AVAILABILITY,
+                created_by=planner_id,
+                source="UI",
+            )
+        )
 
 
 async def _ensure_user(session: AsyncSession, username: str, display_name: str, password: str, app_role: str) -> int:
