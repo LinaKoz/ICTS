@@ -11,9 +11,12 @@ import logging
 import os
 from concurrent.futures.process import BrokenProcessPool
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api_schemas.common import error_responses
 from app.api_schemas.rosters import GenerateOutcomeOut, GenerateRequest, ObjectiveOut
 from app.auth.models import User
 from app.auth.session import require_role
@@ -22,13 +25,14 @@ from app.db import get_session
 from app.engine_pool import engine_pool
 from app.errors import EngineError, GenerationInProgressError, LockedShiftError, ValidationAppError
 from app.rosters.costs import compute_costs
-from app.rosters.problem_builder import build_problem, compute_fingerprint, is_history_month, parse_month
+from app.rosters.problem_builder import MONTH_PATTERN, build_problem, compute_fingerprint, is_history_month, parse_month
 from app.rosters.serialize import (
     assignment_to_out,
     costs_to_out,
     coverage_gap_to_out,
     coverage_status_to_out,
     hour_shortfall_to_out,
+    load_worker_refs,
     min_hours_status_to_out,
     violation_to_out,
 )
@@ -39,9 +43,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["rosters"])
 
 
-@router.post("/{month}/generate", response_model=GenerateOutcomeOut)
+@router.post(
+    "/{month}/generate",
+    response_model=GenerateOutcomeOut,
+    responses=error_responses(401, 403, 422, 429, 500),
+)
 async def generate(
-    month: str,
+    month: Annotated[str, Path(pattern=MONTH_PATTERN, description="YYYY-MM")],
     body: GenerateRequest,
     _user: User = Depends(require_role("PLANNER", "MANAGER")),
     session: AsyncSession = Depends(get_session),
@@ -86,6 +94,7 @@ async def generate(
             preexisting_violations=[violation_to_out(v, no_contract_ids) for v in result.preexisting_violations],
             objective=ObjectiveOut(**vars(result.objective)),
             costs=costs_to_out(compute_costs(list(result.assignments), built.contract_by_worker_id)),
+            workers=await load_worker_refs(session),
             fingerprint=fingerprint,
             warnings=list(result.warnings),
         )

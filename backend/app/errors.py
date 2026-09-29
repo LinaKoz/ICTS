@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
@@ -161,3 +162,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(status_code=exc.status_code, content=exc.to_payload())
+
+    @app.exception_handler(RequestValidationError)
+    async def _handle_validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
+        # FastAPI's default body is {"detail": [...]}; §6 has one shape.
+        error = ValidationAppError(
+            "the request is invalid",
+            details=[{"loc": list(e["loc"]), "message": e["msg"], "type": e["type"]} for e in exc.errors()],
+        )
+        return JSONResponse(status_code=error.status_code, content=error.to_payload())

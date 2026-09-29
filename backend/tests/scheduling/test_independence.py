@@ -5,7 +5,7 @@ import pathlib
 
 import app.scheduling as scheduling_pkg
 
-FORBIDDEN_PREFIXES = ("sqlalchemy", "fastapi")
+FORBIDDEN_PREFIXES = ("sqlalchemy", "fastapi", "psycopg", "alembic")
 
 
 def _imported_modules(tree: ast.AST):

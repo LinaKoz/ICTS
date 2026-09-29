@@ -5,10 +5,13 @@ routers (`generation.py`, `save.py`) under one include in `main.py`.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api_schemas.common import error_responses
 from app.api_schemas.rosters import ApprovalEventOut, RosterOut
 from app.auth.models import User
 from app.auth.session import require_role
@@ -18,9 +21,9 @@ from app.rosters.costs import compute_costs
 from app.rosters.evaluation import evaluate
 from app.rosters.generation import router as generate_router
 from app.rosters.models import Roster, RosterApproval, RosterAssignment
-from app.rosters.problem_builder import is_history_month, parse_month
+from app.rosters.problem_builder import MONTH_PATTERN, is_history_month, parse_month
 from app.rosters.save import router as save_router
-from app.rosters.serialize import assignment_to_out, coverage_gap_to_out, costs_to_out, hour_shortfall_to_out, violation_to_out
+from app.rosters.serialize import assignment_to_out, coverage_gap_to_out, costs_to_out, hour_shortfall_to_out, load_worker_refs, violation_to_out
 from app.scheduling.types import Assignment, Role, Shift
 
 router = APIRouter(prefix="/api/rosters", tags=["rosters"])
@@ -28,9 +31,9 @@ router.include_router(generate_router)
 router.include_router(save_router)
 
 
-@router.get("/{month}", response_model=RosterOut)
+@router.get("/{month}", response_model=RosterOut, responses=error_responses(401, 403, 404, 422))
 async def get_roster(
-    month: str,
+    month: Annotated[str, Path(pattern=MONTH_PATTERN, description="YYYY-MM")],
     _user: User = Depends(require_role("PLANNER", "MANAGER")),
     session: AsyncSession = Depends(get_session),
 ) -> RosterOut:
@@ -44,6 +47,7 @@ async def get_roster(
     assignments = [Assignment(str(ra.worker_id), ra.date, Shift(ra.shift), Role(ra.role)) for ra in stored]
 
     ev = await evaluate(session, roster)
+    updated_by = await session.get(User, roster.updated_by)
     no_contract_ids = {str(wid) for wid in ev.no_contract_worker_ids}
     costs = compute_costs(assignments, ev.built.contract_by_worker_id)
 
@@ -79,5 +83,8 @@ async def get_roster(
         coverage_gaps=[coverage_gap_to_out(g) for g in ev.metrics.coverage_gaps],
         hour_shortfalls=[hour_shortfall_to_out(h) for h in ev.metrics.hour_shortfalls],
         costs=costs_to_out(costs),
+        workers=await load_worker_refs(session),
+        updated_at=roster.updated_at,
+        updated_by=updated_by.display_name if updated_by else "unknown",
         approval_history=approval_history,
     )

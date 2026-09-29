@@ -5,6 +5,9 @@ excluded from the problem for lacking an applicable contract (P4).
 """
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api_schemas.common import (
     AssignmentOut,
     CostsOut,
@@ -15,8 +18,10 @@ from app.api_schemas.common import (
     ViolationOut,
     ShiftCostOut,
     WorkerCostOut,
+    WorkerRefOut,
 )
 from app.rosters.costs import Costs
+from app.workers.models import Worker
 from app.scheduling.types import Assignment, CoverageGap, CoverageStatus, HourShortfall, MinHoursStatus, Violation, ViolationCode
 
 
@@ -78,3 +83,13 @@ def costs_to_out(costs: Costs) -> CostsOut:
         monthly_total_ils=str(costs.monthly_total_ils),
         unknown_cost_worker_count=costs.unknown_cost_worker_count,
     )
+
+
+async def load_worker_refs(session: AsyncSession) -> list[WorkerRefOut]:
+    """Name lookup for the grid: every worker, so ids in assignments,
+    shortfalls, costs and violations all resolve (inactive workers keep
+    their locked shifts, D9)."""
+    rows = (await session.execute(select(Worker).order_by(Worker.full_name, Worker.id))).scalars().all()
+    return [
+        WorkerRefOut(worker_id=str(w.id), full_name=w.full_name, role=w.role, status=w.status) for w in rows
+    ]

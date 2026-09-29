@@ -10,10 +10,13 @@ an approval if one existed.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy import delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api_schemas.common import error_responses
 from app.api_schemas.rosters import SaveRequest, SaveResponseOut
 from app.auth.models import User
 from app.auth.session import require_role
@@ -21,16 +24,20 @@ from app.db import get_session, take_scheduling_lock
 from app.errors import BadRequestError, HardViolationsError, LockedShiftError, StalePreviewError, VersionConflictError
 from app.rosters.approval import revoke
 from app.rosters.models import Roster, RosterAssignment
-from app.rosters.problem_builder import _pos, build_problem, compute_fingerprint, is_history_month, parse_month
+from app.rosters.problem_builder import MONTH_PATTERN, _pos, build_problem, compute_fingerprint, is_history_month, parse_month
 from app.rosters.serialize import violation_to_out
 from app.scheduling.types import Assignment, Role, Shift, validate_roster, worsened
 
 router = APIRouter(tags=["rosters"])
 
 
-@router.post("/{month}/save", response_model=SaveResponseOut)
+@router.post(
+    "/{month}/save",
+    response_model=SaveResponseOut,
+    responses=error_responses(400, 401, 403, 409, 422),
+)
 async def save(
-    month: str,
+    month: Annotated[str, Path(pattern=MONTH_PATTERN, description="YYYY-MM")],
     body: SaveRequest,
     user: User = Depends(require_role("PLANNER", "MANAGER")),
     session: AsyncSession = Depends(get_session),

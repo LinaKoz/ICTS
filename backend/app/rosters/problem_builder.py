@@ -13,6 +13,7 @@ from __future__ import annotations
 import calendar
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -20,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.models import ContractVersion
+from app.errors import BadRequestError
 from app.contracts.resolve import resolve_contracts_for_workers
 from app.rosters.models import Roster, RosterAssignment
 from app.scheduling.types import DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput
@@ -32,13 +34,19 @@ _ALL_AVAILABILITY = frozenset((d, s) for d in Weekday for s in Shift)
 _MAX_MONTH_HOURS = 744
 
 
+MONTH_PATTERN = r"^[0-9]{4}-(0[1-9]|1[0-2])$"
+_MONTH_RE = re.compile(MONTH_PATTERN)
+
+
 def parse_month(month_str: str) -> date:
-    """Parses a `YYYY-MM` path parameter into the month's first day."""
-    try:
-        year_s, month_s = month_str.split("-")
-        return date(int(year_s), int(month_s), 1)
-    except (ValueError, IndexError) as exc:
-        raise ValueError(f"invalid month {month_str!r}, expected YYYY-MM") from exc
+    """Parses a strict `YYYY-MM` path parameter into the month's first day.
+
+    Raises `BadRequestError` (400) for anything else, so a hand-typed
+    URL never reaches the database or turns into a 500.
+    """
+    if not _MONTH_RE.fullmatch(month_str):
+        raise BadRequestError(f"invalid month {month_str!r}, expected YYYY-MM")
+    return date(int(month_str[:4]), int(month_str[5:7]), 1)
 
 
 def _month_bounds(year: int, month: int) -> tuple[date, date]:

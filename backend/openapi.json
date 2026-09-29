@@ -54,12 +54,22 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -73,6 +83,7 @@
           "auth"
         ],
         "summary": "Logout",
+        "description": "Always 200 `{\"status\": \"ok\"}`, also when no session exists; clears the cookie.",
         "operationId": "logout_api_auth_logout_post",
         "responses": {
           "200": {
@@ -80,9 +91,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Logout Api Auth Logout Post"
+                  "$ref": "#/components/schemas/LogoutOut"
                 }
               }
             }
@@ -107,6 +116,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
           }
         }
       }
@@ -126,8 +145,11 @@
             "required": true,
             "schema": {
               "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
               "title": "Month"
-            }
+            },
+            "description": "YYYY-MM"
           }
         ],
         "requestBody": {
@@ -151,12 +173,52 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "GENERATION_IN_PROGRESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "ENGINE_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -179,8 +241,11 @@
             "required": true,
             "schema": {
               "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
               "title": "Month"
-            }
+            },
+            "description": "YYYY-MM"
           }
         ],
         "requestBody": {
@@ -204,12 +269,52 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "400": {
+            "description": "BAD_REQUEST",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -231,8 +336,11 @@
             "required": true,
             "schema": {
               "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
               "title": "Month"
-            }
+            },
+            "description": "YYYY-MM"
           }
         ],
         "responses": {
@@ -246,12 +354,42 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -581,6 +719,46 @@
         ],
         "title": "DemandEntry"
       },
+      "ErrorBodyOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBodyOut"
+      },
+      "ErrorOut": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBodyOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorOut",
+        "description": "The one error shape of every non-2xx response (\u00a76)."
+      },
       "GenerateOutcomeOut": {
         "properties": {
           "outcome": {
@@ -700,6 +878,20 @@
               }
             ]
           },
+          "workers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkerRefOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workers"
+          },
           "fingerprint": {
             "anyOf": [
               {
@@ -775,19 +967,6 @@
         "type": "object",
         "title": "GenerateRequest"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
       "HourShortfallOut": {
         "properties": {
           "worker_id": {
@@ -833,6 +1012,20 @@
           "password"
         ],
         "title": "LoginIn"
+      },
+      "LogoutOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "LogoutOut"
       },
       "MetaOut": {
         "properties": {
@@ -1008,6 +1201,22 @@
           "costs": {
             "$ref": "#/components/schemas/CostsOut"
           },
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerRefOut"
+            },
+            "type": "array",
+            "title": "Workers"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "type": "string",
+            "title": "Updated By"
+          },
           "approval_history": {
             "items": {
               "$ref": "#/components/schemas/ApprovalEventOut"
@@ -1029,6 +1238,9 @@
           "coverage_gaps",
           "hour_shortfalls",
           "costs",
+          "workers",
+          "updated_at",
+          "updated_by",
           "approval_history"
         ],
         "title": "RosterOut"
@@ -1168,39 +1380,6 @@
         ],
         "title": "UserOut"
       },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
-      },
       "ViolationOut": {
         "properties": {
           "code": {
@@ -1275,6 +1454,44 @@
           "amount_ils"
         ],
         "title": "WorkerCostOut"
+      },
+      "WorkerRefOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "full_name",
+          "role",
+          "status"
+        ],
+        "title": "WorkerRefOut",
+        "description": "Display lookup for a worker id used by assignments, shortfalls and costs."
       }
     }
   }
