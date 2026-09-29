@@ -78,3 +78,40 @@ def test_resolve_contract_none_before_first_version(db):
             return await resolve_contract(session, worker_id, date(2026, 1, 1))
 
     assert asyncio.run(run()) is None
+
+
+@requires_db
+def test_resolve_contracts_for_workers_matches_single_resolution(db):
+    """Past, current and future months; same-month supersede (higher
+    version_no wins); a worker with no applicable version is absent."""
+    from app.contracts.resolve import resolve_contract, resolve_contracts_for_workers
+    from app.db import async_session_factory
+
+    user_id = _insert_user(db)
+    w1 = _insert_worker(db)
+    with db.cursor() as cur:
+        cur.execute(
+            "INSERT INTO workers (national_id, full_name, role, status) VALUES ('987654321', 'W2', 'SCREENER', 'ACTIVE') RETURNING id"
+        )
+        w2 = cur.fetchone()[0]
+    _insert_version(db, w1, user_id, 1, date(2026, 3, 1), "10.00")
+    _insert_version(db, w1, user_id, 2, date(2026, 3, 1), "11.00")  # same-month revision supersedes
+    _insert_version(db, w1, user_id, 3, date(2026, 6, 1), "12.00")  # future
+
+    async def run():
+        async with async_session_factory() as session:
+            out = {}
+            for m in (date(2026, 2, 1), date(2026, 3, 1), date(2026, 5, 1), date(2026, 6, 1)):
+                bulk = await resolve_contracts_for_workers(session, [w1, w2], m)
+                single = await resolve_contract(session, w1, m)
+                out[m] = (bulk, single)
+            return out
+
+    out = asyncio.run(run())
+    assert out[date(2026, 2, 1)][0] == {} and out[date(2026, 2, 1)][1] is None  # past: not yet effective
+    assert out[date(2026, 3, 1)][0][w1].hourly_rate_ils == Decimal("11.00")  # current, superseded
+    assert out[date(2026, 5, 1)][0][w1].hourly_rate_ils == Decimal("11.00")  # future month, latest <= M
+    assert out[date(2026, 6, 1)][0][w1].hourly_rate_ils == Decimal("12.00")
+    for bulk, single in out.values():
+        assert (bulk.get(w1) is None and single is None) or bulk[w1].id == single.id
+        assert w2 not in bulk  # no contract
