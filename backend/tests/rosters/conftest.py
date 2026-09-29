@@ -21,12 +21,14 @@ PASSWORD = "s3cret-pw"
 
 def make_app() -> FastAPI:
     from app.auth.router import router as auth_router
+    from app.rosters.edits import router as edits_router
     from app.rosters.router import router as rosters_router
 
     app = FastAPI()
     register_exception_handlers(app)
     app.include_router(auth_router)
     app.include_router(rosters_router)
+    app.include_router(edits_router)
     return app
 
 

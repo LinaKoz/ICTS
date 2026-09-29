@@ -49,3 +49,26 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 @keyframes spin { to { transform: rotate(360deg); } }
 .toaster { position: fixed; bottom: 16px; right: 16px; display: grid; gap: 8px; z-index: 10; }
 .toast { background: #333; color: #fff; padding: 10px 14px; border-radius: 6px; cursor: pointer; max-width: 340px; }
+
+/* workers feature */
+.page-title { margin: 0; font-size: 1.3em; color: var(--text-h); }
+.table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 12px; }
+.table th, .table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+.table .row-current { background: var(--accent-bg); }
+.actions-cell { text-align: right; }
+.form { display: grid; gap: 10px; max-width: 640px; }
+.form label { display: grid; gap: 4px; }
+.form select, select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text-h); }
+.field-error { color: #d33; font-size: 0.85em; }
+.panel-warning { border-color: #d9a400; }
+.availability { width: auto; } .availability th, .availability td { text-align: center; padding: 2px 8px; }
+.preview { display: grid; gap: 4px; }
+.table .badge { margin-left: 6px; }
+.chip-btn { font: inherit; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); }
+.edit-panel h3 { display: flex; justify-content: space-between; align-items: center; }
+.edit-panel label { display: grid; gap: 2px; margin: 6px 0; }
+.edit-panel select, .edit-panel input { width: 100%; }
+.suggestion { border-top: 1px solid var(--border); padding: 6px 0; display: grid; gap: 4px; }
+.suggestion .reasons { font-size: 0.8em; opacity: 0.85; }
+.ack { border: 1px solid #d9a400; border-radius: 6px; padding: 6px 8px; margin: 6px 0; }

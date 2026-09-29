@@ -835,6 +835,14 @@ Sample data (D5): the sample CSV starts at 23 workers (9 GG, 9 SCR, 5 SUP). An i
 
 Backend tests run with pytest against a Postgres test database in compose, with each test rolled back.
 
+### Status after T5 and T7
+T5 (workers, contract versions, change-set service) and T7 (manual edits, suggestions) are merged. Carry-over for the remaining tasks:
+- **T6 reuses** `app/changes/service.py` (`preview_change_set` / `apply_change_set`, so a confirmed import is one change set) and `app/contracts/availability.py`. Availability is stored in MON..SUN then A..C order, matching the seed, not lexicographic order. The CSV import must use the same helper so an unchanged row classifies as UNCHANGED.
+- **T8 must know** that a change-set apply that revokes an approval also bumps that roster's `row_version` (it feeds the save fingerprint), and that edits (T7) already revoke with cause `EDIT` through `approval.revoke`. Revoke references are `contract_version:{id}` and `worker:{id}`; T6 will add the import id.
+- The seed supervisor's national ID was changed to a checksum-valid `555555556`. An existing database volume keeps the old ID until `docker compose down -v`.
+- `GET /rosters/{month}/assignments` exists because `RosterOut.assignments` has no id. An optional `id` on the roster read would remove the client-side join (T9 polish, optional).
+- Deferred: the detailed role/status impact preview (P1). The UI asks for a plain confirmation.
+
 ### Status and carry-over after M1 integration (T3 + T4)
 Done in the integration of T3 and T4: `YYYY-MM` month validation (422 in the §6 error shape), a `workers` name lookup and `updated_at`/`updated_by` on the roster read, `CostsOut.per_shift`, the `NO_CONTRACT_FOR_MONTH` violation code, error and logout responses documented in `openapi.json`, frontend types generated from it, and the frontend TypeScript pinned to 5.9 so `openapi-typescript` installs without `legacy-peer-deps`.
 
