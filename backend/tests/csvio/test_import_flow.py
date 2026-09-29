@@ -3,6 +3,7 @@ approved-roster invalidation with the import id, decisions, worker-only rows."""
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -244,3 +245,26 @@ def test_meta_aliases_match_parser():
         for n in names:
             assert ROLE_ALIASES[" ".join(n.lower().replace("-", " ").split())] == canon
     assert normalize_header(" Israeli ID ") == "national_id"
+
+
+@requires_db
+def test_semicolon_file_with_other_header_names_imports_end_to_end(world):
+    """A dataset the importer has never seen: `;` delimiter, its own header names,
+    decimal comma, a currency marker, and Hebrew names."""
+    client, uid, db = world
+    header = "Israeli ID;Name;Position;Hourly Cost (ILS);Min Hours;Max Hours;Days;Shifts"
+    lines = [
+        f"{A};נועה לוי;Screener;44,5;100;184;Sun|Mon|Tue;A|B",
+        f"{B};Dan Cohen;GG;₪41.00;0;160;Mon|Wed;C",
+        "12345674;Bad Id;Guard;40;0;100;Sun;A",
+    ]
+    data = ("\r\n".join([header, *lines]) + "\r\n").encode("utf-8")
+    prev = post_csv(client, data)
+    assert prev.status_code == 201, prev.text
+    body = prev.json()
+    assert body["counts"] == {"new": 2, "changed": 0, "unchanged": 0, "invalid": 1}
+    assert [r["errors"][0]["code"] for r in body["rows"] if r["classification"] == "INVALID"] == ["ID_LENGTH"]
+    assert confirm(client, body["id"]).status_code == 200
+    rows = q(db, "SELECT full_name, role FROM workers ORDER BY national_id")
+    assert ("נועה לוי", "SCREENER") in rows and ("Dan Cohen", "GENERAL_GUARD") in rows
+    assert q(db, "SELECT hourly_rate_ils FROM contract_versions ORDER BY hourly_rate_ils") == [(Decimal("41.00"),), (Decimal("44.50"),)]

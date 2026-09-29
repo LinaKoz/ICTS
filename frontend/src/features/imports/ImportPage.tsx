@@ -193,7 +193,7 @@ function UploadSection({ onPreview }: { onPreview: (p: ImportPreviewOut) => void
     <section className="panel form" aria-label="Upload">
       <h3>Import workers and contracts</h3>
       <p className="muted">
-        CSV with a header row (UTF-8): national_id, full_name and role are required; status, effective_month and the contract columns are optional.
+        CSV with a header row (UTF-8; comma, semicolon or tab separated): national_id, full_name and role are required; status, effective_month and the contract columns are optional.
         Up to 1 MB and 5,000 rows.
       </p>
       <label>CSV file <input ref={input} type="file" accept=".csv,text/csv" onChange={() => { setProblem(null); upload.reset() }} /></label>

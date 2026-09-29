@@ -121,8 +121,9 @@ Design points:
 
 Import: `POST /api/imports` with a raw `text/csv` body (any other content type is 415), or the Import page. Export: `GET /api/exports/workers.csv?month=YYYY-MM`, or the export control on the Import page.
 
-- **Encoding:** UTF-8; a BOM is accepted on import and written on export (Hebrew names in Excel).
-- **Columns are matched by header name, in any order.** A header row is required. Headers are trimmed, lowercased, and spaces/hyphens become `_`.
+- **Encoding:** UTF-8; a BOM is accepted on import and written on export (Hebrew names in Excel). UTF-16 with a BOM (Excel's *Unicode Text*) is also read. Other code pages such as Windows-1255 are rejected with 400 `INVALID_ENCODING` and a hint to save as *CSV UTF-8*; they are not guessed, because a wrong guess would silently garble names.
+- **Delimiter:** comma, semicolon or tab, detected from the header line (the delimiter that splits it into the most columns; comma on a tie). Export always writes commas.
+- **Columns are matched by header name, in any order.** A header row is required. Headers are trimmed and lowercased, spaces and hyphens become `_`, and other punctuation is dropped (`Hourly Cost (ILS)` is `hourly_cost_ils`).
 - **Required always:** `national_id`, `full_name`, `role`. **Optional:** `status` (empty or missing = ACTIVE), `effective_month` (`YYYY-MM`; empty or missing = the current Israel month, shown resolved in the preview), `export_format`.
 - **Contract columns** are `hourly_rate_ils`, `min_monthly_hours`, `max_monthly_hours` and availability. They are required together: a row where all are empty is a valid *worker-only* row (creates or updates the worker, no contract version); a row where some are filled is INVALID `INCOMPLETE_CONTRACT`.
 - **Missing required column:** 400 `MISSING_COLUMNS` with the list. Two headers that normalise to the same name: 400 `DUPLICATE_COLUMN`. Unknown columns are ignored and listed as a warning in the preview.
@@ -131,15 +132,18 @@ Header aliases (also served by `GET /api/meta`):
 
 | Column | Aliases |
 |---|---|
-| `national_id` | `id`, `israeli_id`, `id_number` |
-| `full_name` | `name` |
-| `hourly_rate_ils` | `hourly_rate`, `hourly_cost` |
-| `min_monthly_hours` | `min_hours` |
-| `max_monthly_hours` | `max_hours` |
-| `available_days` | `days` |
-| `available_shifts` | `shifts` |
+| `national_id` | `id`, `israeli_id`, `id_number`, `israeli_id_number`, `national_id_number`, `identity_number`, `id_no`, `teudat_zehut` |
+| `full_name` | `name`, `fullname`, `worker_name`, `employee_name` |
+| `role` | `position`, `job`, `job_title`, `worker_role` |
+| `hourly_rate_ils` | `hourly_rate`, `hourly_cost`, `hourly_cost_ils`, `rate`, `cost_per_hour`, `rate_per_hour` |
+| `min_monthly_hours` | `min_hours`, `minimum_hours`, `minimum_monthly_hours`, `min_monthly` |
+| `max_monthly_hours` | `max_hours`, `maximum_hours`, `maximum_monthly_hours`, `max_monthly` |
+| `available_days` | `days`, `availability_days`, `working_days` |
+| `available_shifts` | `shifts`, `availability_shifts` |
 
-Value aliases (case-insensitive; spaces, hyphens and underscores are equal): role `General Guard` / `general-guard` / `GENERAL_GUARD` / `Guard` = GENERAL_GUARD, `Screener` = SCREENER, `Supervisor` = SUPERVISOR; status `Active`, `Inactive`.
+Value aliases (case-insensitive; spaces, hyphens and underscores are equal): role `General Guard` / `general-guard` / `GENERAL_GUARD` / `Guard` / `GG` = GENERAL_GUARD, `Screener` / `SCR` = SCREENER, `Supervisor` / `SUP` = SUPERVISOR; status `Active`, `Inactive`.
+
+**Hourly rate cells** accept a decimal point or comma (`44.5`, `44,5`) and a currency marker (`₪`, `ILS`, `NIS`); at most 2 decimals, positive.
 
 **Availability, exactly one form per row** (both normalise to the same set of day/shift pairs, so classification does not depend on the form):
 
