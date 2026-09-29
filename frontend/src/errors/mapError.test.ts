@@ -27,6 +27,12 @@ describe('mapError', () => {
   it('network error is a toast with retry', () => {
     expect(mapError(api(0, 'NETWORK_ERROR'))).toMatchObject({ presentation: 'toast', action: 'retry' })
   })
+  it('approval errors have their own messages', () => {
+    expect(mapError(new ApiError(422, 'WARNINGS_NOT_ACKNOWLEDGED', 'm')).title).toBe('Acknowledgement needed')
+    expect(mapError(new ApiError(409, 'ALREADY_APPROVED', 'm')).action).toBe('reload')
+    expect(mapError(new ApiError(409, 'STALE_PREVIEW', 'the shortages changed since you reviewed them')).title).toBe('Shortages changed')
+    expect(mapError(new ApiError(409, 'STALE_PREVIEW', 'other')).title).toBe('Data changed')
+  })
   it('429 generation in progress', () => {
     expect(mapError(api(429, 'GENERATION_IN_PROGRESS')).title).toBe('Generation in progress')
   })
