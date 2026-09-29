@@ -20,6 +20,7 @@ from app.engine_pool import engine_pool
 from app.errors import register_exception_handlers
 from app.routers.meta import router as meta_router
 from app.rosters.router import router as rosters_router
+from app.workers.router import router as workers_router
 from app.seed import seed
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ register_exception_handlers(app)
 app.include_router(meta_router)
 app.include_router(auth_router)
 app.include_router(rosters_router)
+app.include_router(workers_router)
 
 
 @app.get("/api/health")

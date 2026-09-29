@@ -397,6 +397,684 @@
         }
       }
     },
+    "/api/workers/{worker_id}/contracts": {
+      "get": {
+        "tags": [
+          "workers",
+          "contracts"
+        ],
+        "summary": "List Contracts",
+        "operationId": "list_contracts_api_workers__worker_id__contracts_get",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Worker Id"
+            }
+          },
+          {
+            "name": "resolved_for",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM; default: the current Israel month",
+              "title": "Resolved For"
+            },
+            "description": "YYYY-MM; default: the current Israel month"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "workers",
+          "contracts"
+        ],
+        "summary": "Apply Contract",
+        "description": "Creates a new immutable version. An unchanged contract (P5) creates\nnothing (`created=false`). Assignments are kept; approved rosters that\ngain hard violations return to DRAFT with revoke cause `CONTRACT_CHANGE`.",
+        "operationId": "apply_contract_api_workers__worker_id__contracts_post",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Worker Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractApply"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractApplyOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers/{worker_id}/contracts/preview": {
+      "post": {
+        "tags": [
+          "workers",
+          "contracts"
+        ],
+        "summary": "Preview Contract",
+        "operationId": "preview_contract_api_workers__worker_id__contracts_preview_post",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Worker Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractPreviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "List Workers",
+        "operationId": "list_workers_api_workers_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ACTIVE",
+                    "INACTIVE"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "GENERAL_GUARD",
+                    "SCREENER",
+                    "SUPERVISOR"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "substring of name or national ID",
+              "title": "Q"
+            },
+            "description": "substring of name or national ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkerOut"
+                  },
+                  "title": "Response List Workers Api Workers Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Create Worker",
+        "operationId": "create_worker_api_workers_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkerCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers/{worker_id}": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Worker",
+        "operationId": "get_worker_api_workers__worker_id__get",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Worker Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerDetailOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Update Worker",
+        "operationId": "update_worker_api_workers__worker_id__patch",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Worker Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkerPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerUpdateOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Delete Worker",
+        "description": "P6: hard delete only if the worker has no contract versions, no\nassignments and no status/role history; otherwise 409 `WORKER_IN_USE`\nand the UI offers \"deactivate\".",
+        "operationId": "delete_worker_api_workers__worker_id__delete",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Worker Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Health",
@@ -420,6 +1098,78 @@
   },
   "components": {
     "schemas": {
+      "AffectedRosterOut": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Month"
+          },
+          "roster_id": {
+            "type": "integer",
+            "title": "Roster Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "is_history": {
+            "type": "boolean",
+            "title": "Is History"
+          },
+          "worker_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Worker Ids"
+          },
+          "assignment_count": {
+            "type": "integer",
+            "title": "Assignment Count"
+          },
+          "new_violations": {
+            "items": {
+              "$ref": "#/components/schemas/ViolationOut"
+            },
+            "type": "array",
+            "title": "New Violations"
+          },
+          "locked_violations": {
+            "items": {
+              "$ref": "#/components/schemas/LockedViolationOut"
+            },
+            "type": "array",
+            "title": "Locked Violations"
+          },
+          "revokes_approval": {
+            "type": "boolean",
+            "title": "Revokes Approval"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "roster_id",
+          "status",
+          "version",
+          "is_history",
+          "worker_ids",
+          "assignment_count",
+          "new_violations",
+          "locked_violations",
+          "revokes_approval"
+        ],
+        "title": "AffectedRosterOut"
+      },
       "ApprovalEventOut": {
         "properties": {
           "approved_by": {
@@ -518,6 +1268,357 @@
           "role"
         ],
         "title": "AssignmentOut"
+      },
+      "ContractApply": {
+        "properties": {
+          "effective_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Effective Month"
+          },
+          "hourly_rate_ils": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Hourly Rate Ils"
+          },
+          "min_hours": {
+            "type": "integer",
+            "maximum": 744.0,
+            "minimum": 0.0,
+            "title": "Min Hours"
+          },
+          "max_hours": {
+            "type": "integer",
+            "maximum": 744.0,
+            "minimum": 0.0,
+            "title": "Max Hours"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Availability",
+            "description": "\"DAY:SHIFT\" tokens such as \"MON:A\""
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "effective_month",
+          "hourly_rate_ils",
+          "min_hours",
+          "max_hours",
+          "availability",
+          "fingerprint"
+        ],
+        "title": "ContractApply"
+      },
+      "ContractApplyOut": {
+        "properties": {
+          "affected_rosters": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedRosterOut"
+            },
+            "type": "array",
+            "title": "Affected Rosters"
+          },
+          "invalidates_approved": {
+            "type": "boolean",
+            "title": "Invalidates Approved"
+          },
+          "locked_violations": {
+            "items": {
+              "$ref": "#/components/schemas/LockedViolationOut"
+            },
+            "type": "array",
+            "title": "Locked Violations"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          },
+          "contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revoked_rosters": {
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+            },
+            "type": "array",
+            "title": "Revoked Rosters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "affected_rosters",
+          "invalidates_approved",
+          "locked_violations",
+          "created",
+          "contract",
+          "revoked_rosters"
+        ],
+        "title": "ContractApplyOut"
+      },
+      "ContractInput": {
+        "properties": {
+          "effective_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Effective Month"
+          },
+          "hourly_rate_ils": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Hourly Rate Ils"
+          },
+          "min_hours": {
+            "type": "integer",
+            "maximum": 744.0,
+            "minimum": 0.0,
+            "title": "Min Hours"
+          },
+          "max_hours": {
+            "type": "integer",
+            "maximum": 744.0,
+            "minimum": 0.0,
+            "title": "Max Hours"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Availability",
+            "description": "\"DAY:SHIFT\" tokens such as \"MON:A\""
+          }
+        },
+        "type": "object",
+        "required": [
+          "effective_month",
+          "hourly_rate_ils",
+          "min_hours",
+          "max_hours",
+          "availability"
+        ],
+        "title": "ContractInput"
+      },
+      "ContractOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "worker_id": {
+            "type": "integer",
+            "title": "Worker Id"
+          },
+          "version_no": {
+            "type": "integer",
+            "title": "Version No"
+          },
+          "effective_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Effective Month"
+          },
+          "hourly_rate_ils": {
+            "type": "string",
+            "title": "Hourly Rate Ils"
+          },
+          "min_hours": {
+            "type": "integer",
+            "title": "Min Hours"
+          },
+          "max_hours": {
+            "type": "integer",
+            "title": "Max Hours"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availability"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "UI",
+              "CSV"
+            ],
+            "title": "Source"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "worker_id",
+          "version_no",
+          "effective_month",
+          "hourly_rate_ils",
+          "min_hours",
+          "max_hours",
+          "availability",
+          "created_at",
+          "created_by",
+          "source",
+          "import_id"
+        ],
+        "title": "ContractOut"
+      },
+      "ContractPreviewOut": {
+        "properties": {
+          "affected_rosters": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedRosterOut"
+            },
+            "type": "array",
+            "title": "Affected Rosters"
+          },
+          "invalidates_approved": {
+            "type": "boolean",
+            "title": "Invalidates Approved"
+          },
+          "locked_violations": {
+            "items": {
+              "$ref": "#/components/schemas/LockedViolationOut"
+            },
+            "type": "array",
+            "title": "Locked Violations"
+          },
+          "worker_id": {
+            "type": "integer",
+            "title": "Worker Id"
+          },
+          "effective_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Effective Month"
+          },
+          "retroactive": {
+            "type": "boolean",
+            "title": "Retroactive"
+          },
+          "unchanged": {
+            "type": "boolean",
+            "title": "Unchanged"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "affected_rosters",
+          "invalidates_approved",
+          "locked_violations",
+          "worker_id",
+          "effective_month",
+          "retroactive",
+          "unchanged",
+          "previous",
+          "fingerprint"
+        ],
+        "title": "ContractPreviewOut"
+      },
+      "ContractsOut": {
+        "properties": {
+          "worker_id": {
+            "type": "integer",
+            "title": "Worker Id"
+          },
+          "resolved_for": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Resolved For"
+          },
+          "resolved": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/ContractOut"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "resolved_for",
+          "resolved",
+          "versions"
+        ],
+        "title": "ContractsOut"
       },
       "CostsOut": {
         "properties": {
@@ -759,6 +1860,44 @@
         "title": "ErrorOut",
         "description": "The one error shape of every non-2xx response (\u00a76)."
       },
+      "FieldChangeOut": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "STATUS",
+              "ROLE"
+            ],
+            "title": "Field"
+          },
+          "old_value": {
+            "type": "string",
+            "title": "Old Value"
+          },
+          "new_value": {
+            "type": "string",
+            "title": "New Value"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective At"
+          },
+          "changed_by": {
+            "type": "string",
+            "title": "Changed By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "old_value",
+          "new_value",
+          "effective_at",
+          "changed_by"
+        ],
+        "title": "FieldChangeOut"
+      },
       "GenerateOutcomeOut": {
         "properties": {
           "outcome": {
@@ -994,6 +2133,70 @@
           "missing_hours"
         ],
         "title": "HourShortfallOut"
+      },
+      "LockedViolationOut": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Month"
+          },
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "worker_name": {
+            "type": "string",
+            "title": "Worker Name"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "INACTIVE_WORKER",
+              "UNKNOWN_WORKER",
+              "WRONG_ROLE",
+              "UNAVAILABLE",
+              "OUT_OF_MONTH",
+              "DUPLICATE_ASSIGNMENT",
+              "DAILY_LIMIT",
+              "ADJACENT_SHIFTS",
+              "MAX_HOURS",
+              "OVERSTAFFED",
+              "NO_CONTRACT_FOR_MONTH"
+            ],
+            "title": "Code"
+          },
+          "magnitude": {
+            "type": "integer",
+            "title": "Magnitude"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "worker_id",
+          "worker_name",
+          "date",
+          "shift",
+          "code",
+          "magnitude"
+        ],
+        "title": "LockedViolationOut",
+        "description": "A new hard violation in an already-started shift that editing\ncannot fix (P2, D8)."
       },
       "LoginIn": {
         "properties": {
@@ -1455,6 +2658,264 @@
         ],
         "title": "WorkerCostOut"
       },
+      "WorkerCreate": {
+        "properties": {
+          "national_id": {
+            "type": "string",
+            "maxLength": 32,
+            "title": "National Id"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Full Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "title": "Status",
+            "default": "ACTIVE"
+          }
+        },
+        "type": "object",
+        "required": [
+          "national_id",
+          "full_name",
+          "role"
+        ],
+        "title": "WorkerCreate"
+      },
+      "WorkerDetailOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "national_id": {
+            "type": "string",
+            "title": "National Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "title": "Status"
+          },
+          "row_version": {
+            "type": "integer",
+            "title": "Row Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "current_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "field_history": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeOut"
+            },
+            "type": "array",
+            "title": "Field History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "national_id",
+          "full_name",
+          "role",
+          "status",
+          "row_version",
+          "created_at",
+          "updated_at",
+          "current_contract",
+          "field_history"
+        ],
+        "title": "WorkerDetailOut"
+      },
+      "WorkerOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "national_id": {
+            "type": "string",
+            "title": "National Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "title": "Status"
+          },
+          "row_version": {
+            "type": "integer",
+            "title": "Row Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "current_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "national_id",
+          "full_name",
+          "role",
+          "status",
+          "row_version",
+          "created_at",
+          "updated_at",
+          "current_contract"
+        ],
+        "title": "WorkerOut"
+      },
+      "WorkerPatch": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          },
+          "national_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "National Id"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "GENERAL_GUARD",
+                  "SCREENER",
+                  "SUPERVISOR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ACTIVE",
+                  "INACTIVE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_version"
+        ],
+        "title": "WorkerPatch",
+        "description": "Every PATCH needs the `expected_version` the client last saw (409\n`VERSION_CONFLICT` otherwise). Omitted or unchanged fields are no-ops (P5)."
+      },
       "WorkerRefOut": {
         "properties": {
           "worker_id": {
@@ -1492,6 +2953,44 @@
         ],
         "title": "WorkerRefOut",
         "description": "Display lookup for a worker id used by assignments, shortfalls and costs."
+      },
+      "WorkerUpdateOut": {
+        "properties": {
+          "affected_rosters": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedRosterOut"
+            },
+            "type": "array",
+            "title": "Affected Rosters"
+          },
+          "invalidates_approved": {
+            "type": "boolean",
+            "title": "Invalidates Approved"
+          },
+          "locked_violations": {
+            "items": {
+              "$ref": "#/components/schemas/LockedViolationOut"
+            },
+            "type": "array",
+            "title": "Locked Violations"
+          },
+          "worker": {
+            "$ref": "#/components/schemas/WorkerOut"
+          },
+          "changed": {
+            "type": "boolean",
+            "title": "Changed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "affected_rosters",
+          "invalidates_approved",
+          "locked_violations",
+          "worker",
+          "changed"
+        ],
+        "title": "WorkerUpdateOut"
       }
     }
   }
