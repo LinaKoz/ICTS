@@ -3,7 +3,7 @@ import { ErrorPanel } from '../../errors/ErrorPanel'
 import { mapError } from '../../errors/mapError'
 import type { AssignmentOut, Role, RosterOut, Shift } from '../../api/schemas'
 import { useAddAssignment, useMoveAssignment, useRemoveAssignment, useSuggestions, type Slot } from './api'
-import { buildMoveBody, isApprovedEditError, moveUnchanged, needsApprovalAck, violationLines, workersForRole } from './edit'
+import { buildMoveBody, explainEditError, isApprovedEditError, moveUnchanged, needsApprovalAck, workersForRole } from './edit'
 import { nameLookup } from './names'
 
 export type Selection =
@@ -19,13 +19,13 @@ interface Props {
   onClose: () => void
 }
 
-function EditErrors({ error, nameOf, onReload }: { error: unknown; nameOf: (id: string) => string; onReload: () => void }) {
+export function EditErrors({ error, nameOf, onReload, heading }: { error: unknown; nameOf: (id: string) => string; onReload: () => void; heading?: string }) {
   if (!error) return null
-  const lines = violationLines(error, nameOf)
+  const lines = explainEditError(error, nameOf)
   if (lines.length > 0) {
     return (
       <div className="panel panel-error" role="alert">
-        <strong>{mapError(error).title}</strong>
+        <strong>{heading ?? mapError(error).title}</strong>
         <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
       </div>
     )
@@ -89,6 +89,8 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
             </>
           )}
           {ackBox}
+          <EditErrors error={error} nameOf={nameOf} onReload={() => { reset(); onClose() }}
+            heading={target ? `Can't do that: ${nameOf(target.workerId)} on ${target.date} shift ${target.shift}` : undefined} />
           <div className="actions">
             <button className="primary" disabled={pending || ackNeeded || !target || moveUnchanged(selection.assignment, target)}
               onClick={() => target && move.mutate({ id: selection.id, ...buildMoveBody(selection.assignment, target, roster.version, ack) }, done)}>
@@ -120,11 +122,15 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
                 onClick={() => add.mutate({ worker_id: c.worker_id, date: selection.slot.date, shift: selection.slot.shift, role: selection.slot.role, ...common }, done)}>
                 Assign
               </button>
+              {add.error && add.variables?.worker_id === c.worker_id && (
+                <EditErrors error={add.error} nameOf={nameOf} onReload={() => { reset(); onClose() }}
+                  heading={`Can't assign ${c.full_name} here`} />
+              )}
             </div>
           ))}
         </>
       )}
-      <EditErrors error={error} nameOf={nameOf} onReload={() => { reset(); onClose() }} />
+      {selection.kind === 'assignment' && <EditErrors error={remove.error} nameOf={nameOf} onReload={() => { reset(); onClose() }} />}
     </section>
   )
 }

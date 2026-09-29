@@ -266,6 +266,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rosters/{month}/assignments/{assignment_id}/swap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Swap Assignments
+         * @description Exchange the workers of two assignments (same role, different slots;
+         *     the shift letter and day may differ) in one transaction, checked
+         *     together like a move.
+         */
+        post: operations["swap_assignments_api_rosters__month__assignments__assignment_id__swap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rosters/{month}/suggestions": {
         parameters: {
             query?: never;
@@ -275,6 +297,28 @@ export interface paths {
         };
         /** Get Suggestions */
         get: operations["get_suggestions_api_rosters__month__suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rosters/{month}/assignments/{assignment_id}/replacements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Replacements
+         * @description Up to five workers who could take over an existing assignment (the
+         *     "fix" options for a violation). Applying one is the move endpoint with
+         *     a new `worker_id`, so it is revalidated there.
+         */
+        get: operations["get_replacements_api_rosters__month__assignments__assignment_id__replacements_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -531,6 +575,8 @@ export interface components {
             revoke_ref?: string | null;
             /** Revoked By */
             revoked_by?: string | null;
+            /** Revoke Reason */
+            revoke_reason?: string | null;
         };
         /**
          * ApprovalPreviewOut
@@ -935,6 +981,11 @@ export interface components {
              * @default false
              */
             forbid_adjacent_shifts: boolean;
+            /**
+             * Random Seed
+             * @default 0
+             */
+            random_seed: number;
         };
         /** HourShortfallOut */
         HourShortfallOut: {
@@ -1197,6 +1248,8 @@ export interface components {
         RevokeRequest: {
             /** Expected Version */
             expected_version: number;
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * Role
@@ -1350,6 +1403,21 @@ export interface components {
             slot_state: "OPEN" | "FILLED" | "LOCKED";
             /** Candidates */
             candidates: components["schemas"]["SuggestionOut"][];
+        };
+        /**
+         * SwapAssignmentRequest
+         * @description Exchange the workers of two assignments of the same role in different slots (the day or shift may differ).
+         */
+        SwapAssignmentRequest: {
+            /** Other Assignment Id */
+            other_assignment_id: number;
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Acknowledge Approved Edit
+             * @default false
+             */
+            acknowledge_approved_edit: boolean;
         };
         /** UserOut */
         UserOut: {
@@ -2639,6 +2707,88 @@ export interface operations {
             };
         };
     };
+    swap_assignments_api_rosters__month__assignments__assignment_id__swap_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwapAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResultOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     get_suggestions_api_rosters__month__suggestions_get: {
         parameters: {
             query: {
@@ -2650,6 +2800,75 @@ export interface operations {
             path: {
                 /** @description YYYY-MM */
                 month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionsOut"];
+                };
+            };
+            /** @description BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_replacements_api_rosters__month__assignments__assignment_id__replacements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description YYYY-MM */
+                month: string;
+                assignment_id: number;
             };
             cookie?: never;
         };

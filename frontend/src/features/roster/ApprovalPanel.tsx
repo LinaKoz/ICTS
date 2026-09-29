@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../auth/authContext'
+import { Modal } from '../../components/Modal'
 import { ErrorPanel } from '../../errors/ErrorPanel'
 import { mapError } from '../../errors/mapError'
 import type { ApprovalEventOut, RosterOut } from '../../api/schemas'
@@ -25,7 +26,10 @@ function HistoryItem({ ev, nameOf }: { ev: ApprovalEventOut; nameOf: (id: string
         </details>
       )}
       {ev.revoked_at && (
-        <div className="revoked">Revoked at {fmt(ev.revoked_at)}{ev.revoked_by ? ` by ${ev.revoked_by}` : ''}: {revocation}</div>
+        <div className="revoked">
+          Revoked at {fmt(ev.revoked_at)}{ev.revoked_by ? ` by ${ev.revoked_by}` : ''}: {revocation}
+          {ev.revoke_reason && <div className="revoke-reason">Reason: {ev.revoke_reason}</div>}
+        </div>
       )}
     </li>
   )
@@ -42,6 +46,8 @@ export function ApprovalPanel({ month, roster }: { month: string; roster: Roster
   const revoke = useRevoke(month)
   const [ack, setAck] = useState(false)
   const [reason, setReason] = useState('')
+  const [confirmRevoke, setConfirmRevoke] = useState(false)
+  const [revokeReason, setRevokeReason] = useState('')
 
   const p = preview.data
   const lines = p ? shortageLines(p.coverage_gaps, p.hour_shortfalls, nameOf) : []
@@ -65,11 +71,26 @@ export function ApprovalPanel({ month, roster }: { month: string; roster: Roster
           <p>Approved. Editing or regenerating it returns it to draft.</p>
           {isManager ? (
             <div className="actions">
-              <button disabled={revoke.isPending} onClick={() => revoke.mutate(roster.version)}>
-                {revoke.isPending ? 'Revoking…' : 'Revoke approval'}
-              </button>
+              <button disabled={revoke.isPending} onClick={() => { revoke.reset(); setRevokeReason(''); setConfirmRevoke(true) }}>Revoke approval</button>
             </div>
           ) : <p className="muted">Only a manager can revoke an approval.</p>}
+          {confirmRevoke && (
+            <Modal label="Revoke approval" onClose={() => setConfirmRevoke(false)}>
+              <h3>Revoke the approval?</h3>
+              <p>The roster returns to draft. No assignment changes; the approval stays in the history with your reason.</p>
+              <label className="field">Reason (required)
+                <textarea rows={3} maxLength={500} autoFocus value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="Why is the approval being withdrawn?" />
+              </label>
+              {revoke.isError && <ErrorPanel error={revoke.error} onReload={() => { revoke.reset(); setConfirmRevoke(false) }} />}
+              <div className="actions">
+                <button className="primary" disabled={revoke.isPending || revokeReason.trim() === ''}
+                  onClick={() => revoke.mutate({ expected_version: roster.version, reason: revokeReason.trim() }, { onSuccess: () => setConfirmRevoke(false) })}>
+                  {revoke.isPending ? 'Revoking…' : 'Revoke approval'}
+                </button>
+                <button onClick={() => setConfirmRevoke(false)}>Cancel</button>
+              </div>
+            </Modal>
+          )}
         </>
       )}
       {draft && !isManager && <p className="muted">Draft. Only a manager can approve a roster.</p>}
@@ -111,7 +132,6 @@ export function ApprovalPanel({ month, roster }: { month: string; roster: Roster
         <div className="panel panel-error" role="alert"><strong>{mapError(approve.error).title}</strong>
           <ul>{hardLines.map((l) => <li key={l}>{l}</li>)}</ul></div>
       ) : approve.isError && <ErrorPanel error={approve.error} onReload={() => { approve.reset(); preview.refetch() }} />}
-      {revoke.isError && <ErrorPanel error={revoke.error} onReload={() => revoke.reset()} />}
 
       <h4>Approval history ({roster.approval_history.length})</h4>
       {roster.approval_history.length === 0
