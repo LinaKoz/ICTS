@@ -2,7 +2,8 @@
 
 The tests are ordered and share state: sample import, one future month that
 is generated, saved, approved, edited, revoked and re-approved, and the error
-shapes. Run them in file order on a clean database.
+shapes. Run them in file order. They can be repeated on the same database:
+each run picks future months that hold no roster yet.
 """
 from __future__ import annotations
 

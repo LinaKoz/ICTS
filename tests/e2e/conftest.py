@@ -80,7 +80,24 @@ def anon():
         yield c
 
 
+def _free_months(client: httpx.Client) -> tuple[str, str]:
+    """The first future month pair with no roster in it or next to it.
+
+    Earlier runs leave their rosters behind (there is no delete endpoint), so
+    each run moves on to months nobody has used. The window is k-1..k+3: the
+    two months the flows use (k, k+2) and the months adjacent to them, so a
+    leftover neighbour can never change a fingerprint.
+    """
+    for k in range(2, 62):
+        window = [month_offset(k + i) for i in range(-1, 4)]
+        statuses = [client.get(f"/api/rosters/{m}").status_code for m in window]
+        if all(code == 404 for code in statuses):
+            return month_offset(k), month_offset(k + 2)
+    pytest.fail("no free block of future months left in 5 years; reset with `docker compose down -v`")
+
+
 @pytest.fixture(scope="session")
-def state() -> dict:
+def state(planner) -> dict:
     """Mutable state shared by the ordered flows."""
-    return {"month": month_offset(2), "stale_month": month_offset(4)}
+    month, stale_month = _free_months(planner)
+    return {"month": month, "stale_month": stale_month}
