@@ -84,6 +84,8 @@ class ChangeSet:
     contracts: tuple[ContractDraft, ...] = ()
     # Stored on a revoked approval (`roster_approvals.revoke_ref`) for status/role changes.
     worker_change_ref: str | None = None
+    # Same for a contract-version change; defaults to `contract_version:{id}` of the first new version.
+    contract_change_ref: str | None = None
 
 
 # --- outputs -----------------------------------------------------------------
@@ -433,7 +435,7 @@ async def apply_change_set(
             continue
         # Contract changes win the cause when both kinds are in one set (CSV rows).
         if versions:
-            cause, ref = "CONTRACT_CHANGE", contract_ref
+            cause, ref = "CONTRACT_CHANGE", cs.contract_change_ref or contract_ref
         else:
             cause, ref = "WORKER_CHANGE", cs.worker_change_ref
         await revoke(session, r, cause=cause, ref=ref, revoked_by=cs.actor_id, now=now)

@@ -21,6 +21,7 @@ PASSWORD = "s3cret-pw"
 
 def make_app() -> FastAPI:
     from app.auth.router import router as auth_router
+    from app.rosters.approval import router as approval_router
     from app.rosters.edits import router as edits_router
     from app.rosters.router import router as rosters_router
 
@@ -29,6 +30,7 @@ def make_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(rosters_router)
     app.include_router(edits_router)
+    app.include_router(approval_router)
     return app
 
 
@@ -49,6 +51,31 @@ def planner(db):
         resp = client.post("/api/auth/login", json={"username": "planner", "password": PASSWORD})
         assert resp.status_code == 200
         yield client, user_id
+
+
+class Duo:
+    """One client (one event loop) that can switch between a planner and a manager login."""
+
+    def __init__(self, client, planner_id: int, manager_id: int):
+        self.client, self.planner_id, self.manager_id = client, planner_id, manager_id
+
+    def as_(self, role: str):
+        self.client.post("/api/auth/logout")
+        resp = self.client.post("/api/auth/login", json={"username": role, "password": PASSWORD})
+        assert resp.status_code == 200, resp.text
+        return self.client
+
+
+def make_duo(db, app):
+    planner_id = seed_login_user(db, "planner", "PLANNER")
+    manager_id = seed_login_user(db, "manager", "MANAGER")
+    with TestClient(app) as client:
+        yield Duo(client, planner_id, manager_id)
+
+
+@pytest.fixture()
+def duo(db):
+    yield from make_duo(db, make_app())
 
 
 @pytest.fixture()

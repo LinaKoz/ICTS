@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { GenerateOutcomeOut, RosterOut } from '../../api/schemas'
 import { rosterKey, useAssignmentIds, useGenerate, useMeta, useRoster, useSave } from './api'
+import { ApprovalPanel } from './ApprovalPanel'
 import { EditPanel, type Selection } from './EditPanel'
 import { idLookup } from './edit'
 import { describeOutcome } from './outcome'
@@ -161,6 +162,7 @@ export function RosterPage() {
             {editing && selection && existing && (
               <EditPanel key={selectionKey(selection)} month={month} roster={existing} selection={selection} onClose={() => setSelection(null)} />
             )}
+            {existing && !previewUsable && <ApprovalPanel month={month} roster={existing} />}
             <SidePanel violations={view.violations} gaps={view.gaps} shortfalls={view.shortfalls} costs={view.costs} workers={view.workers} />
           </div>
         </div>

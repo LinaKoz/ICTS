@@ -1,0 +1,6 @@
+national_id,full_name,role,status,effective_month,hourly_rate_ils,min_monthly_hours,max_monthly_hours,availability,available_days,available_shifts
+310017462,Rachel Stern,Supervisor,Active,,68.00,40,64,,Sun|Mon|Tue|Wed|Thu,A|B|C
+310018437,Daniel Weiss,Supervisor,Active,,70.00,40,64,,Sun|Mon|Tue|Wed|Thu,A|B|C
+310019401,Michal Ohana,Supervisor,Active,,66.50,40,64,,Mon|Tue|Wed|Thu|Fri,A|B
+310020375,Guy Tal,Supervisor,Active,,72.00,40,120,,Sun|Mon|Tue|Wed|Thu|Fri,A|B|C
+310021340,Efrat Nachum,Supervisor,Active,,69.00,40,120,SUN:ABC|MON:ABC|TUE:ABC|WED:ABC|THU:ABC|FRI:ABC,,

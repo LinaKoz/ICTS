@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiFetch, setUnauthorizedHandler } from './client'
+import { apiDownload, apiFetch, setUnauthorizedHandler } from './client'
 import { ApiError } from '../errors/ApiError'
 
 const json = (status: number, body: unknown) =>
@@ -35,5 +35,25 @@ describe('apiFetch', () => {
   it('maps fetch rejection to a status-0 ApiError', async () => {
     const f = () => Promise.reject(new TypeError('offline'))
     await expect(apiFetch('/x', { fetchImpl: f as unknown as typeof fetch })).rejects.toMatchObject({ status: 0 })
+  })
+  it('sends a raw body with its own content type instead of JSON', async () => {
+    const f = vi.fn((_u: string, _i: RequestInit) => json(200, {}))
+    await apiFetch('/imports', { method: 'POST', rawBody: 'a,b\n1,2\n', contentType: 'text/csv', fetchImpl: f as unknown as typeof fetch })
+    expect(f.mock.calls[0]![1].body).toBe('a,b\n1,2\n')
+    expect(f.mock.calls[0]![1].headers).toEqual({ 'Content-Type': 'text/csv' })
+  })
+})
+
+describe('apiDownload', () => {
+  it('returns the blob and headers', async () => {
+    const f = vi.fn((_u: string) => Promise.resolve(new Response('x,y\n', { status: 200, headers: { 'X-Worker-Count': '3' } })))
+    const d = await apiDownload('/exports/workers.csv', { fetchImpl: f as unknown as typeof fetch })
+    expect(f.mock.calls[0]![0]).toBe('/api/exports/workers.csv')
+    expect(await d.blob.text()).toBe('x,y\n')
+    expect(d.headers.get('x-worker-count')).toBe('3')
+  })
+  it('throws the API error shape on failure', async () => {
+    const f = () => json(422, { error: { code: 'VALIDATION_ERROR', message: 'bad month', details: null } })
+    await expect(apiDownload('/exports/workers.csv?month=x', { fetchImpl: f as unknown as typeof fetch })).rejects.toMatchObject({ status: 422 })
   })
 })

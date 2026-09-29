@@ -65,7 +65,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -194,7 +194,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -300,7 +300,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -310,7 +310,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -385,7 +385,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -477,7 +477,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -559,7 +559,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -569,7 +569,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -652,7 +652,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -768,7 +768,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -827,7 +827,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -899,7 +899,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -979,7 +979,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -989,7 +989,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1053,7 +1053,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -1063,7 +1063,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1143,7 +1143,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1236,7 +1236,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -1246,7 +1246,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1350,7 +1350,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -1360,7 +1360,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1465,7 +1465,7 @@
             }
           },
           "409": {
-            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -1475,7 +1475,7 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1586,7 +1586,594 @@
             }
           },
           "422": {
-            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/approval-preview": {
+      "get": {
+        "tags": [
+          "approval"
+        ],
+        "summary": "Approval Preview",
+        "description": "The hard violations and soft shortages approval would face, and the\nfingerprint to send back with the acknowledgement.",
+        "operationId": "approval_preview_api_rosters__month__approval_preview_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPreviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/approve": {
+      "post": {
+        "tags": [
+          "approval"
+        ],
+        "summary": "Approve",
+        "operationId": "approve_api_rosters__month__approve_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResultOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/revoke": {
+      "post": {
+        "tags": [
+          "approval"
+        ],
+        "summary": "Revoke Approval",
+        "description": "Manager revokes the current approval by hand (cause MANUAL); the roster returns to DRAFT.",
+        "operationId": "revoke_approval_api_rosters__month__revoke_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResultOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports": {
+      "post": {
+        "tags": [
+          "csv"
+        ],
+        "summary": "Create Import",
+        "description": "Parses and classifies the file and stores a PENDING import. Invalid rows\nare reported, not fatal. Nothing is applied until `confirm`.",
+        "operationId": "create_import_api_imports_post",
+        "requestBody": {
+          "description": "The raw CSV file (UTF-8, optional BOM), at most 1,048,576 bytes and 5,000 data rows.",
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "FILE_TOO_LARGE / TOO_MANY_ROWS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/{import_id}": {
+      "get": {
+        "tags": [
+          "csv"
+        ],
+        "summary": "Read Import",
+        "operationId": "read_import_api_imports__import_id__get",
+        "parameters": [
+          {
+            "name": "import_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Import Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/{import_id}/confirm": {
+      "post": {
+        "tags": [
+          "csv"
+        ],
+        "summary": "Confirm",
+        "description": "One transaction. A second confirm is 409 `ALREADY_CONFIRMED` (details:\nthe stored result); a moved base is 409 `STALE_PREVIEW` (details: a fresh\npreview, stored as a new import) and nothing is applied.",
+        "operationId": "confirm_api_imports__import_id__confirm_post",
+        "parameters": [
+          {
+            "name": "import_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Import Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConfirmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportConfirmOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exports/workers.csv": {
+      "get": {
+        "tags": [
+          "csv"
+        ],
+        "summary": "Export Csv",
+        "operationId": "export_csv_api_exports_workers_csv_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM; default: the current Israel month",
+              "title": "Month"
+            },
+            "description": "YYYY-MM; default: the current Israel month"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with BOM. Headers X-Worker-Count and X-No-Contract-Count give the totals.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1621,6 +2208,36 @@
   },
   "components": {
     "schemas": {
+      "AcknowledgedWarningsOut": {
+        "properties": {
+          "warnings_fingerprint": {
+            "type": "string",
+            "title": "Warnings Fingerprint"
+          },
+          "coverage_gaps": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageGapOut"
+            },
+            "type": "array",
+            "title": "Coverage Gaps"
+          },
+          "hour_shortfalls": {
+            "items": {
+              "$ref": "#/components/schemas/HourShortfallOut"
+            },
+            "type": "array",
+            "title": "Hour Shortfalls"
+          }
+        },
+        "type": "object",
+        "required": [
+          "warnings_fingerprint",
+          "coverage_gaps",
+          "hour_shortfalls"
+        ],
+        "title": "AcknowledgedWarningsOut",
+        "description": "The soft shortages a manager acknowledged (P11), frozen at approval time."
+      },
       "AddAssignmentRequest": {
         "properties": {
           "worker_id": {
@@ -1783,7 +2400,8 @@
                   "EDIT",
                   "REGENERATE",
                   "CONTRACT_CHANGE",
-                  "WORKER_CHANGE"
+                  "WORKER_CHANGE",
+                  "MANUAL"
                 ]
               },
               {
@@ -1791,6 +2409,46 @@
               }
             ],
             "title": "Revoke Cause"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "roster_version": {
+            "type": "integer",
+            "title": "Roster Version"
+          },
+          "acknowledged_warnings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AcknowledgedWarningsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revoke_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoke Ref"
+          },
+          "revoked_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked By"
           }
         },
         "type": "object",
@@ -1799,9 +2457,145 @@
           "approved_at",
           "reason",
           "revoked_at",
-          "revoke_cause"
+          "revoke_cause",
+          "id",
+          "roster_version"
         ],
-        "title": "ApprovalEventOut"
+        "title": "ApprovalEventOut",
+        "description": "One approval and, if it ended, its revocation (audit trail, bonus 1).\n\n`approved_by` / `revoked_by` are user display names. The history is\nordered oldest first (approved_at, id)."
+      },
+      "ApprovalPreviewOut": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          },
+          "is_history": {
+            "type": "boolean",
+            "title": "Is History"
+          },
+          "hard_violations": {
+            "items": {
+              "$ref": "#/components/schemas/ViolationOut"
+            },
+            "type": "array",
+            "title": "Hard Violations"
+          },
+          "coverage_gaps": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageGapOut"
+            },
+            "type": "array",
+            "title": "Coverage Gaps"
+          },
+          "hour_shortfalls": {
+            "items": {
+              "$ref": "#/components/schemas/HourShortfallOut"
+            },
+            "type": "array",
+            "title": "Hour Shortfalls"
+          },
+          "warnings_fingerprint": {
+            "type": "string",
+            "title": "Warnings Fingerprint"
+          },
+          "requires_acknowledgement": {
+            "type": "boolean",
+            "title": "Requires Acknowledgement"
+          },
+          "can_approve": {
+            "type": "boolean",
+            "title": "Can Approve"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "status",
+          "is_history",
+          "hard_violations",
+          "coverage_gaps",
+          "hour_shortfalls",
+          "warnings_fingerprint",
+          "requires_acknowledgement",
+          "can_approve"
+        ],
+        "title": "ApprovalPreviewOut",
+        "description": "What approving would need right now, computed from current data."
+      },
+      "ApprovalResultOut": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          },
+          "event": {
+            "$ref": "#/components/schemas/ApprovalEventOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "status",
+          "event"
+        ],
+        "title": "ApprovalResultOut"
+      },
+      "ApproveRequest": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          },
+          "acknowledge_warnings": {
+            "type": "boolean",
+            "title": "Acknowledge Warnings",
+            "default": false
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "warnings_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warnings Fingerprint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_version"
+        ],
+        "title": "ApproveRequest"
       },
       "AssignmentOut": {
         "properties": {
@@ -2553,6 +3347,43 @@
         ],
         "title": "FieldChangeOut"
       },
+      "FieldDiffOut": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "old": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old"
+          },
+          "new": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "old",
+          "new"
+        ],
+        "title": "FieldDiffOut"
+      },
       "GenerateOutcomeOut": {
         "properties": {
           "outcome": {
@@ -2788,6 +3619,426 @@
           "missing_hours"
         ],
         "title": "HourShortfallOut"
+      },
+      "ImportConfirmOut": {
+        "properties": {
+          "affected_rosters": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedRosterOut"
+            },
+            "type": "array",
+            "title": "Affected Rosters"
+          },
+          "invalidates_approved": {
+            "type": "boolean",
+            "title": "Invalidates Approved"
+          },
+          "locked_violations": {
+            "items": {
+              "$ref": "#/components/schemas/LockedViolationOut"
+            },
+            "type": "array",
+            "title": "Locked Violations"
+          },
+          "import_id": {
+            "type": "integer",
+            "title": "Import Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED"
+            ],
+            "title": "Status"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ImportResultOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "affected_rosters",
+          "invalidates_approved",
+          "locked_violations",
+          "import_id",
+          "status",
+          "result"
+        ],
+        "title": "ImportConfirmOut"
+      },
+      "ImportConfirmRequest": {
+        "properties": {
+          "decisions": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "APPROVE",
+                "SKIP"
+              ]
+            },
+            "type": "object",
+            "title": "Decisions",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "title": "ImportConfirmRequest",
+        "description": "Per-row decision by national ID. NEW and CHANGED rows without an entry\ndefault to APPROVE; INVALID and UNCHANGED rows are never applied."
+      },
+      "ImportContractOut": {
+        "properties": {
+          "hourly_rate_ils": {
+            "type": "string",
+            "title": "Hourly Rate Ils"
+          },
+          "min_hours": {
+            "type": "integer",
+            "title": "Min Hours"
+          },
+          "max_hours": {
+            "type": "integer",
+            "title": "Max Hours"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hourly_rate_ils",
+          "min_hours",
+          "max_hours",
+          "availability"
+        ],
+        "title": "ImportContractOut"
+      },
+      "ImportCountsOut": {
+        "properties": {
+          "new": {
+            "type": "integer",
+            "title": "New"
+          },
+          "changed": {
+            "type": "integer",
+            "title": "Changed"
+          },
+          "unchanged": {
+            "type": "integer",
+            "title": "Unchanged"
+          },
+          "invalid": {
+            "type": "integer",
+            "title": "Invalid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new",
+          "changed",
+          "unchanged",
+          "invalid"
+        ],
+        "title": "ImportCountsOut"
+      },
+      "ImportPreviewOut": {
+        "properties": {
+          "affected_rosters": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedRosterOut"
+            },
+            "type": "array",
+            "title": "Affected Rosters"
+          },
+          "invalidates_approved": {
+            "type": "boolean",
+            "title": "Invalidates Approved"
+          },
+          "locked_violations": {
+            "items": {
+              "$ref": "#/components/schemas/LockedViolationOut"
+            },
+            "type": "array",
+            "title": "Locked Violations"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "default_effective_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Default Effective Month"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ImportCountsOut"
+          },
+          "unknown_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unknown Columns"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowOut"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportConfirmOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "affected_rosters",
+          "invalidates_approved",
+          "locked_violations",
+          "id",
+          "status",
+          "created_at",
+          "default_effective_month",
+          "counts",
+          "unknown_columns",
+          "rows"
+        ],
+        "title": "ImportPreviewOut"
+      },
+      "ImportResultOut": {
+        "properties": {
+          "created_workers": {
+            "type": "integer",
+            "title": "Created Workers"
+          },
+          "updated_workers": {
+            "type": "integer",
+            "title": "Updated Workers"
+          },
+          "contract_versions_created": {
+            "type": "integer",
+            "title": "Contract Versions Created"
+          },
+          "unchanged": {
+            "type": "integer",
+            "title": "Unchanged"
+          },
+          "invalid": {
+            "type": "integer",
+            "title": "Invalid"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          },
+          "revoked_rosters": {
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+            },
+            "type": "array",
+            "title": "Revoked Rosters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_workers",
+          "updated_workers",
+          "contract_versions_created",
+          "unchanged",
+          "invalid",
+          "skipped",
+          "revoked_rosters"
+        ],
+        "title": "ImportResultOut"
+      },
+      "ImportRowOut": {
+        "properties": {
+          "line": {
+            "type": "integer",
+            "title": "Line"
+          },
+          "national_id": {
+            "type": "string",
+            "title": "National Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "GENERAL_GUARD",
+                  "SCREENER",
+                  "SUPERVISOR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ACTIVE",
+                  "INACTIVE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "effective_month": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Month"
+          },
+          "contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "UNCHANGED",
+              "CHANGED",
+              "INVALID"
+            ],
+            "title": "Classification"
+          },
+          "contract_action": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "NEW_VERSION",
+              "UNCHANGED"
+            ],
+            "title": "Contract Action"
+          },
+          "retroactive": {
+            "type": "boolean",
+            "title": "Retroactive"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldDiffOut"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RowErrorOut"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "export_row": {
+            "type": "boolean",
+            "title": "Export Row"
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line",
+          "national_id",
+          "full_name",
+          "role",
+          "status",
+          "effective_month",
+          "contract",
+          "classification",
+          "contract_action",
+          "retroactive",
+          "changes",
+          "errors",
+          "export_row",
+          "worker_id"
+        ],
+        "title": "ImportRowOut"
       },
       "LockedViolationOut": {
         "properties": {
@@ -3074,6 +4325,19 @@
         ],
         "title": "RemoveAssignmentRequest"
       },
+      "RevokeRequest": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_version"
+        ],
+        "title": "RevokeRequest"
+      },
       "Role": {
         "type": "string",
         "enum": [
@@ -3204,6 +4468,35 @@
           "approval_history"
         ],
         "title": "RosterOut"
+      },
+      "RowErrorOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "RowErrorOut"
       },
       "SaveRequest": {
         "properties": {

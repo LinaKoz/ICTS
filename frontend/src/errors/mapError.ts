@@ -45,6 +45,20 @@ export function mapError(err: unknown): MappedError {
       action: 'none',
     }
   }
+  if (err.status === 409 && err.code === 'STALE_PREVIEW' && /shortages/.test(err.message)) {
+    return {
+      title: 'Shortages changed',
+      message: 'The coverage gaps or hour shortfalls changed since you reviewed them. Review the current list and acknowledge again.',
+      presentation: 'panel',
+      action: 'reload',
+    }
+  }
+  if (err.status === 409 && err.code === 'ALREADY_APPROVED') {
+    return { title: 'Already approved', message: 'This roster was approved in the meantime.', presentation: 'panel', action: 'reload' }
+  }
+  if (err.status === 409 && err.code === 'NOT_APPROVED') {
+    return { title: 'Not approved', message: 'This roster is no longer approved.', presentation: 'panel', action: 'reload' }
+  }
   if (err.status === 409) {
     return {
       title: 'Data changed',
@@ -63,6 +77,14 @@ export function mapError(err: unknown): MappedError {
   }
   if (err.status === 422 && err.code === 'LOCKED_SHIFT') {
     return { title: 'Shift already started', message: err.message, presentation: 'panel', action: 'reload' }
+  }
+  if (err.status === 422 && err.code === 'WARNINGS_NOT_ACKNOWLEDGED') {
+    return {
+      title: 'Acknowledgement needed',
+      message: 'Approving with coverage gaps or hour shortfalls needs the acknowledgement box and a reason.',
+      presentation: 'panel',
+      action: 'none',
+    }
   }
   if (err.status === 422 && err.code === 'HARD_VIOLATIONS') {
     return { title: 'Hard constraint violated', message: err.message, presentation: 'panel', action: 'none' }

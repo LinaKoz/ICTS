@@ -72,3 +72,14 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 .suggestion { border-top: 1px solid var(--border); padding: 6px 0; display: grid; gap: 4px; }
 .suggestion .reasons { font-size: 0.8em; opacity: 0.85; }
 .ack { border: 1px solid #d9a400; border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
+
+.approval h4 { margin: 12px 0 4px; font-size: 0.95em; color: var(--text-h); }
+.approval textarea { font: inherit; width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text-h); }
+.approval .field { display: grid; gap: 4px; margin-top: 6px; }
+.approval .shortages { max-height: 180px; overflow-y: auto; font-size: 0.85em; }
+.approval-history { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.approval-event { border-left: 3px solid #2a9d5c; padding-left: 8px; font-size: 0.9em; }
+.approval-event .revoked { color: #d33; }
+/* imports feature */
+.row-errors { margin: 0; padding-left: 16px; }
+.row-errors li { margin: 1px 0; }

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
 import type { components } from '../../api/types'
 import type {
-  AddAssignmentRequest, EditableAssignmentOut, EditResultOut, GenerateOutcomeOut, MoveAssignmentRequest, RemoveAssignmentRequest,
+  AddAssignmentRequest, ApprovalPreviewOut, ApprovalResultOut, ApproveRequest, EditableAssignmentOut, EditResultOut, GenerateOutcomeOut, MoveAssignmentRequest, RemoveAssignmentRequest,
   Role, RosterOut, SaveRequest, SaveResponseOut, Shift, SuggestionsOut,
 } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
@@ -103,5 +103,34 @@ export function useMoveAssignment(month: string) {
     mutationFn: ({ id, ...body }: MoveAssignmentRequest & { id: number }) =>
       apiFetch<EditResultOut>(`/rosters/${month}/assignments/${id}/move`, { method: 'POST', body }),
     onSuccess: invalidate,
+  })
+}
+
+/** Under the roster key so every roster invalidation (edits, save, approve) refreshes the preview too. */
+export const approvalPreviewKey = (month: string) => [...rosterKey(month), 'approval-preview'] as const
+
+export function useApprovalPreview(month: string, enabled: boolean) {
+  return useQuery({
+    queryKey: approvalPreviewKey(month),
+    enabled,
+    retry: false,
+    queryFn: () => apiFetch<ApprovalPreviewOut>(`/rosters/${month}/approval-preview`),
+  })
+}
+
+export function useApprove(month: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (req: ApproveRequest) => apiFetch<ApprovalResultOut>(`/rosters/${month}/approve`, { method: 'POST', body: req }),
+    onSettled: () => qc.invalidateQueries({ queryKey: rosterKey(month) }),
+  })
+}
+
+export function useRevoke(month: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (expected_version: number) =>
+      apiFetch<ApprovalResultOut>(`/rosters/${month}/revoke`, { method: 'POST', body: { expected_version } }),
+    onSettled: () => qc.invalidateQueries({ queryKey: rosterKey(month) }),
   })
 }
