@@ -72,3 +72,7 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 .suggestion { border-top: 1px solid var(--border); padding: 6px 0; display: grid; gap: 4px; }
 .suggestion .reasons { font-size: 0.8em; opacity: 0.85; }
 .ack { border: 1px solid #d9a400; border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
+
+/* imports feature */
+.row-errors { margin: 0; padding-left: 16px; }
+.row-errors li { margin: 1px 0; }
