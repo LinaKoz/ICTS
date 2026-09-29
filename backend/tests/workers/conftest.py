@@ -21,6 +21,7 @@ DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 def make_app() -> FastAPI:
     import app.models  # noqa: F401  (registers every table, as app.main does)
     from app.auth.router import router as auth_router
+    from app.csvio.router import router as csv_router
     from app.rosters.approval import router as approval_router
     from app.rosters.edits import router as edits_router
     from app.rosters.router import router as rosters_router
@@ -33,6 +34,7 @@ def make_app() -> FastAPI:
     app.include_router(workers_router)
     app.include_router(edits_router)
     app.include_router(approval_router)
+    app.include_router(csv_router)
     return app
 
 

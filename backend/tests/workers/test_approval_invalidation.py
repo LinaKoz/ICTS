@@ -107,15 +107,31 @@ def test_a_change_that_adds_no_violation_leaves_the_approval_in_place(world):
     assert ev["revoke_cause"] is None and roster_row(db, ids["sep"])[0] == "APPROVED"
 
 
-@pytest.mark.skip(reason="T6 (CSV import/export, branch feat/csv) is not merged yet; enable when POST /imports exists")
-def test_csv_import_confirm_revokes_with_the_import_reference():
-    """HOOK for T6. Once `POST /imports/{id}/confirm` exists, this test must:
-    1. approve 2026-09 through the API (see `_approve_sep`),
-    2. upload a CSV whose CHANGED row shrinks a worker's availability so an assigned
-       upcoming shift becomes UNAVAILABLE, then confirm it,
-    3. assert the history entry has revoke_cause == "CONTRACT_CHANGE" and
-       revoke_ref == f"import:{import_id}" (the reference is chosen in T6; T5's change-set
-       service currently writes `contract_version:{id}`, so T6 must pass the import id
-       into the change set), and that the roster is DRAFT with hard violations blocking
-       re-approval.
-    """
+@requires_db
+def test_csv_import_confirm_revokes_with_the_import_reference(world):
+    """CONTRACT_CHANGE through a confirmed CSV import: the audit trail points at the import."""
+    from tests.csvio.helpers import FULL, csv_text, row
+    from tests.workers.scenario import FREE, slot
+
+    duo, db, ids = world
+    assert _approve_sep(duo.as_("manager")).status_code == 200
+
+    planner = duo.as_("planner")
+    blocked = set(slot(FREE))  # W becomes unavailable for the upcoming September shift
+    availability = "|".join(
+        f"{d}:{''.join(s for s in 'ABC' if f'{d}:{s}' not in blocked)}"
+        for d in ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+    )
+    data = csv_text(FULL, [row("111111118", "Alice Guard", month="2026-09", av=availability)])
+    prev = planner.post("/api/imports", content=data, headers={"content-type": "text/csv"})
+    assert prev.status_code == 201, prev.text
+    import_id = prev.json()["id"]
+    assert prev.json()["invalidates_approved"] is True
+    done = planner.post(f"/api/imports/{import_id}/confirm", json={"decisions": {}})
+    assert done.status_code == 200 and done.json()["result"]["revoked_rosters"] == ["2026-09"], done.text
+
+    (ev,) = _history(planner)
+    assert (ev["revoke_cause"], ev["revoke_ref"], ev["revoked_by"]) == ("CONTRACT_CHANGE", f"import:{import_id}", "planner")
+    assert roster_row(db, ids["sep"])[0] == "DRAFT"
+    p = duo.as_("manager").get("/api/rosters/2026-09/approval-preview").json()
+    assert [v["code"] for v in p["hard_violations"]] == ["UNAVAILABLE"] and p["can_approve"] is False

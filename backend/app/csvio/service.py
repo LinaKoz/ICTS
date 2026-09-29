@@ -45,7 +45,7 @@ from app.csvio.models import CsvImport
 from app.csvio.parse import ParsedContract, ParsedRow, RowError, per_day_form
 from app.db import take_scheduling_lock
 from app.errors import AlreadyConfirmedError, NotFoundError, StalePreviewError, ValidationAppError
-from app.rosters.models import Roster, RosterApproval
+from app.rosters.models import Roster
 from app.rosters.problem_builder import compute_free_from
 from app.workers.models import Worker
 from app.workers.serialize import impact_fields, month_str, worker_names
@@ -210,7 +210,7 @@ def _change_set(items: list[_Classified], actor_id: int, import_id: int | None) 
         if c.contract_action == "NEW_VERSION":
             contracts.append(_draft(c, c.worker_id, import_id))
     ref = f"import:{import_id}" if import_id is not None else None
-    return ChangeSet(actor_id=actor_id, worker_updates=tuple(updates), contracts=tuple(contracts), worker_change_ref=ref)
+    return ChangeSet(actor_id=actor_id, worker_updates=tuple(updates), contracts=tuple(contracts), worker_change_ref=ref, contract_change_ref=ref)
 
 
 def rows_from_stored(preview: dict) -> list[ParsedRow]:
@@ -402,18 +402,6 @@ async def confirm_import(
     result = await apply_change_set(session, _change_set(approved, actor_id, import_id), None, now)
 
     revoked = [r for r in result.impact.rosters if r.revokes_approval]
-    if revoked and result.new_versions:
-        # apply_change_set references `contract_version:{id}`; an import points at itself.
-        await session.execute(
-            update(RosterApproval)
-            .where(
-                RosterApproval.roster_id.in_([r.roster_id for r in revoked]),
-                RosterApproval.revoke_cause == "CONTRACT_CHANGE",
-                RosterApproval.revoked_at == now,
-            )
-            .values(revoke_ref=f"import:{import_id}")
-        )
-
     counts = stored["counts"]
     out = ImportConfirmOut(
         import_id=import_id,
