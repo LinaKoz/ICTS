@@ -15,6 +15,9 @@ export function setUnauthorizedHandler(h: UnauthorizedHandler | null): void {
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
+  /** A raw (non-JSON) body such as a CSV file; sent with `contentType` instead of JSON-encoding `body`. */
+  rawBody?: BodyInit
+  contentType?: string
   /** Skip the global 401 handler (used by the /auth/me probe and login). */
   skipUnauthorizedHandler?: boolean
   fetchImpl?: typeof fetch
@@ -24,8 +27,11 @@ export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Prom
   const init: RequestInit = {
     method: opts.method ?? 'GET',
     credentials: 'same-origin',
-    headers: opts.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    headers:
+      opts.rawBody !== undefined
+        ? { 'Content-Type': opts.contentType ?? 'application/octet-stream' }
+        : opts.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: opts.rawBody !== undefined ? opts.rawBody : opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
   }
   const doFetch = opts.fetchImpl ?? (USE_MOCK ? mockFetch : fetch)
   let res: Response
@@ -47,4 +53,27 @@ export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Prom
     throw err
   }
   return body as T
+}
+
+export interface Download {
+  blob: Blob
+  headers: Headers
+}
+
+/** GET a file (e.g. a CSV export). Errors take the same path as `apiFetch`. */
+export async function apiDownload(path: string, opts: { fetchImpl?: typeof fetch } = {}): Promise<Download> {
+  let res: Response
+  try {
+    res = await (opts.fetchImpl ?? fetch)(`/api${path}`, { credentials: 'same-origin' })
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Network request failed')
+  }
+  if (!res.ok) {
+    let body: unknown = null
+    try { body = await res.json() } catch { body = null }
+    const err = parseErrorBody(res.status, body)
+    if (res.status === 401) onUnauthorized?.()
+    throw err
+  }
+  return { blob: await res.blob(), headers: res.headers }
 }

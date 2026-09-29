@@ -80,3 +80,6 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 .approval-history { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .approval-event { border-left: 3px solid #2a9d5c; padding-left: 8px; font-size: 0.9em; }
 .approval-event .revoked { color: #d33; }
+/* imports feature */
+.row-errors { margin: 0; padding-left: 16px; }
+.row-errors li { margin: 1px 0; }
