@@ -126,6 +126,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workers/{worker_id}/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Contracts */
+        get: operations["list_contracts_api_workers__worker_id__contracts_get"];
+        put?: never;
+        /**
+         * Apply Contract
+         * @description Creates a new immutable version. An unchanged contract (P5) creates
+         *     nothing (`created=false`). Assignments are kept; approved rosters that
+         *     gain hard violations return to DRAFT with revoke cause `CONTRACT_CHANGE`.
+         */
+        post: operations["apply_contract_api_workers__worker_id__contracts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workers/{worker_id}/contracts/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Contract */
+        post: operations["preview_contract_api_workers__worker_id__contracts_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workers */
+        get: operations["list_workers_api_workers_get"];
+        put?: never;
+        /** Create Worker */
+        post: operations["create_worker_api_workers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workers/{worker_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Worker */
+        get: operations["get_worker_api_workers__worker_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Worker
+         * @description P6: hard delete only if the worker has no contract versions, no
+         *     assignments and no status/role history; otherwise 409 `WORKER_IN_USE`
+         *     and the UI offers "deactivate".
+         */
+        delete: operations["delete_worker_api_workers__worker_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Worker */
+        patch: operations["update_worker_api_workers__worker_id__patch"];
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -147,6 +229,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AffectedRosterOut */
+        AffectedRosterOut: {
+            /** Month */
+            month: string;
+            /** Roster Id */
+            roster_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "APPROVED";
+            /** Version */
+            version: number;
+            /** Is History */
+            is_history: boolean;
+            /** Worker Ids */
+            worker_ids: string[];
+            /** Assignment Count */
+            assignment_count: number;
+            /** New Violations */
+            new_violations: components["schemas"]["ViolationOut"][];
+            /** Locked Violations */
+            locked_violations: components["schemas"]["LockedViolationOut"][];
+            /** Revokes Approval */
+            revokes_approval: boolean;
+        };
         /** ApprovalEventOut */
         ApprovalEventOut: {
             /** Approved By */
@@ -179,6 +287,117 @@ export interface components {
              * @enum {string}
              */
             role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+        };
+        /** ContractApply */
+        ContractApply: {
+            /** Effective Month */
+            effective_month: string;
+            /** Hourly Rate Ils */
+            hourly_rate_ils: number | string;
+            /** Min Hours */
+            min_hours: number;
+            /** Max Hours */
+            max_hours: number;
+            /**
+             * Availability
+             * @description "DAY:SHIFT" tokens such as "MON:A"
+             */
+            availability: string[];
+            /** Fingerprint */
+            fingerprint: string;
+        };
+        /** ContractApplyOut */
+        ContractApplyOut: {
+            /** Affected Rosters */
+            affected_rosters: components["schemas"]["AffectedRosterOut"][];
+            /** Invalidates Approved */
+            invalidates_approved: boolean;
+            /** Locked Violations */
+            locked_violations: components["schemas"]["LockedViolationOut"][];
+            /** Created */
+            created: boolean;
+            contract: components["schemas"]["ContractOut"] | null;
+            /** Revoked Rosters */
+            revoked_rosters: string[];
+        };
+        /** ContractInput */
+        ContractInput: {
+            /** Effective Month */
+            effective_month: string;
+            /** Hourly Rate Ils */
+            hourly_rate_ils: number | string;
+            /** Min Hours */
+            min_hours: number;
+            /** Max Hours */
+            max_hours: number;
+            /**
+             * Availability
+             * @description "DAY:SHIFT" tokens such as "MON:A"
+             */
+            availability: string[];
+        };
+        /** ContractOut */
+        ContractOut: {
+            /** Id */
+            id: number;
+            /** Worker Id */
+            worker_id: number;
+            /** Version No */
+            version_no: number;
+            /** Effective Month */
+            effective_month: string;
+            /** Hourly Rate Ils */
+            hourly_rate_ils: string;
+            /** Min Hours */
+            min_hours: number;
+            /** Max Hours */
+            max_hours: number;
+            /** Availability */
+            availability: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "UI" | "CSV";
+            /** Import Id */
+            import_id: number | null;
+        };
+        /** ContractPreviewOut */
+        ContractPreviewOut: {
+            /** Affected Rosters */
+            affected_rosters: components["schemas"]["AffectedRosterOut"][];
+            /** Invalidates Approved */
+            invalidates_approved: boolean;
+            /** Locked Violations */
+            locked_violations: components["schemas"]["LockedViolationOut"][];
+            /** Worker Id */
+            worker_id: number;
+            /** Effective Month */
+            effective_month: string;
+            /** Retroactive */
+            retroactive: boolean;
+            /** Unchanged */
+            unchanged: boolean;
+            previous: components["schemas"]["ContractOut"] | null;
+            /** Fingerprint */
+            fingerprint: string;
+        };
+        /** ContractsOut */
+        ContractsOut: {
+            /** Worker Id */
+            worker_id: number;
+            /** Resolved For */
+            resolved_for: string;
+            resolved: components["schemas"]["ContractOut"] | null;
+            /** Versions */
+            versions: components["schemas"]["ContractOut"][];
         };
         /** CostsOut */
         CostsOut: {
@@ -285,6 +504,25 @@ export interface components {
         ErrorOut: {
             error: components["schemas"]["ErrorBodyOut"];
         };
+        /** FieldChangeOut */
+        FieldChangeOut: {
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "STATUS" | "ROLE";
+            /** Old Value */
+            old_value: string;
+            /** New Value */
+            new_value: string;
+            /**
+             * Effective At
+             * Format: date-time
+             */
+            effective_at: string;
+            /** Changed By */
+            changed_by: string;
+        };
         /**
          * GenerateOutcomeOut
          * @description The engine outcome mapped to the API (§4.6 "API mapping").
@@ -345,6 +583,36 @@ export interface components {
             assigned_hours: number;
             /** Missing Hours */
             missing_hours: number;
+        };
+        /**
+         * LockedViolationOut
+         * @description A new hard violation in an already-started shift that editing
+         *     cannot fix (P2, D8).
+         */
+        LockedViolationOut: {
+            /** Month */
+            month: string;
+            /** Worker Id */
+            worker_id: string;
+            /** Worker Name */
+            worker_name: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shift
+             * @enum {string}
+             */
+            shift: "A" | "B" | "C";
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "INACTIVE_WORKER" | "UNKNOWN_WORKER" | "WRONG_ROLE" | "UNAVAILABLE" | "OUT_OF_MONTH" | "DUPLICATE_ASSIGNMENT" | "DAILY_LIMIT" | "ADJACENT_SHIFTS" | "MAX_HOURS" | "OVERSTAFFED" | "NO_CONTRACT_FOR_MONTH";
+            /** Magnitude */
+            magnitude: number;
         };
         /** LoginIn */
         LoginIn: {
@@ -521,6 +789,107 @@ export interface components {
             /** Amount Ils */
             amount_ils: string | null;
         };
+        /** WorkerCreate */
+        WorkerCreate: {
+            /** National Id */
+            national_id: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /**
+             * Status
+             * @default ACTIVE
+             * @enum {string}
+             */
+            status: "ACTIVE" | "INACTIVE";
+        };
+        /** WorkerDetailOut */
+        WorkerDetailOut: {
+            /** Id */
+            id: number;
+            /** National Id */
+            national_id: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ACTIVE" | "INACTIVE";
+            /** Row Version */
+            row_version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            current_contract: components["schemas"]["ContractOut"] | null;
+            /** Field History */
+            field_history: components["schemas"]["FieldChangeOut"][];
+        };
+        /** WorkerOut */
+        WorkerOut: {
+            /** Id */
+            id: number;
+            /** National Id */
+            national_id: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "GENERAL_GUARD" | "SCREENER" | "SUPERVISOR";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ACTIVE" | "INACTIVE";
+            /** Row Version */
+            row_version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            current_contract: components["schemas"]["ContractOut"] | null;
+        };
+        /**
+         * WorkerPatch
+         * @description Every PATCH needs the `expected_version` the client last saw (409
+         *     `VERSION_CONFLICT` otherwise). Omitted or unchanged fields are no-ops (P5).
+         */
+        WorkerPatch: {
+            /** Expected Version */
+            expected_version: number;
+            /** National Id */
+            national_id?: string | null;
+            /** Full Name */
+            full_name?: string | null;
+            /** Role */
+            role?: ("GENERAL_GUARD" | "SCREENER" | "SUPERVISOR") | null;
+            /** Status */
+            status?: ("ACTIVE" | "INACTIVE") | null;
+        };
         /**
          * WorkerRefOut
          * @description Display lookup for a worker id used by assignments, shortfalls and costs.
@@ -540,6 +909,18 @@ export interface components {
              * @enum {string}
              */
             status: "ACTIVE" | "INACTIVE";
+        };
+        /** WorkerUpdateOut */
+        WorkerUpdateOut: {
+            /** Affected Rosters */
+            affected_rosters: components["schemas"]["AffectedRosterOut"][];
+            /** Invalidates Approved */
+            invalidates_approved: boolean;
+            /** Locked Violations */
+            locked_violations: components["schemas"]["LockedViolationOut"][];
+            worker: components["schemas"]["WorkerOut"];
+            /** Changed */
+            changed: boolean;
         };
     };
     responses: never;
@@ -846,6 +1227,497 @@ export interface operations {
             };
             /** @description NOT_FOUND */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    list_contracts_api_workers__worker_id__contracts_get: {
+        parameters: {
+            query?: {
+                /** @description YYYY-MM; default: the current Israel month */
+                resolved_for?: string | null;
+            };
+            header?: never;
+            path: {
+                worker_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractsOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    apply_contract_api_workers__worker_id__contracts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractApplyOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    preview_contract_api_workers__worker_id__contracts_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractPreviewOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    list_workers_api_workers_get: {
+        parameters: {
+            query?: {
+                status?: ("ACTIVE" | "INACTIVE") | null;
+                role?: ("GENERAL_GUARD" | "SCREENER" | "SUPERVISOR") | null;
+                /** @description substring of name or national ID */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerOut"][];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    create_worker_api_workers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkerCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_worker_api_workers__worker_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerDetailOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    delete_worker_api_workers__worker_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    update_worker_api_workers__worker_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkerPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerUpdateOut"];
+                };
+            };
+            /** @description UNAUTHORIZED: not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description FORBIDDEN: the signed-in role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ... */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
