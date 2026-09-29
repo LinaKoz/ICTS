@@ -54,12 +54,22 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -73,6 +83,7 @@
           "auth"
         ],
         "summary": "Logout",
+        "description": "Always 200 `{\"status\": \"ok\"}`, also when no session exists; clears the cookie.",
         "operationId": "logout_api_auth_logout_post",
         "responses": {
           "200": {
@@ -80,9 +91,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Logout Api Auth Logout Post"
+                  "$ref": "#/components/schemas/LogoutOut"
                 }
               }
             }
@@ -104,6 +113,283 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/generate": {
+      "post": {
+        "tags": [
+          "rosters",
+          "rosters"
+        ],
+        "summary": "Generate",
+        "operationId": "generate_api_rosters__month__generate_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateOutcomeOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "GENERATION_IN_PROGRESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "ENGINE_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/save": {
+      "post": {
+        "tags": [
+          "rosters",
+          "rosters"
+        ],
+        "summary": "Save",
+        "operationId": "save_api_rosters__month__save_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveResponseOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}": {
+      "get": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Get Roster",
+        "operationId": "get_roster_api_rosters__month__get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -134,6 +420,230 @@
   },
   "components": {
     "schemas": {
+      "ApprovalEventOut": {
+        "properties": {
+          "approved_by": {
+            "type": "string",
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "type": "string",
+            "title": "Approved At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoke_cause": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "EDIT",
+                  "REGENERATE",
+                  "CONTRACT_CHANGE",
+                  "WORKER_CHANGE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoke Cause"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approved_by",
+          "approved_at",
+          "reason",
+          "revoked_at",
+          "revoke_cause"
+        ],
+        "title": "ApprovalEventOut"
+      },
+      "AssignmentOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "date",
+          "shift",
+          "role"
+        ],
+        "title": "AssignmentOut"
+      },
+      "CostsOut": {
+        "properties": {
+          "per_shift": {
+            "items": {
+              "$ref": "#/components/schemas/ShiftCostOut"
+            },
+            "type": "array",
+            "title": "Per Shift",
+            "default": []
+          },
+          "per_worker": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerCostOut"
+            },
+            "type": "array",
+            "title": "Per Worker"
+          },
+          "monthly_total_ils": {
+            "type": "string",
+            "title": "Monthly Total Ils"
+          },
+          "unknown_cost_worker_count": {
+            "type": "integer",
+            "title": "Unknown Cost Worker Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "per_worker",
+          "monthly_total_ils",
+          "unknown_cost_worker_count"
+        ],
+        "title": "CostsOut"
+      },
+      "CoverageGapOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "required": {
+            "type": "integer",
+            "title": "Required"
+          },
+          "assigned": {
+            "type": "integer",
+            "title": "Assigned"
+          },
+          "missing": {
+            "type": "integer",
+            "title": "Missing"
+          },
+          "proven_missing": {
+            "type": "integer",
+            "title": "Proven Missing"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "shift",
+          "role",
+          "required",
+          "assigned",
+          "missing",
+          "proven_missing",
+          "locked"
+        ],
+        "title": "CoverageGapOut"
+      },
+      "CoverageStatusOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPTIMAL",
+              "FEASIBLE"
+            ],
+            "title": "Status"
+          },
+          "total_uncovered": {
+            "type": "integer",
+            "title": "Total Uncovered"
+          },
+          "locked_uncovered": {
+            "type": "integer",
+            "title": "Locked Uncovered"
+          },
+          "lower_bound": {
+            "type": "integer",
+            "title": "Lower Bound"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "total_uncovered",
+          "locked_uncovered",
+          "lower_bound"
+        ],
+        "title": "CoverageStatusOut"
+      },
       "CsvAliasesOut": {
         "properties": {
           "header_aliases": {
@@ -209,18 +719,281 @@
         ],
         "title": "DemandEntry"
       },
-      "HTTPValidationError": {
+      "ErrorBodyOut": {
         "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
           }
         },
         "type": "object",
-        "title": "HTTPValidationError"
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBodyOut"
+      },
+      "ErrorOut": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBodyOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorOut",
+        "description": "The one error shape of every non-2xx response (\u00a76)."
+      },
+      "GenerateOutcomeOut": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "solved",
+              "no_solution_within_limit",
+              "invalid_input",
+              "engine_error"
+            ],
+            "title": "Outcome"
+          },
+          "assignments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AssignmentOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignments"
+          },
+          "coverage_gaps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CoverageGapOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Gaps"
+          },
+          "hour_shortfalls": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HourShortfallOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hour Shortfalls"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageStatusOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "min_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MinHoursStatusOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lexicographically_optimal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lexicographically Optimal"
+          },
+          "preexisting_violations": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ViolationOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preexisting Violations"
+          },
+          "objective": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObjectiveOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CostsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "workers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkerRefOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workers"
+          },
+          "fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fingerprint"
+          },
+          "coverage_lower_bound": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Lower Bound"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "GenerateOutcomeOut",
+        "description": "The engine outcome mapped to the API (\u00a74.6 \"API mapping\")."
+      },
+      "GenerateRequest": {
+        "properties": {
+          "forbid_adjacent_shifts": {
+            "type": "boolean",
+            "title": "Forbid Adjacent Shifts",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "GenerateRequest"
+      },
+      "HourShortfallOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "min_hours": {
+            "type": "integer",
+            "title": "Min Hours"
+          },
+          "assigned_hours": {
+            "type": "integer",
+            "title": "Assigned Hours"
+          },
+          "missing_hours": {
+            "type": "integer",
+            "title": "Missing Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "min_hours",
+          "assigned_hours",
+          "missing_hours"
+        ],
+        "title": "HourShortfallOut"
       },
       "LoginIn": {
         "properties": {
@@ -239,6 +1012,20 @@
           "password"
         ],
         "title": "LoginIn"
+      },
+      "LogoutOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "LogoutOut"
       },
       "MetaOut": {
         "properties": {
@@ -286,6 +1073,281 @@
         ],
         "title": "MetaOut"
       },
+      "MinHoursStatusOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPTIMAL",
+              "FEASIBLE"
+            ],
+            "title": "Status"
+          },
+          "total_shortfall": {
+            "type": "integer",
+            "title": "Total Shortfall"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "total_shortfall"
+        ],
+        "title": "MinHoursStatusOut"
+      },
+      "ObjectiveOut": {
+        "properties": {
+          "weight": {
+            "type": "integer",
+            "title": "Weight"
+          },
+          "s_max": {
+            "type": "integer",
+            "title": "S Max"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "bound": {
+            "type": "number",
+            "title": "Bound"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weight",
+          "s_max",
+          "value",
+          "bound"
+        ],
+        "title": "ObjectiveOut"
+      },
+      "RosterOut": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "is_history": {
+            "type": "boolean",
+            "title": "Is History"
+          },
+          "free_from": {
+            "prefixItems": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C"
+                ]
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Free From"
+          },
+          "forbid_adjacent_shifts": {
+            "type": "boolean",
+            "title": "Forbid Adjacent Shifts"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentOut"
+            },
+            "type": "array",
+            "title": "Assignments"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/ViolationOut"
+            },
+            "type": "array",
+            "title": "Violations"
+          },
+          "coverage_gaps": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageGapOut"
+            },
+            "type": "array",
+            "title": "Coverage Gaps"
+          },
+          "hour_shortfalls": {
+            "items": {
+              "$ref": "#/components/schemas/HourShortfallOut"
+            },
+            "type": "array",
+            "title": "Hour Shortfalls"
+          },
+          "costs": {
+            "$ref": "#/components/schemas/CostsOut"
+          },
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerRefOut"
+            },
+            "type": "array",
+            "title": "Workers"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "type": "string",
+            "title": "Updated By"
+          },
+          "approval_history": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalEventOut"
+            },
+            "type": "array",
+            "title": "Approval History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "status",
+          "version",
+          "is_history",
+          "free_from",
+          "forbid_adjacent_shifts",
+          "assignments",
+          "violations",
+          "coverage_gaps",
+          "hour_shortfalls",
+          "costs",
+          "workers",
+          "updated_at",
+          "updated_by",
+          "approval_history"
+        ],
+        "title": "RosterOut"
+      },
+      "SaveRequest": {
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentOut"
+            },
+            "type": "array",
+            "title": "Assignments"
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "replace_existing": {
+            "type": "boolean",
+            "title": "Replace Existing",
+            "default": false
+          },
+          "forbid_adjacent_shifts": {
+            "type": "boolean",
+            "title": "Forbid Adjacent Shifts",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignments",
+          "fingerprint"
+        ],
+        "title": "SaveRequest"
+      },
+      "SaveResponseOut": {
+        "properties": {
+          "roster_id": {
+            "type": "integer",
+            "title": "Roster Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "roster_id",
+          "version",
+          "status"
+        ],
+        "title": "SaveResponseOut"
+      },
+      "ShiftCostOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "shift": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Shift"
+          },
+          "amount_ils": {
+            "type": "string",
+            "title": "Amount Ils"
+          },
+          "unknown_cost_assignments": {
+            "type": "integer",
+            "title": "Unknown Cost Assignments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "shift",
+          "amount_ils",
+          "unknown_cost_assignments"
+        ],
+        "title": "ShiftCostOut"
+      },
       "UserOut": {
         "properties": {
           "id": {
@@ -318,38 +1380,118 @@
         ],
         "title": "UserOut"
       },
-      "ValidationError": {
+      "ViolationOut": {
         "properties": {
-          "loc": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "INACTIVE_WORKER",
+              "UNKNOWN_WORKER",
+              "WRONG_ROLE",
+              "UNAVAILABLE",
+              "OUT_OF_MONTH",
+              "DUPLICATE_ASSIGNMENT",
+              "DAILY_LIMIT",
+              "ADJACENT_SHIFTS",
+              "MAX_HOURS",
+              "OVERSTAFFED",
+              "NO_CONTRACT_FOR_MONTH"
+            ],
+            "title": "Code"
+          },
+          "key": {
+            "items": {},
+            "type": "array",
+            "title": "Key"
+          },
+          "magnitude": {
+            "type": "integer",
+            "title": "Magnitude"
+          },
+          "assignments": {
             "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
+              "$ref": "#/components/schemas/AssignmentOut"
             },
             "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
+            "title": "Assignments"
           }
         },
         "type": "object",
         "required": [
-          "loc",
-          "msg",
-          "type"
+          "code",
+          "key",
+          "magnitude",
+          "assignments"
         ],
-        "title": "ValidationError"
+        "title": "ViolationOut"
+      },
+      "WorkerCostOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "hours": {
+            "type": "integer",
+            "title": "Hours"
+          },
+          "amount_ils": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Ils"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "hours",
+          "amount_ils"
+        ],
+        "title": "WorkerCostOut"
+      },
+      "WorkerRefOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "GENERAL_GUARD",
+              "SCREENER",
+              "SUPERVISOR"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "full_name",
+          "role",
+          "status"
+        ],
+        "title": "WorkerRefOut",
+        "description": "Display lookup for a worker id used by assignments, shortfalls and costs."
       }
     }
   }

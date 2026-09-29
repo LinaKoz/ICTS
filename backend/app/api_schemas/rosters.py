@@ -3,7 +3,7 @@ save request, and roster read response.
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel
@@ -17,6 +17,7 @@ from app.api_schemas.common import (
     MinHoursStatusOut,
     Shift,
     ViolationOut,
+    WorkerRefOut,
 )
 
 
@@ -44,6 +45,7 @@ class GenerateOutcomeOut(BaseModel):
     preexisting_violations: list[ViolationOut] | None = None
     objective: ObjectiveOut | None = None
     costs: CostsOut | None = None
+    workers: list[WorkerRefOut] | None = None  # name lookup for every worker id in this response
     fingerprint: str | None = None
     coverage_lower_bound: int | None = None  # NoSolutionWithinLimit only
     errors: list[dict] | None = None  # InvalidInput only
@@ -85,4 +87,7 @@ class RosterOut(BaseModel):
     coverage_gaps: list[CoverageGapOut]
     hour_shortfalls: list[HourShortfallOut]
     costs: CostsOut
+    workers: list[WorkerRefOut]  # name lookup for every worker id in this response
+    updated_at: datetime  # last save/edit of this roster
+    updated_by: str  # display name of whoever made it
     approval_history: list[ApprovalEventOut]

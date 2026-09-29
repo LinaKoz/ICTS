@@ -19,6 +19,7 @@ from app.db import async_session_factory, dispose_engine
 from app.engine_pool import engine_pool
 from app.errors import register_exception_handlers
 from app.routers.meta import router as meta_router
+from app.rosters.router import router as rosters_router
 from app.seed import seed
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ app = FastAPI(title="ICTS Rostering API", version="0.1.0", lifespan=lifespan)
 register_exception_handlers(app)
 app.include_router(meta_router)
 app.include_router(auth_router)
+app.include_router(rosters_router)
 
 
 @app.get("/api/health")

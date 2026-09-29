@@ -16,3 +16,7 @@ class UserOut(BaseModel):
     username: str
     display_name: str
     app_role: Literal["PLANNER", "MANAGER"]
+
+
+class LogoutOut(BaseModel):
+    status: Literal["ok"]
