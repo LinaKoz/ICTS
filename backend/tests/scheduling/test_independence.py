@@ -20,11 +20,16 @@ def _imported_modules(tree: ast.AST):
 def test_scheduling_engine_has_no_forbidden_imports():
     pkg_dir = pathlib.Path(scheduling_pkg.__file__).parent
     offenders = []
-    for path in pkg_dir.glob("*.py"):
+    for path in pkg_dir.rglob("*.py"):
         tree = ast.parse(path.read_text(), filename=str(path))
         for module in _imported_modules(tree):
             if any(module == p or module.startswith(p + ".") for p in FORBIDDEN_PREFIXES):
                 offenders.append((path.name, module))
-            if module == "app" or module.startswith("app.") and not module.startswith("app.scheduling"):
+            outside_engine = module == "app" or (
+                module.startswith("app.")
+                and module != "app.scheduling"
+                and not module.startswith("app.scheduling.")
+            )
+            if outside_engine:
                 offenders.append((path.name, module))
     assert offenders == []
