@@ -156,11 +156,13 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
       {(warnings.length > 0 || (full && cost)) && (
         <div className="shift-meta">
           {warnings.length > 0 && (
-            <span className="warn" title={fixHere ? `${violationTitle}. Click to see fixes.` : violationTitle}>
-              <span aria-hidden="true">⚠</span> {warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}
-              {/* In Week view a click on the cell opens the shift, which lists these violations with Fix. */}
-              {fixHere && <span className="warn-fix">· Fix</span>}
-            </span>
+            full
+              ? <span className="warn" title={violationTitle}><span aria-hidden="true">⚠</span> {warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}</span>
+              // Week view: the red chip already shows who breaks a rule; keep the cell footer short.
+              // A click on the cell opens the shift, which lists its violations with Fix.
+              : fixHere
+                ? <span className="warn-fix" title={`${violationTitle}. Click to see fixes.`}><span aria-hidden="true">⚠</span> Fix</span>
+                : <span className="warn-mini" title={violationTitle} aria-label={`${warnings.length} rule ${warnings.length === 1 ? 'issue' : 'issues'}`}><span aria-hidden="true">⚠ {warnings.length}</span></span>
           )}
           {full && cost && <span className="shift-cost muted" title="Estimated cost of this shift">{ils(cost.amount_ils)}{cost.unknown_cost_assignments > 0 && ` + ${cost.unknown_cost_assignments} unknown`}</span>}
         </div>

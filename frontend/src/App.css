@@ -206,9 +206,9 @@ button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit
 .sum-link { display: inline-flex; align-items: baseline; padding: 0 6px; margin: 0 -6px; border: 1px solid transparent; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
 .sum-link:hover { border-color: var(--violation); background: var(--violation-bg); }
 .sum-link:focus-visible { outline: 2px solid var(--violation); outline-offset: 2px; }
-.warn-fix { text-decoration: underline; text-underline-offset: 2px; }
-.cal-week .shift-block.has-violation .warn { cursor: pointer; }
-.cal-week .shift-block.has-violation .warn:hover { background: rgba(239, 68, 68, 0.24); }
+.warn-fix { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid var(--violation); border-radius: 6px; color: var(--violation); font-size: 0.74rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.warn-fix:hover { background: var(--violation-bg); }
+.warn-mini { color: var(--violation); font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
 .sum-link-hint { font-size: 0.72rem; font-weight: 500; opacity: 0.85; }
 .violations-panel { scroll-margin-top: 12px; }
 .violations-panel:focus { outline: none; }

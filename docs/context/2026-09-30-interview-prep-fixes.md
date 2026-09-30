@@ -135,3 +135,9 @@ Branch: `feat/roster-calendar`, then merged into `main`
   lists the shift's violations with Fix.
 - Checked in headless Chrome, outside edit mode: 14 Fix + 14 Show in the list;
   tag click opened "Shift A, Tuesday, 3 November 2026" with a working Fix.
+
+- Revised after user feedback: the "N rule issues · Fix" tag wrapped into a
+  large pill in narrow week columns. Week cells now show only a compact
+  "⚠ Fix" button (`.warn-fix`), since the red chip already marks the offending
+  worker. View-only or locked cells show a small "⚠ N" (`.warn-mini`). Day view
+  keeps the full "N rule issues" tag. Checked at a 1150px window: no wrapping.
