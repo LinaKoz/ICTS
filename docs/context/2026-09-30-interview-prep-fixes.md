@@ -102,3 +102,24 @@ Branch: `feat/roster-calendar`, then merged into `main`
   GitHub is `feat/roster-calendar`, so the workflow now also runs on pushes there
   and has `workflow_dispatch`. First `main` run: backend, frontend and e2e all passed.
 - Push worked after `gh auth refresh -h github.com -s workflow`.
+
+## Follow-up: jump from the summary to the violation list (same day)
+
+- Why: the summary's "Rule violations ⚠ N" was a plain number; the full list
+  sat far down the page, and nothing led from a list entry to its shift.
+- Now:
+  - The figure is a button, "⚠ N · View all". It scrolls to the Violations
+    panel, focuses it and flashes it.
+  - The Violations, Coverage gaps and Hour shortfalls lists scroll inside a
+    320px box (`.scroll-list`); November had 14 violations and a month can
+    have hundreds of gaps.
+  - Each violation has "Show". It moves the calendar to the violation's
+    earliest assignment (preferring the roster month; month view switches to
+    week), scrolls that shift into view and flashes it for 2.5 s.
+    `violationTarget` in `calendarData.ts`; `highlight` prop on `RosterCalendar`.
+  - `ViolationFix` takes an `extra` action, so "Show" sits next to "Fix" in edit mode.
+  - Flashes respect `prefers-reduced-motion`.
+- Tests: `violations.test.ts` (target choice). Frontend 122 tests, typecheck,
+  lint, build pass. Checked in headless Chrome on November 2026: button text,
+  panel scroll position and flash, 14 "Show" buttons, jump to 3 Nov shift A
+  with the red chip in view.

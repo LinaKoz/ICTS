@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ErrorPanel } from '../../errors/ErrorPanel'
-import type { AssignmentOut, GenerateOutcomeOut, RosterOut } from '../../api/schemas'
+import type { AssignmentOut, GenerateOutcomeOut, RosterOut, Shift, ViolationOut } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
 import { WorkerDetail } from '../workers/WorkerDetailPage'
 import { assignmentsKey, rosterKey, useAssignmentIds, useGenerate, useMeta, useMoveAssignment, useRoster, useRosters, useSave, useSwapAssignment } from './api'
@@ -17,7 +17,7 @@ import { NO_FILTER, type RosterFilter } from './filter'
 import { RosterCalendar } from './RosterCalendar'
 import { CalendarToolbar } from './CalendarToolbar'
 import { RosterSummary } from './RosterSummary'
-import { buildIndex, shiftsOfWorker, type MonthSource } from './calendarData'
+import { buildIndex, shiftsOfWorker, type MonthSource, violationTarget } from './calendarData'
 import { WorkerFocusCard, WorkerSearch } from './WorkerFocus'
 import { daysInMonth, monthLabel, monthOf, todayIso, visibleDates, visibleMonths, type CalendarView } from './calendar'
 import { SidePanel } from './SidePanel'
@@ -57,6 +57,20 @@ export function RosterPage() {
   const [attempt, setAttempt] = useState<CellRef | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [focusId, setFocusId] = useState<string | null>(null)
+  // "View all" on the summary scrolls to the violation list and flashes it; "Show" on a violation flashes its shift.
+  const violationsRef = useRef<HTMLElement>(null)
+  const [flashViolations, setFlashViolations] = useState(false)
+  const [highlight, setHighlight] = useState<{ date: string; shift: Shift; n: number } | null>(null)
+  useEffect(() => {
+    if (!flashViolations) return
+    const t = setTimeout(() => setFlashViolations(false), 1600)
+    return () => clearTimeout(t)
+  }, [flashViolations])
+  useEffect(() => {
+    if (!highlight) return
+    const t = setTimeout(() => setHighlight(null), 2500)
+    return () => clearTimeout(t)
+  }, [highlight])
   const [filter, setFilter] = useState<RosterFilter>(NO_FILTER)
 
   const existing = roster.data ?? null
@@ -193,6 +207,18 @@ export function RosterPage() {
     downloadCsv(`roster-${month}${previewUsable ? '-preview' : ''}.csv`, rosterCsv(shown.assignments, nameLookup(shown.workers)))
   }
   const openDay = (date: string) => { setView('day'); goTo(date) }
+  function showViolations() {
+    violationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    violationsRef.current?.focus({ preventScroll: true })
+    setFlashViolations(true)
+  }
+  function showViolation(v: ViolationOut) {
+    const target = violationTarget(v, month)
+    if (!target) return
+    if (view === 'month') setView('week')
+    goTo(target.date)
+    setHighlight({ ...target, n: Date.now() })
+  }
   const selectedKey = selection?.kind === 'assignment' ? `${selection.assignment.worker_id}|${selection.assignment.date}|${selection.assignment.shift}` : null
 
   return (
@@ -276,7 +302,7 @@ export function RosterPage() {
       {meta.isPending && <div className="skeleton" aria-busy="true" />}
       {meta.isError && <ErrorPanel error={meta.error} onRetry={() => meta.refetch()} />}
       {!roster.isPending && !shown && meta.data && <p className="muted">No roster for {monthLabel(month)} yet. Generate one to preview it.</p>}
-      {shown && meta.data && <RosterSummary month={month} demand={meta.data.demand} view={{ coverage_gaps: shown.gaps, violations: shown.violations, costs: shown.costs }} />}
+      {shown && meta.data && <RosterSummary month={month} demand={meta.data.demand} view={{ coverage_gaps: shown.gaps, violations: shown.violations, costs: shown.costs }} onShowViolations={showViolations} />}
       {meta.data && (
         <>
           {!problem && (dropMessage || move.isError || swap.isError) && (
@@ -289,7 +315,7 @@ export function RosterPage() {
           <RosterCalendar
             view={view} anchor={anchor} today={today} targetMonth={month}
             shifts={meta.data.shifts} roles={meta.data.roles} demand={meta.data.demand} index={index}
-            onOpenDay={openDay} focusId={focusId} filter={filter}
+            onOpenDay={openDay} focusId={focusId} filter={filter} highlight={highlight}
             fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined}
             edit={editing && view !== 'month' ? {
               onAssignment: selectAssignment,
@@ -302,7 +328,7 @@ export function RosterPage() {
           <div className="cal-aside" aria-label={`Details for ${monthLabel(month)}`}>
             {existing && !previewUsable && <ApprovalPanel month={month} roster={existing} />}
             {shown && (
-              <SidePanel violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} costs={shown.costs} workers={shown.workers}
+              <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} costs={shown.costs} workers={shown.workers}
                 fix={editing && existing ? { month, roster: existing, idOf } : undefined} />
             )}
           </div>

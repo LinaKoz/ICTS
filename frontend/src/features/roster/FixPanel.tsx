@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { AssignmentOut, RosterOut, ViolationOut } from '../../api/schemas'
 import { useMoveAssignment, useRemoveAssignment, useReplacements } from './api'
@@ -53,7 +53,7 @@ function AssignmentFixes({ month, roster, assignment, id, ack, onDone }: {
 
 /** One violation with a "Fix" toggle that lists its editable assignments; picking one loads up to five
  * replacements (and removal) for that assignment only. */
-export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: ViolationOut; fix: FixProps; text?: string; defaultOpen?: boolean }) {
+export function ViolationFix({ v, fix, text, defaultOpen = false, extra }: { v: ViolationOut; fix: FixProps; text?: string; defaultOpen?: boolean; extra?: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
   const [ack, setAck] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -66,6 +66,7 @@ export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: Violati
   return (
     <li>
       {text ?? `${violationLabel(v.code)} (×${v.magnitude}) ${v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}`}
+      {extra}
       {fixable.length > 0 && (
         <button className="link" aria-expanded={open} onClick={() => { setOpen(!open); setAck(false); setSelectedId(null) }}>{open ? 'Hide fixes' : 'Fix'}</button>
       )}

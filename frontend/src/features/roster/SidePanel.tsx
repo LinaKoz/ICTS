@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { forwardRef, useState } from 'react'
 import type { CostsOut, CoverageGapOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
 import { ViolationFix, type FixProps } from './FixPanel'
@@ -13,26 +13,34 @@ interface Props {
   workers: WorkerRefOut[] | null | undefined
   /** Present only when the stored roster is editable: adds a Fix action to each violation. */
   fix?: FixProps
+  /** Jumps the calendar to a violation. */
+  onShowViolation?: (v: ViolationOut) => void
+  /** Briefly highlights the violations section (after the summary figure was clicked). */
+  flashViolations?: boolean
 }
 
-export function SidePanel({ violations, gaps, shortfalls, costs, workers, fix }: Props) {
+/** The violations list: scrolls on its own when long; each entry can jump the calendar to its shift. */
+export const SidePanel = forwardRef<HTMLElement, Props>(function SidePanel({ violations, gaps, shortfalls, costs, workers, fix, onShowViolation, flashViolations }, violationsRef) {
   const nameOf = nameLookup(workers)
   const [showCosts, setShowCosts] = useState(false)
   const openGaps = gaps.filter((g) => g.missing > 0)
   return (
     <aside className="side">
-      <section className="panel">
+      <section ref={violationsRef} tabIndex={-1} aria-label="Rule violations" className={`panel violations-panel${violations.length > 0 ? ' has-violations' : ''}${flashViolations ? ' panel-flash' : ''}`}>
         <h3>Violations ({violations.length})</h3>
         {violations.length === 0 ? <p className="muted">None</p> : (
-          <ul>{violations.map((v) => fix
-            ? <ViolationFix key={violationKey(v)} v={v} fix={fix} />
-            : <li key={violationKey(v)}>{violationLabel(v.code)} (×{v.magnitude}) {v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}</li>)}</ul>
+          <ul className="scroll-list violation-list">{violations.map((v) => {
+            const show = onShowViolation ? <button type="button" className="link" onClick={() => onShowViolation(v)} title="Show this shift on the calendar">Show</button> : null
+            return fix
+              ? <ViolationFix key={violationKey(v)} v={v} fix={fix} extra={show} />
+              : <li key={violationKey(v)}>{violationLabel(v.code)} (×{v.magnitude}) {v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')} {show}</li>
+          })}</ul>
         )}
       </section>
       <section className="panel">
         <h3>Coverage gaps ({openGaps.length})</h3>
         {openGaps.length === 0 ? <p className="muted">None</p> : (
-          <ul>{openGaps.map((g) => (
+          <ul className="scroll-list">{openGaps.map((g) => (
             <li key={`${g.date}${g.shift}${g.role}`}>
               {g.date} {g.shift} {g.role.toLowerCase().replace('_', ' ')}: {g.assigned}/{g.required}
               {g.locked ? ' (past)' : g.proven_missing > 0 ? ' (cannot be filled)' : ''}
@@ -43,7 +51,7 @@ export function SidePanel({ violations, gaps, shortfalls, costs, workers, fix }:
       <section className="panel">
         <h3>Hour shortfalls ({shortfalls.length})</h3>
         {shortfalls.length === 0 ? <p className="muted">None</p> : (
-          <ul>{shortfalls.map((s) => <li key={s.worker_id}>{nameOf(s.worker_id)}: {s.assigned_hours}/{s.min_hours} h ({s.missing_hours} h below minimum)</li>)}</ul>
+          <ul className="scroll-list">{shortfalls.map((s) => <li key={s.worker_id}>{nameOf(s.worker_id)}: {s.assigned_hours}/{s.min_hours} h ({s.missing_hours} h below minimum)</li>)}</ul>
         )}
       </section>
       <section className="panel cost-panel">
@@ -93,4 +101,4 @@ export function SidePanel({ violations, gaps, shortfalls, costs, workers, fix }:
       </section>
     </aside>
   )
-}
+})

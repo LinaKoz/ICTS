@@ -203,6 +203,21 @@ button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit
 .chip.gap.past { background: transparent; border-style: dashed; opacity: 0.8; }
 .warn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--violation); border-radius: 999px; background: var(--violation-bg); color: var(--violation); font-size: 0.74rem; font-weight: 600; justify-self: start; }
 /* Hard rule violations: red, distinct from amber coverage gaps. */
+.sum-link { display: inline-flex; align-items: baseline; padding: 0 6px; margin: 0 -6px; border: 1px solid transparent; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.sum-link:hover { border-color: var(--violation); background: var(--violation-bg); }
+.sum-link:focus-visible { outline: 2px solid var(--violation); outline-offset: 2px; }
+.sum-link-hint { font-size: 0.72rem; font-weight: 500; opacity: 0.85; }
+.violations-panel { scroll-margin-top: 12px; }
+.violations-panel:focus { outline: none; }
+.violations-panel.has-violations { border-color: var(--violation); }
+.scroll-list { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; }
+.violation-list > li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.violation-list > li:last-child { border-bottom: 0; }
+.violation-list .link { margin-left: 6px; }
+@keyframes violation-flash { 0%, 60% { box-shadow: 0 0 0 3px var(--violation); background: var(--violation-bg); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.panel-flash { animation: violation-flash 1.6s ease-out; }
+.shift-block.cell-flash { animation: violation-flash 2.5s ease-out; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .panel-flash, .shift-block.cell-flash { animation: none; box-shadow: 0 0 0 3px var(--violation); } }
 .shift-block.has-violation { box-shadow: inset 3px 0 0 var(--violation); padding-left: 4px; }
 .chip.chip-violation { border-color: var(--violation); background: var(--violation-bg); color: var(--text-h); box-shadow: 0 0 0 1px var(--violation); gap: 4px; }
 .chip-violation-mark { flex: none; color: var(--violation); font-weight: 700; }
