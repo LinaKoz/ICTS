@@ -11,6 +11,9 @@ interface Props {
   max?: string
   /** Render the popover open (tests render statically; effects do not run there). */
   defaultOpen?: boolean
+  /** Open the popover in the page flow, pushing later content down, instead of floating over it.
+   * Used inside scrolling panels, where a floating popover would cover the fields below. */
+  inline?: boolean
 }
 
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
@@ -27,7 +30,7 @@ const Chevron = ({ dir }: { dir: 'left' | 'right' }) => (
  * popover with a Monday-first month grid, month/year navigation, Today, and arrow-key navigation.
  * Closes on Escape (focus returns to the trigger), a click outside, or picking a day.
  */
-export function DatePicker({ value, onChange, label, min, max, defaultOpen = false }: Props) {
+export function DatePicker({ value, onChange, label, min, max, defaultOpen = false, inline = false }: Props) {
   const [open, setOpen] = useState(defaultOpen)
   const [mode, setMode] = useState<'days' | 'months'>('days')
   const [cursor, setCursor] = useState(value)
@@ -80,7 +83,7 @@ export function DatePicker({ value, onChange, label, min, max, defaultOpen = fal
   const page = (dir: 1 | -1) => setCursor(clampDate(addMonths(cursor, dir * unit), min, max))
 
   return (
-    <div className="dp" ref={ref}>
+    <div className={`dp${inline ? ' dp-inline' : ''}`} ref={ref}>
       <button ref={trigger} type="button" className={`dp-trigger${open ? ' is-open' : ''}`} aria-label={`${label}: ${dayLabel(value)}`}
         aria-haspopup="dialog" aria-expanded={open} aria-controls={popId} onClick={toggle}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -89,7 +92,7 @@ export function DatePicker({ value, onChange, label, min, max, defaultOpen = fal
         {dateLabel(value)}
       </button>
       {open && (
-        <div className="dp-pop" id={popId} role="dialog" aria-label={label}>
+        <div className={`dp-pop${inline ? ' dp-pop-inline' : ''}`} id={popId} role="dialog" aria-label={label}>
           <div className="dp-head">
             <button type="button" className="dp-nav" aria-label={mode === 'days' ? 'Previous month' : 'Previous year'} disabled={prevBlocked}
               onClick={() => page(-1)}><Chevron dir="left" /></button>

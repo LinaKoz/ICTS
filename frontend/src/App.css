@@ -390,4 +390,6 @@ input.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2
 .dp-foot { display: flex; justify-content: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .dp-link { border: 0; background: none; padding: 4px 8px; color: var(--accent); font-weight: 600; }
 .dp-link:hover:not(:disabled) { text-decoration: underline; }
+.dp-inline { display: block; }
+.dp-pop.dp-pop-inline { position: static; margin-top: 8px; max-width: 100%; box-shadow: none; }
 @media (max-width: 720px) { .dp-pop { max-width: calc(100vw - 32px); } }

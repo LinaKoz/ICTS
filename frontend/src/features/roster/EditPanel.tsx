@@ -81,7 +81,7 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
                 </select>
               </label>
               <div className="field">Date
-                <DatePicker label="Date" value={target.date} min={`${month}-01`} max={`${month}-${String(daysInMonth(month)).padStart(2, '0')}`}
+                <DatePicker inline label="Date" value={target.date} min={`${month}-01`} max={`${month}-${String(daysInMonth(month)).padStart(2, '0')}`}
                   onChange={(date) => { reset(); setTarget({ ...target, date }) }} />
               </div>
               <label>Shift

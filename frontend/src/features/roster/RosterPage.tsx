@@ -100,19 +100,32 @@ export function RosterPage() {
     )
   }
 
+  /** Ids and roster are loaded separately; never guess a row. Refresh both and ask the user to retry. */
+  function idsMissing() {
+    setDropMessage(IDS_UPDATING_MESSAGE)
+    void qc.invalidateQueries({ queryKey: rosterKey(month) })
+    void qc.invalidateQueries({ queryKey: assignmentsKey(month) })
+  }
+
+  /** A chip was clicked: select it for editing, or explain why that is not possible yet. */
+  function selectAssignment(a: AssignmentOut) {
+    const id = idOf(a)
+    if (id === undefined) {
+      move.reset(); swap.reset(); setAttempt(null); setSelection(null)
+      idsMissing()
+      return
+    }
+    setDropMessage(null)
+    setSelection({ kind: 'assignment', assignment: a, id })
+  }
+
   /** A chip was dropped: move to a free slot, or swap with another worker. */
   function applyDrop(from: AssignmentOut, action: DropAction, where: CellRef) {
     move.reset(); swap.reset(); setDropMessage(null); setAttempt(where)
     if (action.kind === 'reject') { setDropMessage(action.message); return }
     if (!existing) return
     const ids = dropIds(from, action, idOf)
-    if (ids.kind === 'missing') {
-      // Ids and roster are loaded separately; never guess a row. Refresh both and let the user retry.
-      setDropMessage(IDS_UPDATING_MESSAGE)
-      void qc.invalidateQueries({ queryKey: rosterKey(month) })
-      void qc.invalidateQueries({ queryKey: assignmentsKey(month) })
-      return
-    }
+    if (ids.kind === 'missing') { idsMissing(); return }
     const approved = needsApprovalAck(existing.status)
     if (approved && !window.confirm('This roster is approved. Editing returns it to draft and revokes the approval. Continue?')) return
     const common = { expected_version: existing.version, acknowledge_approved_edit: approved }
@@ -279,7 +292,7 @@ export function RosterPage() {
             onOpenDay={openDay} focusId={focusId} filter={filter}
             fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined}
             edit={editing && view !== 'month' ? {
-              onAssignment: (a) => { const id = idOf(a); if (id !== undefined) setSelection({ kind: 'assignment', assignment: a, id }) },
+              onAssignment: selectAssignment,
               onGap: (slot) => setSelection({ kind: 'gap', slot }),
               onDrop: applyDrop,
               problem,

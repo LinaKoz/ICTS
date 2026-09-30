@@ -42,4 +42,9 @@ describe('DatePicker', () => {
     expect(disabled('2026-12-01')).toBe(true)
     expect(disabled('2026-11-15')).toBe(false)
   })
+
+  it('opens in the page flow when inline, and floats otherwise', () => {
+    expect(render({ defaultOpen: true, inline: true })).toContain('class="dp-pop dp-pop-inline"')
+    expect(render({ defaultOpen: true })).toContain('class="dp-pop"')
+  })
 })
