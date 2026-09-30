@@ -42,7 +42,14 @@ Branch: `feat/roster-calendar`, then merged into `main`
   - frontend typecheck, lint, test, build on Node 20
   - e2e: `docker compose up -d --build`, wait for `engine: ready`, run `tests/e2e`
 
-### 5. README
+### 5. Compose backend port
+
+- Why: `docker-compose.yml` bound the backend to a fixed `127.0.0.1:8000`, so a
+  second stack (the README's separate-project e2e recipe, or a clean-clone check)
+  failed with "port is already allocated" while the main stack ran.
+- Now `${BACKEND_PORT:-8000}`; documented in the README and `.env.example`.
+
+### 6. README
 
 - Engine file layout, `STALE_APPROVAL` in the error list, the revoke
   `approval_id` binding, and why approve needs no approval id.
@@ -62,14 +69,19 @@ Branch: `feat/roster-calendar`, then merged into `main`
 - Backend full suite on an isolated DB (`icts_fix` in `icts-test-pg`): 435 passed, before and after the split.
 - `python -m bench.run small --time-limits 10`: all OPTIMAL, the same numbers as the README table.
 - Frontend: typecheck, lint, build clean; vitest 120 passed (new: inline date picker).
-- Clean clone + `docker compose up --build` on a separate project and port, then `tests/e2e`: see the commit that adds this note.
+- Clean clone of the branch into a temp dir, `FRONTEND_PORT=18080 BACKEND_PORT=18000 docker compose -p icts-fresh up -d --build`: engine ready with no manual step; `tests/e2e`: 14 passed. Stack removed with `down -v`.
 
 ## Known gaps
 
-- The CI workflow has not run on GitHub yet; it runs on the first push.
+- The CI workflow has not run on GitHub yet; it runs on the first push to `main`.
 - No browser run of the inline date picker or the new banner.
 - Configurable demand (per shift or weekday) is still a hardcoded constant; left as future work.
 
 ## Commit hygiene
 
-- Separate commits: engine split, frontend fixes, CI + README + this note.
+- Separate commits: engine split, frontend fixes, CI + README, compose port, this note.
+- `feat/roster-calendar` merged into local `main` (merge commit on top of `origin/main`).
+- Push NOT done: GitHub rejected it because the `gh` token lacks the `workflow`
+  scope needed for `.github/workflows/ci.yml`. After `gh auth refresh -h github.com -s workflow`,
+  run `git push origin feat/roster-calendar main`.
+- Another session committed `cc41968 docs: summarize original assignment` on this branch during the work; it is included in the merge.
