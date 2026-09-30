@@ -124,7 +124,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
               const name = index.nameOf(a.worker_id)
               const bad = violating.has(a.worker_id)
               const badClass = bad ? ' chip-violation' : ''
-              const badMark = bad ? <span className="chip-violation-mark" aria-label="Rule violation">⚠</span> : null
+              const badMark = bad ? <><span className="chip-violation-mark" aria-hidden="true">⚠</span><span className="sr-only">Rule violation: </span></> : null
               const chipKey = `a|${a.worker_id}|${date}|${shift}`
               const target: DropTarget = { kind: 'assignment', assignment: a }
               return editable
@@ -162,7 +162,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
               // A click on the cell opens the shift, which lists its violations with Fix.
               : fixHere
                 ? <span className="warn-fix" title={`${violationTitle}. Click to see fixes.`}><span aria-hidden="true">⚠</span> Fix</span>
-                : <span className="warn-mini" title={violationTitle} aria-label={`${warnings.length} rule ${warnings.length === 1 ? 'issue' : 'issues'}`}><span aria-hidden="true">⚠ {warnings.length}</span></span>
+                : <span className="warn-mini" title={violationTitle}><span aria-hidden="true">⚠ {warnings.length}</span><span className="sr-only">{warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}</span></span>
           )}
           {full && cost && <span className="shift-cost muted" title="Estimated cost of this shift">{ils(cost.amount_ils)}{cost.unknown_cost_assignments > 0 && ` + ${cost.unknown_cost_assignments} unknown`}</span>}
         </div>
