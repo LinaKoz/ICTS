@@ -340,3 +340,8 @@ button.mini-day:hover { border-color: var(--accent-border); }
 .filter-pill select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .filter-pill.is-on select { border-color: var(--accent); background: var(--accent-bg); color: var(--text-h); font-weight: 600; }
 .filter-reset { border: 0; background: transparent; color: var(--accent); padding: 4px 8px; text-decoration: underline; }
+.cal-week td.cal-cell { cursor: pointer; }
+.cal-week td.cal-cell:hover { background: var(--accent-bg); }
+.cal-week td.cal-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.shift-popup-date { margin: 0 0 10px; }
+.modal .cal-day-shift { margin-bottom: 12px; }

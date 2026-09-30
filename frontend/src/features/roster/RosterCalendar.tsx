@@ -1,5 +1,6 @@
 import { useState, type DragEvent } from 'react'
 import type { AssignmentOut, Role, Shift } from '../../api/schemas'
+import { Modal } from '../../components/Modal'
 import { dayLabel, monthLabel, monthOf, monthWeeks, weekDays, weekdayShort, type CalendarView } from './calendar'
 import type { CalendarIndex } from './calendarData'
 import { ViolationFix, violationKey, type FixProps } from './FixPanel'
@@ -164,11 +165,54 @@ function DayHeader({ date, today, anchor, onOpenDay }: { date: string; today: st
   )
 }
 
+/** One shift of one date in a popup, so the week grid can stay in view behind it. */
+function ShiftPopup({ date, shift, ctx, onClose }: { date: string; shift: Shift; ctx: Ctx; onClose: () => void }) {
+  const { index, fix } = ctx
+  const warnings = index.warningsAt(date, shift)
+  const label = `Shift ${shift}, ${dayLabel(date)}`
+  return (
+    <Modal label={label} onClose={onClose}>
+      <div className="modal-head">
+        <h3>Shift {shift} <span className="shift-hours">{SHIFT_INFO[shift].name}, {SHIFT_INFO[shift].hours}</span></h3>
+        <button className="modal-close" onClick={onClose} aria-label="Close" title="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+            <path d="M5 5l14 14M19 5L5 19" />
+          </svg>
+        </button>
+      </div>
+      <p className="muted shift-popup-date">{dayLabel(date)}</p>
+      <section className={`cal-day-shift shift-edge shift-${shift}`} aria-label={label}>
+        <ShiftBlock date={date} shift={shift} ctx={ctx} full />
+      </section>
+      {warnings.length > 0 && (
+        <div className="cal-day-warn" role="status">
+          <strong><span aria-hidden="true">⚠</span> Rule violations in this shift</strong>
+          <ul className="cal-day-violations">
+            {warnings.map((v) => {
+              const text = explainViolation(v, index.nameOf)
+              return fix
+                ? <ViolationFix key={violationKey(v)} v={v} fix={fix} text={text} />
+                : <li key={violationKey(v)}>{text}</li>
+            })}
+          </ul>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 function WeekView({ ctx }: { ctx: Ctx }) {
   const { anchor, today, shifts, onOpenDay, targetMonth } = ctx
   const days = weekDays(anchor)
+  const [open, setOpen] = useState<{ date: string; shift: Shift } | null>(null)
+  // Chips and gap buttons keep their own action; a click anywhere else in the cell opens the shift.
+  const openFrom = (e: { target: EventTarget }, date: string, shift: Shift) => {
+    if ((e.target as HTMLElement).closest('button, a, input, select')) return
+    setOpen({ date, shift })
+  }
   return (
     <div className="cal-scroll">
+      {open && <ShiftPopup date={open.date} shift={open.shift} ctx={ctx} onClose={() => setOpen(null)} />}
       <table className="cal-week" aria-label="Week schedule">
         <thead>
           <tr>
@@ -185,7 +229,10 @@ function WeekView({ ctx }: { ctx: Ctx }) {
             <tr key={s}>
               <th scope="row" className={`shift-label shift-edge shift-${s}`}>Shift {s}<span className="shift-hours">{SHIFT_INFO[s].name}<br />{SHIFT_INFO[s].hours}</span></th>
               {days.map((d) => (
-                <td key={d} className={`${d === today ? 'col-today' : ''}${monthOf(d) !== targetMonth ? ' col-other' : ''}`}>
+                <td key={d} className={`cal-cell ${d === today ? 'col-today' : ''}${monthOf(d) !== targetMonth ? ' col-other' : ''}`}
+                  tabIndex={0} aria-label={`Open shift ${s}, ${dayLabel(d)}`}
+                  onClick={(e) => openFrom(e, d, s)}
+                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpen({ date: d, shift: s }) } }}>
                   <ShiftBlock date={d} shift={s} ctx={ctx} full={false} />
                 </td>
               ))}
