@@ -3,8 +3,9 @@
 Creates the demo users (`planner`/`manager`, passwords from
 `PLANNER_PASSWORD`/`MANAGER_PASSWORD`) if missing — it never overwrites
 an existing user's password. If `workers` is empty, it also loads a
-small placeholder sample of workers and one contract version each, so
-the vertical slice works on first start. The real sample CSV is T6's
+small placeholder sample of workers and one contract version each (plus
+25 demo workers unless `SEED_DEMO_WORKERS=false`), so the vertical slice
+works on first start. A populated `workers` table is never touched. The real sample CSV is T6's
 job; this seed never reads a CSV file, so it cannot fail if one is
 missing yet.
 """
@@ -68,52 +69,37 @@ async def seed(session: AsyncSession) -> None:
     planner_id = await _ensure_user(session, *_DEMO_USERS[0])
     await _ensure_user(session, *_DEMO_USERS[1])
 
+    # Decided once, before any insert: workers are seeded only into an empty
+    # table, so a restart never re-adds a deleted worker or touches an edited one.
     worker_count = (await session.execute(select(func.count()).select_from(Worker))).scalar_one()
     if worker_count == 0:
         effective_month = now_israel().date().replace(day=1)
-        for national_id, full_name, role in _SAMPLE_WORKERS:
-            worker = Worker(national_id=national_id, full_name=full_name, role=role, status="ACTIVE")
-            session.add(worker)
-            await session.flush()  # assigns worker.id
-            session.add(
-                ContractVersion(
-                    worker_id=worker.id,
-                    version_no=1,
-                    effective_month=effective_month,
-                    hourly_rate_ils=_SAMPLE_HOURLY_RATE,
-                    min_hours=_SAMPLE_MIN_HOURS,
-                    max_hours=_SAMPLE_MAX_HOURS,
-                    availability=_SAMPLE_AVAILABILITY,
-                    created_by=planner_id,
-                    source="UI",
-                )
-            )
-
-    if settings.seed_demo_workers:
-        await _ensure_extra_workers(session, planner_id)
+        await _add_workers(session, _SAMPLE_WORKERS, _SAMPLE_HOURLY_RATE, _SAMPLE_MAX_HOURS, effective_month, planner_id)
+        if settings.seed_demo_workers:
+            await _add_workers(session, _EXTRA_WORKERS, _EXTRA_HOURLY_RATE, _EXTRA_MAX_HOURS, effective_month, planner_id)
     await session.commit()
 
 
-async def _ensure_extra_workers(session: AsyncSession, planner_id: int) -> None:
-    """Add the extra workers missing by national ID (idempotent, so it also
-    tops up a DB that already has workers)."""
-    ids = [national_id for national_id, _, _ in _EXTRA_WORKERS]
-    present = set((await session.execute(select(Worker.national_id).where(Worker.national_id.in_(ids)))).scalars())
-    effective_month = now_israel().date().replace(day=1)
-    for national_id, full_name, role in _EXTRA_WORKERS:
-        if national_id in present:
-            continue
+async def _add_workers(
+    session: AsyncSession,
+    workers: tuple[tuple[str, str, str], ...],
+    hourly_rate: Decimal,
+    max_hours: int,
+    effective_month: date,
+    planner_id: int,
+) -> None:
+    for national_id, full_name, role in workers:
         worker = Worker(national_id=national_id, full_name=full_name, role=role, status="ACTIVE")
         session.add(worker)
-        await session.flush()
+        await session.flush()  # assigns worker.id
         session.add(
             ContractVersion(
                 worker_id=worker.id,
                 version_no=1,
                 effective_month=effective_month,
-                hourly_rate_ils=_EXTRA_HOURLY_RATE,
+                hourly_rate_ils=hourly_rate,
                 min_hours=_SAMPLE_MIN_HOURS,
-                max_hours=_EXTRA_MAX_HOURS,
+                max_hours=max_hours,
                 availability=_SAMPLE_AVAILABILITY,
                 created_by=planner_id,
                 source="UI",

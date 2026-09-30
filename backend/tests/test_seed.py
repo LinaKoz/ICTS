@@ -1,4 +1,4 @@
-"""§8 T2 "Verification": the seed is idempotent."""
+"""§8 T2 "Verification": the seed is idempotent and only fills an empty workers table."""
 from __future__ import annotations
 
 import asyncio
@@ -62,6 +62,72 @@ def test_seed_never_overwrites_existing_password(db):
 
     assert stored_hash == custom_hash
     assert verify_password("a-custom-password", stored_hash)
+
+
+@requires_db
+def test_seed_does_not_recreate_a_deleted_demo_worker(db):
+    asyncio.run(_run_seed_once())
+    # contract_versions is append-only, so the API can't delete a seeded worker;
+    # simulate a direct DB delete with the immutability trigger off for this transaction.
+    with db.transaction(), db.cursor() as cur:
+        cur.execute("ALTER TABLE contract_versions DISABLE TRIGGER trg_contract_versions_immutable")
+        cur.execute("DELETE FROM contract_versions WHERE worker_id = (SELECT id FROM workers WHERE full_name = 'Worker 01')")
+        cur.execute("ALTER TABLE contract_versions ENABLE TRIGGER trg_contract_versions_immutable")
+        cur.execute("DELETE FROM workers WHERE full_name = 'Worker 01'")
+    with db.cursor() as cur:
+        cur.execute("UPDATE workers SET full_name = 'Edited Name' WHERE full_name = 'Worker 02'")
+        cur.execute("UPDATE workers SET status = 'INACTIVE' WHERE full_name = 'Worker 03'")
+
+    asyncio.run(_run_seed_once())
+
+    with db.cursor() as cur:
+        cur.execute("SELECT count(*) FROM workers")
+        (worker_count,) = cur.fetchone()
+        cur.execute("SELECT count(*) FROM workers WHERE full_name IN ('Worker 01', 'Worker 02')")
+        (restored,) = cur.fetchone()
+        cur.execute("SELECT count(*) FROM workers WHERE full_name = 'Edited Name'")
+        (edited,) = cur.fetchone()
+        cur.execute("SELECT status FROM workers WHERE full_name = 'Worker 03'")
+        (status,) = cur.fetchone()
+
+    assert worker_count == 29
+    assert restored == 0
+    assert edited == 1
+    assert status == "INACTIVE"
+
+
+@requires_db
+def test_seed_adds_no_workers_to_a_populated_table(db):
+    with db.cursor() as cur:
+        cur.execute(
+            "INSERT INTO workers (national_id, full_name, role, status) "
+            "VALUES ('123456782', 'Real Worker', 'GENERAL_GUARD', 'ACTIVE')"
+        )
+
+    asyncio.run(_run_seed_once())
+
+    with db.cursor() as cur:
+        cur.execute("SELECT full_name FROM workers")
+        workers = cur.fetchall()
+        cur.execute("SELECT count(*) FROM users")
+        (user_count,) = cur.fetchone()
+
+    assert workers == [("Real Worker",)]
+    assert user_count == 2  # demo logins are still created
+
+
+@requires_db
+def test_seed_skips_demo_workers_when_disabled(db, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "seed_demo_workers", False)
+    asyncio.run(_run_seed_once())
+
+    with db.cursor() as cur:
+        cur.execute("SELECT count(*), count(*) FILTER (WHERE national_id LIKE '9000%') FROM workers")
+        counts = cur.fetchone()
+
+    assert counts == (5, 0)
 
 
 async def _run_seed_once():
