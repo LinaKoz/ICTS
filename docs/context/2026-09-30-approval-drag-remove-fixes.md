@@ -67,20 +67,17 @@ edit.test.ts}`.
   `tests/test_context_builder.py` was excluded. New regressions:
   `test_stale_revoke_dialog_never_revokes_a_newer_approval` and
   `test_assignment_ids_are_bound_to_the_roster_version_shown`.
-- Frontend: `npx vitest run` 115 passed and `npm run lint` is clean.
+- Frontend, after a clean `npm ci`: `npm run typecheck`, `npm test`,
+  `npm run lint`, and `npm run build` pass. The frontend suite has 119 tests.
   `EditPanel.test.tsx` fails on the pre-fix `EditPanel.tsx` and passes after.
-- `npm run typecheck` / `npm run build`: the only errors are
-  `Cannot find module 'vitest'`. They are pre-existing: `vitest` is not in
-  `frontend/node_modules` (it runs via npx). `npx vite build` passes.
 - `docker compose up -d --build`: main stack rebuilt. The served bundle on
   :8080 contains the new strings and `assignments?version=`.
-- E2E on an isolated stack (`-p t9`, port 18080): 13 passed, 1 failed.
-  - Failing test: `test_hard_violation_edit_returns_422_with_the_violation_list`,
-    which expects `WRONG_ROLE`.
-  - The same failure occurs on `d59c236`, the commit before this fix, so it
-    is pre-existing and unrelated.
-  - The t9 run needed an override that resets the backend `ports`, because
-    `docker-compose.yml` hard-codes `127.0.0.1:8000`.
+- E2E on the running local stack (`backend/.venv/bin/pytest tests/e2e -v`):
+  14 passed. The old failure in
+  `test_hard_violation_edit_returns_422_with_the_violation_list` was caused by
+  the test sometimes choosing a slot where the worker was already assigned,
+  producing `DUPLICATE_ASSIGNMENT` instead of the intended `WRONG_ROLE`.
+  The test now picks a date/shift where that worker is not already assigned.
 - Manual API check on the t9 stack:
   - Stale ids return 409.
   - A revoke without `approval_id` returns 422.
@@ -102,8 +99,8 @@ edit.test.ts}`.
 ## Commit hygiene
 
 - `d8cbac0` contains only the 18 files above.
-- Not part of it: uncommitted context-builder/Graphify work from another
-  session. Keep it out of roster fix commits:
+- Not part of it: context-builder/Graphify work from another session. It was
+  committed separately in `8af7f36`; keep it out of roster fix commits:
   - `.gitignore`
   - `CLAUDE.md`
   - `context-notes.md`
