@@ -1,7 +1,7 @@
 # Context Note: Fix Panel, Month-Boundary Violations, and Swap Conflicts
 
 Date: 2026-09-30
-Status: committed on `feat/roster-calendar`, not pushed
+Status: committed on `feat/roster-calendar` (pushed)
 
 - `829b422 fix(roster): return a structured DUPLICATE_ASSIGNMENT conflict for swaps`
 - `d59c236 fix(roster): lazy fix suggestions, deduped boundary violations, neighbour refresh`
@@ -129,9 +129,9 @@ Now:
   - approval, `errors.py`, `openapi.json`, `types.ts` and `test_approval.py`;
     that session has since committed them
   - seed and Vite proxy changes; also committed separately by that session
-- Still dirty or untracked and unrelated to this work (don't mix them in):
+- At the time, still dirty or untracked and unrelated to this work (all committed separately since):
   - `.gitignore`
   - `CLAUDE.md`
   - `backend/scripts/context_builder.py`
   - `backend/tests/test_context_builder.py`
-  - `docs/context/`, including this note, is uncommitted
+  - `docs/context/`, including this note

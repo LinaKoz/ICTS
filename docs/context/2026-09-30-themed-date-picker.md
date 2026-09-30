@@ -46,7 +46,7 @@ panel's move form ("Date").
 
 ## Commit hygiene
 
-Commit only the files above plus this note. Other sessions' uncommitted
-context-builder/Graphify files (`.gitignore`, `CLAUDE.md`, `context-notes.md`,
+Commit only the files above plus this note. Other sessions' context-builder/Graphify
+files, committed separately, (`.gitignore`, `CLAUDE.md`, `context-notes.md`,
 `backend/scripts/context_builder.py`, `backend/tests/test_context_builder.py`,
 other `docs/context/*` notes) are unrelated.
