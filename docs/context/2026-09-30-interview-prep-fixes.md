@@ -123,3 +123,15 @@ Branch: `feat/roster-calendar`, then merged into `main`
   lint, build pass. Checked in headless Chrome on November 2026: button text,
   panel scroll position and flash, 14 "Show" buttons, jump to 3 Nov shift A
   with the red chip in view.
+
+## Follow-up: Fix wherever a violation is shown (same day)
+
+- The Violations list shows Fix whenever the stored roster is editable
+  (`canEdit && idsLoaded`), not only in edit mode. Same rule as the Day view and
+  the shift popup already used. Fix still re-validates on the server and asks
+  for the approved-roster acknowledgement.
+- In Week view the red tag reads "N rule issues · Fix" on editable, unlocked
+  shifts of the roster month. The click opens the existing shift popup, which
+  lists the shift's violations with Fix.
+- Checked in headless Chrome, outside edit mode: 14 Fix + 14 Show in the list;
+  tag click opened "Shift A, Tuesday, 3 November 2026" with a working Fix.

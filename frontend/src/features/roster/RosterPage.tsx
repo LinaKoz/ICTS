@@ -329,7 +329,7 @@ export function RosterPage() {
             {existing && !previewUsable && <ApprovalPanel month={month} roster={existing} />}
             {shown && (
               <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} costs={shown.costs} workers={shown.workers}
-                fix={editing && existing ? { month, roster: existing, idOf } : undefined} />
+                fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined} />
             )}
           </div>
         </>

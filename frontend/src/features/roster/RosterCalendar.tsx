@@ -87,7 +87,7 @@ function useDnd(p: Pick<Props, 'index' | 'targetMonth' | 'edit'> & { head: (s: S
 
 /** The three roles of one shift on one date, with chips, gaps, warnings and cost. */
 function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ctx: Ctx; full: boolean }) {
-  const { index, edit, roles, targetMonth, dnd, head, focusId, filter = NO_FILTER, highlight } = ctx
+  const { index, edit, roles, targetMonth, dnd, head, focusId, filter = NO_FILTER, highlight, fix } = ctx
   const flash = highlight != null && highlight.date === date && highlight.shift === shift
   const blockRef = useRef<HTMLDivElement>(null)
   const status = index.status(monthOf(date))
@@ -102,6 +102,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
   }
   const locked = isLockedShift(date, shift, index.freeFrom(month))
   const editable = edit != null && !locked && month === targetMonth
+  const fixHere = !full && fix != null && !locked && month === targetMonth
   const warnings = index.warningsAt(date, shift)
   const violating = violatingWorkers(warnings, date, shift)
   const violationTitle = [...new Set(warnings.map((v) => violationLabel(v.code)))].join(', ')
@@ -155,8 +156,10 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
       {(warnings.length > 0 || (full && cost)) && (
         <div className="shift-meta">
           {warnings.length > 0 && (
-            <span className="warn" title={violationTitle}>
+            <span className="warn" title={fixHere ? `${violationTitle}. Click to see fixes.` : violationTitle}>
               <span aria-hidden="true">⚠</span> {warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}
+              {/* In Week view a click on the cell opens the shift, which lists these violations with Fix. */}
+              {fixHere && <span className="warn-fix">· Fix</span>}
             </span>
           )}
           {full && cost && <span className="shift-cost muted" title="Estimated cost of this shift">{ils(cost.amount_ils)}{cost.unknown_cost_assignments > 0 && ` + ${cost.unknown_cost_assignments} unknown`}</span>}
