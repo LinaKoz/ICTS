@@ -10,23 +10,31 @@ const ROLE_NAME: Record<Role, string> = { GENERAL_GUARD: 'General guard', SCREEN
 export function WorkerSearch({ workers, focusId, onFocus }: { workers: WorkerRefOut[]; focusId: string | null; onFocus: (id: string | null) => void }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(0)
   const listId = useId()
   const focused = workers.find((w) => w.worker_id === focusId)
   const needle = q.trim().toLowerCase()
   const matches = needle ? workers.filter((w) => w.full_name.toLowerCase().includes(needle)).slice(0, 8) : []
-  const pick = (id: string) => { onFocus(id); setQ(''); setOpen(false) }
+  const pick = (id: string) => { onFocus(id); setQ(''); setOpen(false); setActive(0) }
   return (
-    <div className="worker-search">
+    <div className={`worker-search${focused ? ' has-focus' : ''}`}>
       <label>
         <span className="sr-only">Find a worker</span>
+        <svg className="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
         <input type="search" placeholder={focused ? focused.full_name : 'Find a worker…'} value={q} role="combobox" aria-expanded={open && matches.length > 0} aria-controls={listId} aria-autocomplete="list"
-          onChange={(e) => { setQ(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && matches[0]) { e.preventDefault(); pick(matches[0].worker_id) } if (e.key === 'Escape') setOpen(false) }} />
+          aria-activedescendant={open && matches[active] ? `${listId}-${active}` : undefined}
+          onChange={(e) => { setQ(e.target.value); setOpen(true); setActive(0) }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown' && matches.length > 0) { e.preventDefault(); setOpen(true); setActive((active + 1) % matches.length) }
+            if (e.key === 'ArrowUp' && matches.length > 0) { e.preventDefault(); setActive((active - 1 + matches.length) % matches.length) }
+            if (e.key === 'Enter' && matches[active]) { e.preventDefault(); pick(matches[active].worker_id) }
+            if (e.key === 'Escape') setOpen(false)
+          }} />
       </label>
       {open && matches.length > 0 && (
         <ul className="worker-suggest" id={listId} role="listbox">
-          {matches.map((w) => (
-            <li key={w.worker_id} role="option" aria-selected={w.worker_id === focusId}>
+          {matches.map((w, i) => (
+            <li key={w.worker_id} id={`${listId}-${i}`} role="option" aria-selected={i === active} className={i === active ? 'is-active' : ''}>
               <button onMouseDown={(e) => e.preventDefault()} onClick={() => pick(w.worker_id)}>{w.full_name} <span className="muted">{ROLE_NAME[w.role]}</span></button>
             </li>
           ))}
