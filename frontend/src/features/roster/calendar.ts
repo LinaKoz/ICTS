@@ -74,6 +74,16 @@ const fmt = (date: string, opts: Intl.DateTimeFormatOptions) =>
 
 export const monthLabel = (month: string): string => fmt(`${month}-01`, { month: 'long', year: 'numeric' })
 
+/** "7 Nov 2026". */
+export const dateLabel = (date: string): string => fmt(date, { day: 'numeric', month: 'short', year: 'numeric' })
+
+/** `date` limited to `[min, max]` (either bound optional); ISO dates compare as strings. */
+export function clampDate(date: string, min?: string, max?: string): string {
+  if (min && date < min) return min
+  if (max && date > max) return max
+  return date
+}
+
 export const dayLabel = (date: string): string => fmt(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
 export const weekdayShort = (date: string): string => fmt(date, { weekday: 'short' })

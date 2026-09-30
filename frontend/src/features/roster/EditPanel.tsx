@@ -4,6 +4,8 @@ import { mapError } from '../../errors/mapError'
 import type { AssignmentOut, Role, RosterOut, Shift } from '../../api/schemas'
 import { useAddAssignment, useMoveAssignment, useRemoveAssignment, useSuggestions, type Slot } from './api'
 import { buildMoveBody, explainEditError, isApprovedEditError, moveUnchanged, needsApprovalAck, workersForRole } from './edit'
+import { daysInMonth } from './calendar'
+import { DatePicker } from './DatePicker'
 import { nameLookup } from './names'
 
 export type Selection =
@@ -78,9 +80,10 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
                   {workersForRole(roster.workers, selection.assignment.role).map((w) => <option key={w.worker_id} value={w.worker_id}>{w.full_name}</option>)}
                 </select>
               </label>
-              <label>Date
-                <input type="date" value={target.date} min={`${month}-01`} max={`${month}-31`} onChange={(e) => { reset(); setTarget({ ...target, date: e.target.value }) }} />
-              </label>
+              <div className="field">Date
+                <DatePicker label="Date" value={target.date} min={`${month}-01`} max={`${month}-${String(daysInMonth(month)).padStart(2, '0')}`}
+                  onChange={(date) => { reset(); setTarget({ ...target, date }) }} />
+              </div>
               <label>Shift
                 <select value={target.shift} onChange={(e) => { reset(); setTarget({ ...target, shift: e.target.value as Shift }) }}>
                   {(['A', 'B', 'C'] as Shift[]).map((s) => <option key={s}>{s}</option>)}
