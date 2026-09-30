@@ -85,3 +85,20 @@ Branch: `feat/roster-calendar`, then merged into `main`
   scope needed for `.github/workflows/ci.yml`. After `gh auth refresh -h github.com -s workflow`,
   run `git push origin feat/roster-calendar main`.
 - Another session committed `cc41968 docs: summarize original assignment` on this branch during the work; it is included in the merge.
+
+## Follow-up: violations visible on the calendar (same day)
+
+- Why: in week view, a hard violation showed only as a small amber
+  "1 rule issue" line under the shift, and the offending worker's chip looked
+  normal. The user missed it.
+- Now, in red (`--violation`), distinct from amber coverage gaps:
+  - the violating worker's chip has a red frame and a ⚠ mark, and its tooltip names the rule
+  - the shift cell (week/day) and the day cell (month) get a red left edge
+  - "N rule issues" is a red badge
+- `violatingWorkers(warnings, date, shift)` in `calendarData.ts` picks the
+  chips; test in `violations.test.ts`. Frontend: 121 tests, typecheck, lint, build pass.
+- Checked in headless Chrome on the running stack (week of 30 Nov 2026).
+- CI: the push to `main` started no run at first. The repo's default branch on
+  GitHub is `feat/roster-calendar`, so the workflow now also runs on pushes there
+  and has `workflow_dispatch`. First `main` run: backend, frontend and e2e all passed.
+- Push worked after `gh auth refresh -h github.com -s workflow`.
