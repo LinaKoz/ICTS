@@ -11,6 +11,7 @@ import { buildMoveBody, explainEditError, idLookup, needsApprovalAck, type CellR
 import { nameLookup } from './names'
 import { describeOutcome } from './outcome'
 import { FilterBar } from './FilterBar'
+import { GenerationSettings } from './GenerationSettings'
 import { NO_FILTER, type RosterFilter } from './filter'
 import { RosterCalendar } from './RosterCalendar'
 import { CalendarToolbar } from './CalendarToolbar'
@@ -166,7 +167,6 @@ export function RosterPage() {
   const approvedEvent = existing?.status === 'APPROVED' ? [...existing.approval_history].reverse().find((e) => !e.revoked_at) : undefined
   const openDay = (date: string) => { setView('day'); goTo(date) }
   const selectedKey = selection?.kind === 'assignment' ? `${selection.assignment.worker_id}|${selection.assignment.date}|${selection.assignment.shift}` : null
-  const ruleText = (on: boolean) => (on ? 'no back-to-back shifts' : 'back-to-back shifts allowed')
 
   return (
     <div className="roster-page">
@@ -188,16 +188,7 @@ export function RosterPage() {
           </div>
           <span className="spacer" />
           <div className="cal-buttons">
-            <details className="gen-settings">
-              <summary><span aria-hidden="true">⚙</span> Generation settings</summary>
-              <div className="gen-pop">
-                <label className="check">
-                  <input type="checkbox" checked={forbid} onChange={(e) => setForbid(e.target.checked)} />
-                  Forbid back-to-back shifts
-                </label>
-                <p className="muted">Applies to the next generation for {monthLabel(month)}.{existing && ` The current roster uses: ${ruleText(existing.forbid_adjacent_shifts)}.`}</p>
-              </div>
-            </details>
+            <GenerationSettings forbid={forbid} onForbid={setForbid} monthName={monthLabel(month)} storedForbid={existing ? existing.forbid_adjacent_shifts : null} />
             {existing && <button onClick={runGenerate} disabled={generate.isPending} title="Creates a new proposal to review before saving">{generate.isPending ? 'Generating…' : 'Regenerate'}</button>}
             {!existing && <button className="primary" onClick={runGenerate} disabled={generate.isPending}>{generate.isPending ? 'Generating…' : 'Generate roster'}</button>}
             {existing && canEdit && (editMode
