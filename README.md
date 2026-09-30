@@ -36,6 +36,7 @@ The passwords, the session secret and the database credentials come from environ
 | `SESSION_SECRET` | `dev-session-secret-change-me` in `.env.example` | signs the session cookie. If empty, the backend generates a random secret at start and logs a warning (sessions then reset on restart) |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `icts`, `icts`, `icts` | database credentials, used by the `db` and `backend` services |
 | `FRONTEND_PORT` | `8080` | host port of the web UI and the `/api` proxy |
+| `BACKEND_PORT` | `8000` | host port of the backend (bound to 127.0.0.1, for debugging) |
 
 The seed creates a missing user but never overwrites an existing one, so after changing a password reset the database (below).
 
@@ -346,7 +347,7 @@ pytest tests/e2e -v                                          # E2E_BASE_URL defa
 To keep it away from any other running stack, use a separate project name and port:
 
 ```
-FRONTEND_PORT=18080 docker compose -p t9 up -d --build
+FRONTEND_PORT=18080 BACKEND_PORT=18000 docker compose -p t9 up -d --build
 E2E_BASE_URL=http://localhost:18080 pytest tests/e2e -v
 docker compose -p t9 down -v
 ```
