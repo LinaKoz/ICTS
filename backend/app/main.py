@@ -15,6 +15,7 @@ from fastapi import FastAPI
 import app.models  # noqa: F401  (registers every table on Base.metadata)
 from app.auth.router import router as auth_router
 from app.config import settings
+from app.csrf import OriginCheckMiddleware
 from app.db import async_session_factory, dispose_engine
 from app.engine_pool import engine_pool
 from app.errors import register_exception_handlers
@@ -61,6 +62,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="ICTS Rostering API", version="0.1.0", lifespan=lifespan)
 register_exception_handlers(app)
+app.add_middleware(OriginCheckMiddleware)
 app.include_router(meta_router)
 app.include_router(auth_router)
 app.include_router(rosters_router)

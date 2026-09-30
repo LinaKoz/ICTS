@@ -79,3 +79,4 @@ class RosterApproval(Base):
     revoked_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     revoke_cause: Mapped[str | None] = mapped_column(String, nullable=True)
     revoke_ref: Mapped[str | None] = mapped_column(String, nullable=True)
+    revoke_reason: Mapped[str | None] = mapped_column(String, nullable=True)  # free text; MANUAL revocations only

@@ -272,6 +272,21 @@ def test_manual_revoke_and_history_order(duo, db):
 
 
 @requires_db
+def test_manual_revoke_stores_the_reason_and_history_returns_it(duo, db):
+    _full_roster(db, duo.planner_id)
+    client = duo.as_("manager")
+    assert _approve(client, "2099-02").status_code == 200
+    rv = client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1, "reason": "  worker called in sick  "})
+    assert rv.status_code == 200 and rv.json()["event"]["revoke_reason"] == "worker called in sick"
+    hist = client.get("/api/rosters/2099-02").json()["approval_history"]
+    assert hist[0]["revoke_reason"] == "worker called in sick"
+    # A blank reason is stored as none; an automatic revocation never has one.
+    assert _approve(client, "2099-02").status_code == 200
+    rv = client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1, "reason": "   "})
+    assert rv.status_code == 200 and rv.json()["event"]["revoke_reason"] is None
+
+
+@requires_db
 def test_edit_revokes_with_cause_edit_and_history_records_everything(duo, db):
     _full_roster(db, duo.planner_id)
     manager = duo.as_("manager")

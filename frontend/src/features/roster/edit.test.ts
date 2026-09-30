@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { AssignmentOut, WorkerRefOut } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
 import { mapError } from '../../errors/mapError'
-import { buildMoveBody, idLookup, isApprovedEditError, isLockedShift, moveUnchanged, needsApprovalAck, violationLines, workersForRole } from './edit'
+import { buildMoveBody, dropAction, explainEditError, idLookup, isApprovedEditError, isLockedShift, moveUnchanged, needsApprovalAck, violationLines, workersForRole } from './edit'
 
 const a: AssignmentOut = { worker_id: '7', date: '2026-03-20', shift: 'A', role: 'GENERAL_GUARD' }
 
@@ -76,5 +76,48 @@ describe('error helpers', () => {
   })
   it('a version conflict on edit still offers reload', () => {
     expect(mapError(new ApiError(409, 'VERSION_CONFLICT', 'm')).action).toBe('reload')
+  })
+})
+
+describe('dropAction', () => {
+  const slot = (date: string, shift: 'A' | 'B' | 'C', role: AssignmentOut['role'] = 'GENERAL_GUARD') => ({ kind: 'slot' as const, slot: { date, shift, role } })
+  const chip = (worker_id: string, date: string, shift: 'A' | 'B' | 'C', role: AssignmentOut['role'] = 'GENERAL_GUARD') =>
+    ({ kind: 'assignment' as const, assignment: { worker_id, date, shift, role } })
+  const free: [string, 'A' | 'B' | 'C'] = ['2026-03-10', 'A']
+
+  it('moves to a free slot of the same role on another day or shift', () => {
+    expect(dropAction(a, slot('2026-03-22', 'A'), free)).toEqual({ kind: 'move', date: '2026-03-22', shift: 'A' })
+    expect(dropAction(a, slot('2026-03-20', 'C'), free)).toEqual({ kind: 'move', date: '2026-03-20', shift: 'C' })
+  })
+  it('is not a target for its own slot, another role, or a started shift', () => {
+    expect(dropAction(a, slot('2026-03-20', 'A'), free)).toBeNull()
+    expect(dropAction(a, slot('2026-03-22', 'A', 'SCREENER'), free)).toBeNull()
+    expect(dropAction(a, slot('2026-03-05', 'A'), free)).toBeNull()
+  })
+  it('swaps with another worker of the same role on a different day', () => {
+    const other = { worker_id: '8', date: '2026-03-22', shift: 'A', role: 'GENERAL_GUARD' }
+    expect(dropAction(a, chip('8', '2026-03-22', 'A'), free)).toEqual({ kind: 'swap', other })
+  })
+  it('swaps across shifts, and ignores same-slot, same-worker and started-shift chips', () => {
+    const other = { worker_id: '8', date: '2026-03-22', shift: 'B', role: 'GENERAL_GUARD' }
+    expect(dropAction(a, chip('8', '2026-03-22', 'B'), free)).toEqual({ kind: 'swap', other })
+    expect(dropAction(a, chip('8', '2026-03-20', 'A'), free)).toBeNull()
+    expect(dropAction(a, chip('7', '2026-03-22', 'A'), free)).toBeNull()
+    expect(dropAction(a, chip('8', '2026-03-05', 'A'), free)).toBeNull()
+  })
+})
+
+describe('explainEditError', () => {
+  it('turns hard violations into distinct plain sentences', () => {
+    const dup = { worker_id: '21', date: '2026-10-08', shift: 'C' as const, role: 'GENERAL_GUARD' as const }
+    const err = new ApiError(422, 'HARD_VIOLATIONS', 'x', [
+      { code: 'DUPLICATE_ASSIGNMENT', key: [], magnitude: 1, assignments: [dup, dup] },
+      { code: 'OVERSTAFFED', key: [], magnitude: 1, assignments: [dup, dup] },
+    ])
+    expect(explainEditError(err, (id) => `Worker ${id}`)).toEqual([
+      'Worker 21 is already assigned to 2026-10-08 shift C.',
+      '2026-10-08 shift C already has all the general guard positions it needs, so there is no free spot.',
+    ])
+    expect(explainEditError(new ApiError(409, 'X', 'm'), String)).toEqual([])
   })
 })

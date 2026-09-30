@@ -1487,6 +1487,121 @@
         }
       }
     },
+    "/api/rosters/{month}/assignments/{assignment_id}/swap": {
+      "post": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Swap Assignments",
+        "description": "Exchange the workers of two assignments (same role, different slots;\nthe shift letter and day may differ) in one transaction, checked\ntogether like a move.",
+        "operationId": "swap_assignments_api_rosters__month__assignments__assignment_id__swap_post",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          },
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwapAssignmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResultOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/rosters/{month}/suggestions": {
       "get": {
         "tags": [
@@ -1531,6 +1646,101 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionsOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN: the signed-in role may not do this",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR, HARD_VIOLATIONS, LOCKED_SHIFT, WARNINGS_NOT_ACKNOWLEDGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rosters/{month}/assignments/{assignment_id}/replacements": {
+      "get": {
+        "tags": [
+          "rosters"
+        ],
+        "summary": "Get Replacements",
+        "description": "Up to five workers who could take over an existing assignment (the\n\"fix\" options for a violation). Applying one is the move endpoint with\na new `worker_id`, so it is revalidated there.",
+        "operationId": "get_replacements_api_rosters__month__assignments__assignment_id__replacements_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+              "description": "YYYY-MM",
+              "title": "Month"
+            },
+            "description": "YYYY-MM"
+          },
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
             }
           }
         ],
@@ -2449,6 +2659,17 @@
               }
             ],
             "title": "Revoked By"
+          },
+          "revoke_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoke Reason"
           }
         },
         "type": "object",
@@ -3587,6 +3808,13 @@
             "type": "boolean",
             "title": "Forbid Adjacent Shifts",
             "default": false
+          },
+          "random_seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Random Seed",
+            "default": 0
           }
         },
         "type": "object",
@@ -4330,6 +4558,18 @@
           "expected_version": {
             "type": "integer",
             "title": "Expected Version"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
           }
         },
         "type": "object",
@@ -4707,6 +4947,30 @@
           "candidates"
         ],
         "title": "SuggestionsOut"
+      },
+      "SwapAssignmentRequest": {
+        "properties": {
+          "other_assignment_id": {
+            "type": "integer",
+            "title": "Other Assignment Id"
+          },
+          "expected_version": {
+            "type": "integer",
+            "title": "Expected Version"
+          },
+          "acknowledge_approved_edit": {
+            "type": "boolean",
+            "title": "Acknowledge Approved Edit",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "other_assignment_id",
+          "expected_version"
+        ],
+        "title": "SwapAssignmentRequest",
+        "description": "Exchange the workers of two assignments of the same role in different slots (the day or shift may differ)."
       },
       "UserOut": {
         "properties": {

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api_schemas.common import CoverageGapOut, HourShortfallOut, ViolationOut
 from app.api_schemas.rosters import ApprovalEventOut
@@ -19,6 +19,7 @@ class ApproveRequest(BaseModel):
 
 class RevokeRequest(BaseModel):
     expected_version: int
+    reason: str | None = Field(default=None, max_length=500)  # why the manager withdraws the approval
 
 
 class ApprovalPreviewOut(BaseModel):

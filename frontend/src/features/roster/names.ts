@@ -1,4 +1,4 @@
-import type { ShiftCostOut, ViolationCode, WorkerRefOut } from '../../api/schemas'
+import type { Shift, ShiftCostOut, ViolationCode, WorkerRefOut } from '../../api/schemas'
 
 /** Worker id -> display name. Falls back to the id so a missing lookup never blanks the grid. */
 export function nameLookup(workers: WorkerRefOut[] | null | undefined): (workerId: string) => string {
@@ -19,7 +19,7 @@ const VIOLATION_LABEL: Record<ViolationCode, string> = {
   UNAVAILABLE: 'Worker not available',
   OUT_OF_MONTH: 'Assignment outside the month',
   DUPLICATE_ASSIGNMENT: 'Duplicate assignment',
-  DAILY_LIMIT: 'More than one shift in a day',
+  DAILY_LIMIT: 'More than two shifts in a day',
   ADJACENT_SHIFTS: 'Back-to-back shifts',
   MAX_HOURS: 'Over maximum monthly hours',
   OVERSTAFFED: 'Overstaffed shift',
@@ -32,3 +32,10 @@ export function violationLabel(code: ViolationCode): string {
 
 const ilsFmt = new Intl.NumberFormat('en-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const ils = (amount: string): string => `₪${ilsFmt.format(Number(amount))}`
+
+/** Fixed shift hours (the three shifts never change); A runs through the night, so C ends at midnight. */
+export const SHIFT_INFO: Record<Shift, { name: string; hours: string }> = {
+  A: { name: 'Morning', hours: '00:00–08:00' },
+  B: { name: 'Day', hours: '08:00–16:00' },
+  C: { name: 'Evening', hours: '16:00–00:00' },
+}

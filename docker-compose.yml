@@ -19,6 +19,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-icts}:${POSTGRES_PASSWORD:-icts}@db:5432/${POSTGRES_DB:-icts}
       PLANNER_PASSWORD: ${PLANNER_PASSWORD:-planner-demo}

@@ -56,9 +56,7 @@ def suggest(
         return state, []
 
     before = validate_roster(problem, assignments)
-    hours: dict[str, int] = {}
-    for a in assignments:
-        hours[a.worker_id] = hours.get(a.worker_id, 0) + 8
+    hours = _hours(assignments)
 
     candidates: list[Candidate] = []
     for w in problem.workers:
@@ -69,18 +67,64 @@ def suggest(
         trial = [*assignments, Assignment(w.id, d, shift, role)]
         if worsened(before, validate_roster(problem, trial)):
             continue
-        assigned = hours.get(w.id, 0)
-        below = max(0, w.min_hours - assigned)
-        that_day = len({a.shift for a in assignments if a.worker_id == w.id and a.date == d})
-        reasons = [
-            _ROLE_LABEL[role],
-            f"available {d.strftime('%a')} {shift.value}",
-            f"{assigned}/{w.min_hours} h"
-            + (f" ({below} h below minimum)" if below else " (minimum met)"),
-            f"{that_day} shift{'s' if that_day != 1 else ''} that day",
-        ]
-        candidates.append(
-            Candidate(w.id, names.get(w.id, w.id), assigned, w.min_hours, below, that_day, tuple(reasons))
-        )
-    candidates.sort(key=lambda c: (-c.hours_below_minimum, c.assigned_hours, c.full_name, c.worker_id))
-    return state, candidates
+        candidates.append(_candidate(w, assignments, hours, d, shift, role, names))
+    return state, _ranked(candidates)
+
+
+def replacements(
+    problem: Problem,
+    assignments: Sequence[Assignment],
+    target: Assignment,
+    names: Mapping[str, str],
+    limit: int = 5,
+) -> tuple[SlotState, list[Candidate]]:
+    """Up to `limit` workers who could take over `target`'s slot. The check
+    is the move gate of P10: swapping the worker must not leave the roster
+    with a new or worsened violation (an existing one, such as the target
+    being inactive, is what the swap is meant to fix). A started shift
+    is LOCKED and has no replacements."""
+    if (target.date, _order(target.shift)) < (problem.free_from[0], _order(problem.free_from[1])):
+        return "LOCKED", []
+
+    before = validate_roster(problem, assignments)
+    rest = [a for a in assignments if a != target]
+    hours = _hours(rest)
+
+    candidates: list[Candidate] = []
+    for w in problem.workers:
+        if not w.active or w.role != target.role or w.id == target.worker_id:
+            continue
+        if any(a.worker_id == w.id and a.date == target.date and a.shift == target.shift for a in rest):
+            continue
+        swapped = [*rest, Assignment(w.id, target.date, target.shift, target.role)]
+        if worsened(before, validate_roster(problem, swapped)):
+            continue
+        candidates.append(_candidate(w, rest, hours, target.date, target.shift, target.role, names))
+    return "FILLED", _ranked(candidates)[:limit]
+
+
+def _hours(assignments: Sequence[Assignment]) -> dict[str, int]:
+    hours: dict[str, int] = {}
+    for a in assignments:
+        hours[a.worker_id] = hours.get(a.worker_id, 0) + 8
+    return hours
+
+
+def _ranked(candidates: list[Candidate]) -> list[Candidate]:
+    return sorted(candidates, key=lambda c: (-c.hours_below_minimum, c.assigned_hours, c.full_name, c.worker_id))
+
+
+def _candidate(
+    w, assignments: Sequence[Assignment], hours: Mapping[str, int], d: date, shift: Shift, role: Role,
+    names: Mapping[str, str],
+) -> Candidate:
+    assigned = hours.get(w.id, 0)
+    below = max(0, w.min_hours - assigned)
+    that_day = len({a.shift for a in assignments if a.worker_id == w.id and a.date == d})
+    reasons = [
+        _ROLE_LABEL[role],
+        f"available {d.strftime('%a')} {shift.value}",
+        f"{assigned}/{w.min_hours} h" + (f" ({below} h below minimum)" if below else " (minimum met)"),
+        f"{that_day} shift{'s' if that_day != 1 else ''} that day",
+    ]
+    return Candidate(w.id, names.get(w.id, w.id), assigned, w.min_hours, below, that_day, tuple(reasons))

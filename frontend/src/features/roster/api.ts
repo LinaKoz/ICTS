@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
 import type { components } from '../../api/types'
 import type {
   AddAssignmentRequest, ApprovalPreviewOut, ApprovalResultOut, ApproveRequest, EditableAssignmentOut, EditResultOut, GenerateOutcomeOut, MoveAssignmentRequest, RemoveAssignmentRequest,
-  Role, RosterOut, SaveRequest, SaveResponseOut, Shift, SuggestionsOut,
+  Role, RosterOut, SaveRequest, SaveResponseOut, Shift, SuggestionsOut, SwapAssignmentRequest,
 } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
 
@@ -15,25 +15,32 @@ export function useMeta() {
 }
 
 /** Resolves to null when no roster exists for the month (404). */
+async function fetchRoster(month: string): Promise<RosterOut | null> {
+  try {
+    return await apiFetch<RosterOut>(`/rosters/${month}`)
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null
+    throw e
+  }
+}
+
 export function useRoster(month: string) {
-  return useQuery({
-    queryKey: rosterKey(month),
-    retry: false,
-    queryFn: async () => {
-      try {
-        return await apiFetch<RosterOut>(`/rosters/${month}`)
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 404) return null
-        throw e
-      }
-    },
-  })
+  return useQuery({ queryKey: rosterKey(month), retry: false, queryFn: () => fetchRoster(month) })
+}
+
+/** One roster query per month a calendar view touches; shares the cache with `useRoster`. */
+export function useRosters(months: string[]) {
+  return useQueries({ queries: months.map((month) => ({ queryKey: rosterKey(month), retry: false, queryFn: () => fetchRoster(month) })) })
 }
 
 export function useGenerate(month: string) {
   return useMutation({
+    // A fresh seed per click, so Regenerate can produce a different roster from the same data.
     mutationFn: (forbid_adjacent_shifts: boolean) =>
-      apiFetch<GenerateOutcomeOut>(`/rosters/${month}/generate`, { method: 'POST', body: { forbid_adjacent_shifts } }),
+      apiFetch<GenerateOutcomeOut>(`/rosters/${month}/generate`, {
+        method: 'POST',
+        body: { forbid_adjacent_shifts, random_seed: Math.floor(Math.random() * 2 ** 31) },
+      }),
   })
 }
 
@@ -65,6 +72,16 @@ export function useSuggestions(month: string, slot: Slot | null) {
     enabled: slot != null,
     retry: false,
     queryFn: () => apiFetch<SuggestionsOut>(`/rosters/${month}/suggestions?date=${slot!.date}&shift=${slot!.shift}&role=${slot!.role}`),
+  })
+}
+
+/** Up to five workers who could take over an assignment: the fix options for a violation. */
+export function useReplacements(month: string, assignmentId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ['roster-suggestions', month, 'replacements', assignmentId],
+    enabled,
+    retry: false,
+    queryFn: () => apiFetch<SuggestionsOut>(`/rosters/${month}/assignments/${assignmentId}/replacements`),
   })
 }
 
@@ -106,6 +123,15 @@ export function useMoveAssignment(month: string) {
   })
 }
 
+export function useSwapAssignment(month: string) {
+  const invalidate = useEditInvalidation(month)
+  return useMutation({
+    mutationFn: ({ id, ...body }: SwapAssignmentRequest & { id: number }) =>
+      apiFetch<EditResultOut>(`/rosters/${month}/assignments/${id}/swap`, { method: 'POST', body }),
+    onSuccess: invalidate,
+  })
+}
+
 /** Under the roster key so every roster invalidation (edits, save, approve) refreshes the preview too. */
 export const approvalPreviewKey = (month: string) => [...rosterKey(month), 'approval-preview'] as const
 
@@ -129,8 +155,8 @@ export function useApprove(month: string) {
 export function useRevoke(month: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (expected_version: number) =>
-      apiFetch<ApprovalResultOut>(`/rosters/${month}/revoke`, { method: 'POST', body: { expected_version } }),
+    mutationFn: (req: { expected_version: number; reason: string }) =>
+      apiFetch<ApprovalResultOut>(`/rosters/${month}/revoke`, { method: 'POST', body: req }),
     onSettled: () => qc.invalidateQueries({ queryKey: rosterKey(month) }),
   })
 }

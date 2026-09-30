@@ -69,6 +69,7 @@ async def generate(
         config = SolverConfig(
             time_limit_s=settings.solver_time_limit_s,
             num_workers=min(settings.num_workers, os.cpu_count() or 1),
+            random_seed=body.random_seed,
         )
         try:
             result = await engine_pool.submit(solve, built.problem, config)
