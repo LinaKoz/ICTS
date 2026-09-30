@@ -4,6 +4,7 @@ import { dayLabel, monthLabel, monthOf, monthWeeks, weekDays, weekdayShort, type
 import type { CalendarIndex } from './calendarData'
 import { ViolationFix, violationKey, type FixProps } from './FixPanel'
 import { dropAction, explainViolation, isLockedShift, type CellRef, type DropAction, type DropTarget } from './edit'
+import { isFiltering, NO_FILTER, slotMatches, type RosterFilter } from './filter'
 import { ils, SHIFT_INFO, violationLabel } from './names'
 
 const ROLE_LABEL: Record<Role, string> = { GENERAL_GUARD: 'GG', SCREENER: 'SCR', SUPERVISOR: 'SUP' }
@@ -33,6 +34,8 @@ interface Props {
   edit?: CalendarEdit
   /** Worker to highlight; everyone else is dimmed. */
   focusId?: string | null
+  /** Role/shift filter; non-matching slots are dimmed. */
+  filter?: RosterFilter
   /** When set, Day view lists replacement options under each violation of the day. */
   fix?: FixProps
   onOpenDay: (date: string) => void
@@ -81,8 +84,9 @@ function useDnd(p: Pick<Props, 'index' | 'targetMonth' | 'edit'> & { head: (s: S
 
 /** The three roles of one shift on one date, with chips, gaps, warnings and cost. */
 function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ctx: Ctx; full: boolean }) {
-  const { index, edit, roles, targetMonth, dnd, head, focusId } = ctx
+  const { index, edit, roles, targetMonth, dnd, head, focusId, filter = NO_FILTER } = ctx
   const focusClass = (id: string) => (focusId ? (id === focusId ? ' chip-focus' : ' chip-dim') : '')
+  const filtering = isFiltering(filter)
   const month = monthOf(date)
   const status = index.status(month)
   if (status !== 'ready') {
@@ -103,7 +107,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
         const slotKey = `s|${date}|${shift}|${r}`
         const slotTarget: DropTarget = { kind: 'slot', slot: { date, shift, role: r } }
         return (
-          <div key={r} className={`slot${full ? ' slot-full' : ''}${editable ? dnd.dropClass(slotTarget, slotKey) : ''}`} {...(editable ? dnd.dropProps(slotTarget, slotKey) : {})}>
+          <div key={r} className={`slot${full ? ' slot-full' : ''}${filtering && !slotMatches(filter, shift, r) ? ' slot-dim' : ''}${editable ? dnd.dropClass(slotTarget, slotKey) : ''}`} {...(editable ? dnd.dropProps(slotTarget, slotKey) : {})}>
             <span className={`role role-${r}`} title={ROLE_NAME[r]}><i className="role-dot" aria-hidden="true" />{ROLE_LABEL[r]}</span>
             {names.map((a) => {
               const name = index.nameOf(a.worker_id)
@@ -225,7 +229,7 @@ function DayView({ ctx }: { ctx: Ctx }) {
 }
 
 function MonthView({ ctx }: { ctx: Ctx }) {
-  const { anchor, today, shifts, roles, index, onOpenDay, head, focusId } = ctx
+  const { anchor, today, shifts, roles, index, onOpenDay, head, focusId, filter = NO_FILTER } = ctx
   const weeks = monthWeeks(anchor)
   const weekdays = weekDays(weeks[0]![0]!)
   return (
@@ -248,11 +252,12 @@ function MonthView({ ctx }: { ctx: Ctx }) {
                     : (
                       <>
                         {shifts.map((s) => {
-                          const required = roles.reduce((n, r) => n + head(s, r), 0)
-                          const assigned = roles.reduce((n, r) => n + index.assignmentsAt(d, s, r).length, 0)
+                          const shown = roles.filter((r) => slotMatches(filter, s, r))
+                          const required = shown.reduce((n, r) => n + head(s, r), 0)
+                          const assigned = shown.reduce((n, r) => n + index.assignmentsAt(d, s, r).length, 0)
                           const short = Math.max(0, required - assigned)
                           return (
-                            <span key={s} className={`msum${short > 0 ? ' short' : ''}`} title={`Shift ${s} (${SHIFT_INFO[s].hours}): ${short > 0 ? `${short} unfilled` : 'fully staffed'}`}>
+                            <span key={s} className={`msum${short > 0 ? ' short' : ''}${shown.length === 0 ? ' msum-dim' : ''}`} title={`Shift ${s} (${SHIFT_INFO[s].hours}): ${short > 0 ? `${short} unfilled` : 'fully staffed'}`}>
                               <b className={`sh sh-${s}`}>{s}</b> {assigned}/{required}{short > 0 && <span className="mflag"> ⚠ −{short}</span>}
                             </span>
                           )

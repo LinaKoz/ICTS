@@ -10,6 +10,8 @@ import { EditErrors, EditPanel, type Selection } from './EditPanel'
 import { buildMoveBody, explainEditError, idLookup, needsApprovalAck, type CellRef, type DropAction } from './edit'
 import { nameLookup } from './names'
 import { describeOutcome } from './outcome'
+import { FilterBar } from './FilterBar'
+import { NO_FILTER, type RosterFilter } from './filter'
 import { RosterCalendar } from './RosterCalendar'
 import { CalendarToolbar } from './CalendarToolbar'
 import { RosterSummary } from './RosterSummary'
@@ -53,6 +55,7 @@ export function RosterPage() {
   const [attempt, setAttempt] = useState<CellRef | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [focusId, setFocusId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<RosterFilter>(NO_FILTER)
 
   const existing = roster.data ?? null
   const summary = preview ? describeOutcome(preview) : null
@@ -169,7 +172,10 @@ export function RosterPage() {
     <div className="roster-page">
       <div className={`cal-header${editing ? ' cal-header-editing' : ''}`}>
       <CalendarToolbar view={view} anchor={anchor} today={today} onView={setView} onAnchor={goTo}
-        extra={<WorkerSearch workers={shown?.workers ?? []} focusId={focusId} onFocus={setFocusId} />} />
+        extra={<>
+          {meta.data && <FilterBar filter={filter} roles={meta.data.roles} shifts={meta.data.shifts} onChange={setFilter} />}
+          <WorkerSearch workers={shown?.workers ?? []} focusId={focusId} onFocus={setFocusId} />
+        </>} />
 
       <section className="cal-actions" aria-label={`Roster actions for ${monthLabel(month)}`}>
         <div className="cal-actions-row">
@@ -262,7 +268,7 @@ export function RosterPage() {
           <RosterCalendar
             view={view} anchor={anchor} today={today} targetMonth={month}
             shifts={meta.data.shifts} roles={meta.data.roles} demand={meta.data.demand} index={index}
-            onOpenDay={openDay} focusId={focusId}
+            onOpenDay={openDay} focusId={focusId} filter={filter}
             fix={canEdit && ids.isSuccess && existing ? { month, roster: existing, idOf } : undefined}
             edit={editing && view !== 'month' ? {
               onAssignment: (a) => { const id = idOf(a); if (id !== undefined) setSelection({ kind: 'assignment', assignment: a, id }) },

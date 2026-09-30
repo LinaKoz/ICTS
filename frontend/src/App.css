@@ -323,3 +323,8 @@ button.mini-day:hover { border-color: var(--accent-border); }
 .cal-summary { justify-content: center; }
 .cal-summary dl { justify-content: center; }
 .cal-summary dl > div { text-align: center; }
+.filter-bar { display: flex; align-items: center; gap: 6px; }
+.filter-bar select { padding: 5px 8px; }
+.slot-dim { opacity: 0.28; }
+.msum-dim { opacity: 0.35; }
+@media (max-width: 720px) { .filter-bar { flex: 1 1 100%; order: 3; } }
