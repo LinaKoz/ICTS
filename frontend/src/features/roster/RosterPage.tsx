@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { AssignmentOut, GenerateOutcomeOut, RosterOut } from '../../api/schemas'
@@ -29,7 +29,11 @@ const selectionKey = (s: Selection) =>
 
 export function RosterPage() {
   const qc = useQueryClient()
-  const [today] = useState(todayIso)
+  const [today, setToday] = useState(todayIso)
+  useEffect(() => {
+    const id = setInterval(() => setToday(todayIso()), 60_000)
+    return () => clearInterval(id)
+  }, [])
   const [anchor, setAnchor] = useState(today)
   const [view, setView] = useState<CalendarView>('week')
   const month = monthOf(anchor)
@@ -62,6 +66,7 @@ export function RosterPage() {
   /** Moves the visible date. Anything tied to the month (preview, edits, dialogs) resets only when the month changes. */
   function goTo(date: string) {
     if (!date) return
+    if (monthOf(date) !== month && preview && !saved && !window.confirm('Leave this month? The generated roster has not been saved and will be discarded.')) return
     setAnchor(date)
     if (monthOf(date) === month) return
     setPreview(null); setConfirmReplace(false); setSaved(false); setSelection(null); setEditMode(false)

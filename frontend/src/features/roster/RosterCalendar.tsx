@@ -2,7 +2,7 @@ import { useState, type DragEvent } from 'react'
 import type { AssignmentOut, Role, Shift } from '../../api/schemas'
 import { dayLabel, monthLabel, monthOf, monthWeeks, weekDays, weekdayShort, type CalendarView } from './calendar'
 import type { CalendarIndex } from './calendarData'
-import { ViolationFix, type FixProps } from './FixPanel'
+import { ViolationFix, violationKey, type FixProps } from './FixPanel'
 import { dropAction, explainViolation, isLockedShift, type CellRef, type DropAction, type DropTarget } from './edit'
 import { ils, SHIFT_INFO, violationLabel } from './names'
 
@@ -58,7 +58,7 @@ function useDnd(p: Pick<Props, 'index' | 'targetMonth' | 'edit'> & { head: (s: S
     if (target.kind !== 'slot' || base?.kind !== 'move') return base
     const { date, shift, role } = target.slot
     const here = index.assignmentsAt(date, shift, role)
-    if (here.length < head(shift, role)) return base
+    if (here.length === 0 || here.length < head(shift, role)) return base
     if (here.length === 1) return dropAction(dragging, { kind: 'assignment', assignment: here[0]! }, index.freeFrom(monthOf(date)))
     return { kind: 'reject', message: 'This shift is full. To swap, drop onto the name of the worker you want to swap with.' }
   }
@@ -203,11 +203,11 @@ function DayView({ ctx }: { ctx: Ctx }) {
         <div className="cal-day-warn" role="status">
           <strong><span aria-hidden="true">⚠</span> Rule violations on this day</strong>
           <ul className="cal-day-violations">
-            {warnings.map((v, i) => {
+            {warnings.map((v) => {
               const text = explainViolation(v, index.nameOf)
               return fix
-                ? <ViolationFix key={i} v={v} fix={fix} text={text} defaultOpen />
-                : <li key={i}>{text}</li>
+                ? <ViolationFix key={violationKey(v)} v={v} fix={fix} text={text} />
+                : <li key={violationKey(v)}>{text}</li>
             })}
           </ul>
         </div>

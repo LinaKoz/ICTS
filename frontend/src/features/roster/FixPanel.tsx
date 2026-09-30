@@ -51,6 +51,10 @@ function AssignmentFixes({ month, roster, assignment, id, ack, onDone }: {
   )
 }
 
+/** Stable React key for a violation, so per-violation state (open, approval ack) never moves to another one. */
+export const violationKey = (v: ViolationOut): string =>
+  `${v.code}|${v.assignments.map((a) => `${a.worker_id}:${a.date}:${a.shift}`).join(',')}`
+
 /** One violation with a "Fix" toggle that lists up to five replacements (and removal) per involved assignment. */
 export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: ViolationOut; fix: FixProps; text?: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -65,7 +69,7 @@ export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: Violati
     <li>
       {text ?? `${violationLabel(v.code)} (×${v.magnitude}) ${v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}`}
       {fixable.length > 0 && (
-        <button className="link" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide fixes' : 'Fix'}</button>
+        <button className="link" aria-expanded={open} onClick={() => { setOpen(!open); setAck(false) }}>{open ? 'Hide fixes' : 'Fix'}</button>
       )}
       {open && (
         <>
@@ -76,7 +80,7 @@ export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: Violati
             </label>
           )}
           {fixable.map(({ a, id }) => (
-            <AssignmentFixes key={id} month={fix.month} roster={fix.roster} assignment={a} id={id} ack={ack} onDone={() => setOpen(false)} />
+            <AssignmentFixes key={id} month={fix.month} roster={fix.roster} assignment={a} id={id} ack={ack} onDone={() => { setOpen(false); setAck(false) }} />
           ))}
         </>
       )}

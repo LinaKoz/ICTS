@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.models import User
 from app.auth.security import hash_password
 from app.config import settings
+from app.timeutil import now_israel
 from app.contracts.models import ContractVersion
 from app.workers.models import Worker
 from app.workers.national_id import israeli_id_checksum_ok
@@ -69,7 +70,7 @@ async def seed(session: AsyncSession) -> None:
 
     worker_count = (await session.execute(select(func.count()).select_from(Worker))).scalar_one()
     if worker_count == 0:
-        effective_month = date.today().replace(day=1)
+        effective_month = now_israel().date().replace(day=1)
         for national_id, full_name, role in _SAMPLE_WORKERS:
             worker = Worker(national_id=national_id, full_name=full_name, role=role, status="ACTIVE")
             session.add(worker)
@@ -88,7 +89,8 @@ async def seed(session: AsyncSession) -> None:
                 )
             )
 
-    await _ensure_extra_workers(session, planner_id)
+    if settings.seed_demo_workers:
+        await _ensure_extra_workers(session, planner_id)
     await session.commit()
 
 
@@ -97,7 +99,7 @@ async def _ensure_extra_workers(session: AsyncSession, planner_id: int) -> None:
     tops up a DB that already has workers)."""
     ids = [national_id for national_id, _, _ in _EXTRA_WORKERS]
     present = set((await session.execute(select(Worker.national_id).where(Worker.national_id.in_(ids)))).scalars())
-    effective_month = date.today().replace(day=1)
+    effective_month = now_israel().date().replace(day=1)
     for national_id, full_name, role in _EXTRA_WORKERS:
         if national_id in present:
             continue

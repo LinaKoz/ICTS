@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CostsOut, CoverageGapOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
-import { ViolationFix, type FixProps } from './FixPanel'
+import { ViolationFix, violationKey, type FixProps } from './FixPanel'
 import { ils, nameLookup, violationLabel } from './names'
 
 interface Props {
@@ -23,9 +23,9 @@ export function SidePanel({ violations, gaps, shortfalls, costs, workers, fix }:
       <section className="panel">
         <h3>Violations ({violations.length})</h3>
         {violations.length === 0 ? <p className="muted">None</p> : (
-          <ul>{violations.map((v, i) => fix
-            ? <ViolationFix key={i} v={v} fix={fix} />
-            : <li key={i}>{violationLabel(v.code)} (×{v.magnitude}) {v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}</li>)}</ul>
+          <ul>{violations.map((v) => fix
+            ? <ViolationFix key={violationKey(v)} v={v} fix={fix} />
+            : <li key={violationKey(v)}>{violationLabel(v.code)} (×{v.magnitude}) {v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}</li>)}</ul>
         )}
       </section>
       <section className="panel">

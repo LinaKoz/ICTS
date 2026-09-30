@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     num_workers: int = 8
     solver_time_limit_s: float = 10.0
 
+    # Demo data: set SEED_DEMO_WORKERS=false to skip the 25 extra "Worker NN" demo workers
+    seed_demo_workers: bool = True
+
     # Misc
     log_level: str = "INFO"
 
