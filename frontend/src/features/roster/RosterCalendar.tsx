@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import type { AssignmentOut, Role, Shift } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
 import { dayLabel, monthLabel, monthOf, monthWeeks, weekDays, weekdayShort, type CalendarView } from './calendar'
@@ -40,6 +40,8 @@ interface Props {
   /** When set, Day view lists replacement options under each violation of the day. */
   fix?: FixProps
   onOpenDay: (date: string) => void
+  /** A shift to scroll into view and flash, e.g. after "Show" on a violation. `n` changes on every request. */
+  highlight?: { date: string; shift: Shift; n: number } | null
 }
 
 interface Ctx extends Props {
@@ -85,11 +87,16 @@ function useDnd(p: Pick<Props, 'index' | 'targetMonth' | 'edit'> & { head: (s: S
 
 /** The three roles of one shift on one date, with chips, gaps, warnings and cost. */
 function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ctx: Ctx; full: boolean }) {
-  const { index, edit, roles, targetMonth, dnd, head, focusId, filter = NO_FILTER } = ctx
+  const { index, edit, roles, targetMonth, dnd, head, focusId, filter = NO_FILTER, highlight } = ctx
+  const flash = highlight != null && highlight.date === date && highlight.shift === shift
+  const blockRef = useRef<HTMLDivElement>(null)
+  const status = index.status(monthOf(date))
+  useEffect(() => {
+    if (flash && status === 'ready') blockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [flash, status, highlight?.n])
   const focusClass = (id: string) => (focusId ? (id === focusId ? ' chip-focus' : ' chip-dim') : '')
   const filtering = isFiltering(filter)
   const month = monthOf(date)
-  const status = index.status(month)
   if (status !== 'ready') {
     return <div className="cal-noroster muted">{status === 'loading' ? 'Loading…' : status === 'error' ? 'Could not load' : 'No roster loaded'}</div>
   }
@@ -101,7 +108,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
   const cost = index.costAt(date, shift)
   const problem = edit?.problem && edit.problem.cell.date === date && edit.problem.cell.shift === shift ? edit.problem : null
   return (
-    <div className={`shift-block${locked ? ' locked' : ''}${problem ? ' cell-problem' : ''}${warnings.length > 0 ? ' has-violation' : ''}`}>
+    <div ref={blockRef} className={`shift-block${locked ? ' locked' : ''}${problem ? ' cell-problem' : ''}${warnings.length > 0 ? ' has-violation' : ''}${flash ? ' cell-flash' : ''}`}>
       {locked && <span className="lock" title="Shift already started">locked</span>}
       {roles.map((r) => {
         const names = index.assignmentsAt(date, shift, r)

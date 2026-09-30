@@ -74,6 +74,14 @@ export function violatingWorkers(warnings: ViolationOut[], date: string, shift: 
   return new Set(warnings.flatMap((v) => v.assignments.filter((a) => a.date === date && a.shift === shift).map((a) => a.worker_id)))
 }
 
+/** Where "Show" on a violation should go: its earliest assignment, preferring the given month. */
+export function violationTarget(v: ViolationOut, month: string): { date: string; shift: Shift } | null {
+  const inMonth = v.assignments.filter((a) => monthOf(a.date) === month)
+  const pool = inMonth.length > 0 ? inMonth : v.assignments
+  const first = [...pool].sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift))[0]
+  return first ? { date: first.date, shift: first.shift } : null
+}
+
 export const isEditableMonth = (date: string, targetMonth: string) => monthOf(date) === targetMonth
 
 /** Every shift the worker has on the given dates, in date order. */
