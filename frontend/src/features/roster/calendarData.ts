@@ -69,6 +69,11 @@ export function buildIndex(sources: MonthSource[]): CalendarIndex {
   }
 }
 
+/** Workers whose assignment in this shift is part of a rule violation. */
+export function violatingWorkers(warnings: ViolationOut[], date: string, shift: Shift): Set<string> {
+  return new Set(warnings.flatMap((v) => v.assignments.filter((a) => a.date === date && a.shift === shift).map((a) => a.worker_id)))
+}
+
 export const isEditableMonth = (date: string, targetMonth: string) => monthOf(date) === targetMonth
 
 /** Every shift the worker has on the given dates, in date order. */
