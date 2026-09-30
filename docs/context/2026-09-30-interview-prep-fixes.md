@@ -141,3 +141,26 @@ Branch: `feat/roster-calendar`, then merged into `main`
   "⚠ Fix" button (`.warn-fix`), since the red chip already marks the offending
   worker. View-only or locked cells show a small "⚠ N" (`.warn-mini`). Day view
   keeps the full "N rule issues" tag. Checked at a 1150px window: no wrapping.
+
+## Harsh review before submission (same day)
+
+- Scope: every commit since `474e5ea`, plus the requirements in
+  `docs/original-assignment-summary.md`. Standard level, inline.
+- Method:
+  - Engine split checked mechanically by comparing each definition's AST
+    against the old `types.py`. All identical except `solve`, which only lost
+    the dead `lb = ...` line.
+  - Full frontend diff read and traced: preview/edit gating, cross-month jump, Fix gating.
+  - Graphify (`graphify update .`, then `graphify affected` on `solve()`,
+    `validate_roster()`, `violatingWorkers()`, `violationTarget()`, `SidePanel`):
+    every caller is covered by tests that pass.
+  - Repo checks: no tracked secrets or `.env`; sample CSV has 23 workers; repo public.
+- Findings (all low) and outcomes:
+  - GitHub default branch was `feat/roster-calendar`: set to `main`.
+  - Stale "not pushed"/"uncommitted" lines in three context notes: corrected.
+  - Violation markers used `aria-label` on plain spans, which screen readers
+    ignore: replaced with `.sr-only` text ("Rule violation: ", "N rule issues").
+    New render test `violations.render.test.tsx` (124 frontend tests).
+- No correctness, security or reliability defect found.
+- The AI workflow files (CLAUDE.md, docs/context/, context_builder) stay in
+  the repo by the user's choice.

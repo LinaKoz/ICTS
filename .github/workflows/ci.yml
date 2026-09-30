@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, feat/roster-calendar]   # feat/roster-calendar is the repository's default branch
+    branches: [main, feat/roster-calendar]   # main is the default branch; the feature branch mirrors it
   pull_request:
   workflow_dispatch:
 
