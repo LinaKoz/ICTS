@@ -7,7 +7,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from app.rosters.costs import compute_costs
-from app.scheduling.types import Assignment, Role, Shift
+from app.scheduling import Assignment, Role, Shift
 
 
 def _a(worker: int, d: int, shift: Shift) -> Assignment:

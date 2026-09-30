@@ -24,7 +24,7 @@ from app.contracts.models import ContractVersion
 from app.errors import BadRequestError
 from app.contracts.resolve import resolve_contracts_for_workers
 from app.rosters.models import Roster, RosterAssignment
-from app.scheduling.types import DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput
+from app.scheduling import DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput
 from app.timeutil import now_israel, shift_start_time
 from app.workers.models import Worker
 

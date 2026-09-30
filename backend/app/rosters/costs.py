@@ -10,7 +10,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.contracts.models import ContractVersion
-from app.scheduling.types import Assignment, Shift
+from app.scheduling import Assignment, Shift
 
 HOURS_PER_SHIFT = 8
 _CENTS = Decimal("0.01")

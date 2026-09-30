@@ -40,7 +40,7 @@ from app.rosters.approval import revoke
 from app.rosters.evaluation import evaluate
 from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import _pos, compute_free_from, is_history_month
-from app.scheduling.types import Assignment, Violation, ViolationCode, worsened
+from app.scheduling import Assignment, Violation, ViolationCode, worsened
 from app.timeutil import now_israel
 from app.workers.models import Worker, WorkerFieldHistory
 

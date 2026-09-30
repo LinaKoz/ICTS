@@ -11,7 +11,7 @@ import dataclasses
 
 import pytest
 
-from app.scheduling import types as t
+import app.scheduling as t
 
 
 def test_dataclasses_are_frozen():

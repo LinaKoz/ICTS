@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.scheduling.types import DEFAULT_DEMAND, Role, Shift, Weekday, WorkerInput
+from app.scheduling import Shift, Weekday, WorkerInput
 
 FULL_AVAILABILITY = frozenset((wd, s) for wd in Weekday for s in Shift)
 

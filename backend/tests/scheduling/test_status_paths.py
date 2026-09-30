@@ -1,8 +1,8 @@
 """§4.9 Status paths (mocked `_run_cp_sat`)."""
 from datetime import date
 
-import app.scheduling.types as T
-from app.scheduling.types import (
+import app.scheduling.solver as T
+from app.scheduling import (
     EngineErrorResult, NoSolutionWithinLimit, Problem, RawSolve, Role, Shift, Solved, SolverConfig, solve,
 )
 from tests.scheduling.conftest import make_worker
@@ -98,7 +98,7 @@ def test_injected_invalid_solution_rejected_by_gate(monkeypatch):
     """An injected solution that assigns a worker to a slot they are not
     eligible for (no corresponding variable) can't happen via values alone,
     but forcing an over-cap assignment for a fixed-heavy worker is rejected."""
-    from app.scheduling.types import Assignment
+    from app.scheduling import Assignment
 
     worker = make_worker("w1", Role.GENERAL_GUARD, min_hours=0, max_hours=8)
     fixed = (Assignment("w1", date(YEAR, MONTH, 1), Shift.A, Role.GENERAL_GUARD),)  # already at cap

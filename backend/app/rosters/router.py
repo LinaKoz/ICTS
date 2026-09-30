@@ -25,7 +25,7 @@ from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, is_history_month, parse_month
 from app.rosters.save import router as save_router
 from app.rosters.serialize import assignment_to_out, coverage_gap_to_out, costs_to_out, hour_shortfall_to_out, load_worker_refs, violation_to_out
-from app.scheduling.types import Assignment, Role, Shift
+from app.scheduling import Assignment, Role, Shift
 
 router = APIRouter(prefix="/api/rosters", tags=["rosters"])
 router.include_router(generate_router)

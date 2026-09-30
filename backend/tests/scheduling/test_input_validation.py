@@ -1,11 +1,10 @@
 """§4.9 Input and demand."""
 from datetime import date
 
-from app.scheduling.types import (
-    Assignment, DEFAULT_DEMAND, Problem, Role, Shift, Weekday,
-    validate_problem, validate_roster, diagnose, roster_metrics,
+from app.scheduling import (
+    Assignment, DEFAULT_DEMAND, Problem, Role, Shift, validate_problem, validate_roster, diagnose, roster_metrics,
 )
-from tests.scheduling.conftest import FULL_AVAILABILITY, make_worker
+from tests.scheduling.conftest import make_worker
 
 
 def base_problem(**overrides):

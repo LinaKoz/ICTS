@@ -4,7 +4,7 @@ The engine runs in a `ProcessPoolExecutor(max_workers=1, mp_context=spawn)`
 so CP-SAT search never blocks the API event loop. The class shape and
 API (`submit`, `warm_up`, recovery on `BrokenProcessPool`) were frozen
 in T0; T3 adds the generation-in-progress guard and calls `submit`
-with `scheduling.types.solve` (§8 T3 acceptance: "Pool recovery...
+with `scheduling.solve` (§8 T3 acceptance: "Pool recovery...
 identity check").
 """
 from __future__ import annotations

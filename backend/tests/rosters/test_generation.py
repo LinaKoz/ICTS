@@ -10,8 +10,8 @@ from datetime import date
 
 import pytest
 
-import app.scheduling.types as T
-from app.scheduling.types import RawSolve
+import app.scheduling.solver as T
+from app.scheduling import InputError, InvalidInput, RawSolve
 from tests.conftest import requires_db
 from tests.rosters.helpers import insert_assignment, insert_contract, insert_roster, insert_user, insert_worker
 
@@ -84,7 +84,7 @@ def test_generate_no_solution_within_limit_outcome(planner, db, inline_pool, mon
 def test_generate_invalid_input_is_422(planner, db, inline_pool, monkeypatch):
     client, user_id = planner
     _seed_workers(db, user_id)
-    bad = T.InvalidInput(kind="invalid_input", errors=[T.InputError("BAD", "nope")])
+    bad = InvalidInput(kind="invalid_input", errors=[InputError("BAD", "nope")])
     monkeypatch.setattr("app.rosters.generation.solve", lambda problem, config: bad)
     resp = client.post(URL, json={})
     assert resp.status_code == 422

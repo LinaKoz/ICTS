@@ -1,11 +1,10 @@
 """§4.9 Validator and worsened."""
 from datetime import date
 
-from app.scheduling.types import (
-    Assignment, DEFAULT_DEMAND, Problem, Role, Shift, ViolationCode, Weekday,
-    validate_roster, worsened,
+from app.scheduling import (
+    Assignment, DEFAULT_DEMAND, Problem, Role, Shift, ViolationCode, validate_roster, worsened,
 )
-from tests.scheduling.conftest import FULL_AVAILABILITY, make_worker
+from tests.scheduling.conftest import make_worker
 
 D = date(2026, 11, 10)  # a Tuesday
 D_NEXT = date(2026, 11, 11)
@@ -175,21 +174,21 @@ def test_rule_off_three_shifts_still_daily_limit():
 # --- worsened ---
 
 def test_worsened_new_key_reported():
-    from app.scheduling.types import Violation
+    from app.scheduling import Violation
     before = []
     after = [Violation(ViolationCode.MAX_HOURS, ("w1",), 5, ())]
     assert worsened(before, after) == after
 
 
 def test_worsened_same_key_higher_magnitude_reported():
-    from app.scheduling.types import Violation
+    from app.scheduling import Violation
     before = [Violation(ViolationCode.MAX_HOURS, ("w1",), 16, ())]
     after = [Violation(ViolationCode.MAX_HOURS, ("w1",), 24, ())]
     assert worsened(before, after) == after
 
 
 def test_worsened_same_or_lower_magnitude_not_reported():
-    from app.scheduling.types import Violation
+    from app.scheduling import Violation
     before = [Violation(ViolationCode.MAX_HOURS, ("w1",), 16, ())]
     same = [Violation(ViolationCode.MAX_HOURS, ("w1",), 16, ())]
     lower = [Violation(ViolationCode.MAX_HOURS, ("w1",), 10, ())]
@@ -200,7 +199,7 @@ def test_worsened_same_or_lower_magnitude_not_reported():
 # --- metrics ---
 
 def test_metrics_recomputed_gaps_and_shortfalls():
-    from app.scheduling.types import roster_metrics
+    from app.scheduling import roster_metrics
     w = make_worker("w1", Role.SUPERVISOR, min_hours=16, max_hours=160)
     p = problem([w])
     roster = [Assignment("w1", D, Shift.A, Role.SUPERVISOR)]
@@ -212,7 +211,7 @@ def test_metrics_recomputed_gaps_and_shortfalls():
 
 
 def test_metrics_inactive_workers_absent_from_shortfalls():
-    from app.scheduling.types import roster_metrics
+    from app.scheduling import roster_metrics
     w = make_worker("w1", Role.SUPERVISOR, min_hours=100, max_hours=160, active=False)
     p = problem([w])
     m = roster_metrics(p, [])

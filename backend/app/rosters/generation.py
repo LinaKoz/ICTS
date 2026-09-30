@@ -36,7 +36,7 @@ from app.rosters.serialize import (
     min_hours_status_to_out,
     violation_to_out,
 )
-from app.scheduling.types import EngineErrorResult, InvalidInput, NoSolutionWithinLimit, Solved, SolverConfig, solve
+from app.scheduling import EngineErrorResult, InvalidInput, NoSolutionWithinLimit, Solved, SolverConfig, solve
 
 logger = logging.getLogger(__name__)
 

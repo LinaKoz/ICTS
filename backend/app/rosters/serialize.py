@@ -22,7 +22,7 @@ from app.api_schemas.common import (
 )
 from app.rosters.costs import Costs
 from app.workers.models import Worker
-from app.scheduling.types import Assignment, CoverageGap, CoverageStatus, HourShortfall, MinHoursStatus, Violation, ViolationCode
+from app.scheduling import Assignment, CoverageGap, CoverageStatus, HourShortfall, MinHoursStatus, Violation, ViolationCode
 
 
 def assignment_to_out(a: Assignment) -> AssignmentOut:

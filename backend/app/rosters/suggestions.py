@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
-from app.scheduling.types import Assignment, Problem, Role, Shift, validate_roster, worsened
+from app.scheduling import Assignment, Problem, Role, Shift, validate_roster, worsened
 
 SlotState = str  # "OPEN" | "FILLED" | "LOCKED"
 

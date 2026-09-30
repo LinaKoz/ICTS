@@ -49,7 +49,7 @@ from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, BuiltProblem, _pos, build_problem, is_history_month, parse_month
 from app.rosters.serialize import load_worker_refs, violation_to_out
 from app.rosters.suggestions import replacements, suggest
-from app.scheduling.types import Assignment, Role, Shift, Violation, ViolationCode, validate_roster, worsened
+from app.scheduling import Assignment, Role, Shift, Violation, ViolationCode, validate_roster, worsened
 from app.workers.models import Worker
 
 router = APIRouter(prefix="/api/rosters", tags=["rosters"])

@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import BuiltProblem, _pos, build_problem, is_history_month
-from app.scheduling.types import Assignment, Metrics, Role, Shift, Violation, ViolationCode, roster_metrics, validate_roster
+from app.scheduling import Assignment, Metrics, Role, Shift, Violation, ViolationCode, roster_metrics, validate_roster
 from app.timeutil import now_israel, shift_start_time
 from app.workers.history import load_worker_states, state_at
 

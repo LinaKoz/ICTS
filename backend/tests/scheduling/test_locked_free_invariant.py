@@ -1,7 +1,7 @@
 """§4.9 Locked/free separation and feasibility invariant."""
 from datetime import date
 
-from app.scheduling.types import (
+from app.scheduling import (
     Assignment, Problem, Role, Shift, Solved, SolverConfig, ViolationCode, solve,
 )
 from tests.scheduling.conftest import make_worker

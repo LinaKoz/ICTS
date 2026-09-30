@@ -1,7 +1,7 @@
 """§4.9 Real tiny time-limit smoke test (no mocking, real CP-SAT search)."""
 from datetime import date
 
-from app.scheduling.types import (
+from app.scheduling import (
     NoSolutionWithinLimit, Problem, Role, Shift, Solved, SolverConfig, solve, validate_roster, worsened,
 )
 from tests.scheduling.conftest import make_worker
