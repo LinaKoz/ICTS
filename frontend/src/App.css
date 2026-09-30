@@ -360,3 +360,4 @@ input.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2
 .gen-current { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.82rem; color: var(--text); }
 .gen-current strong { color: var(--text-h); font-weight: 600; }
 @media (max-width: 720px) { .gen-pop { right: auto; left: 0; max-width: calc(100vw - 32px); } .gen-pop::before { right: auto; left: 28px; } }
+.gen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

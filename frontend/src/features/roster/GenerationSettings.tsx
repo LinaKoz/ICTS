@@ -31,7 +31,14 @@ export function GenerationSettings({ forbid, onForbid, monthName, storedForbid }
       </button>
       {open && (
         <div className="gen-pop" id={popId} role="dialog" aria-label="Generation settings">
-          <h4>Next generation</h4>
+          <div className="gen-head">
+            <h4>Next generation</h4>
+            <button className="modal-close" onClick={() => setOpen(false)} aria-label="Close" title="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+                <path d="M5 5l14 14M19 5L5 19" />
+              </svg>
+            </button>
+          </div>
           <p className="muted gen-scope">For {monthName}</p>
           <label className="switch-row">
             <span className="switch-text">
