@@ -3,7 +3,7 @@ import type { AssignmentOut, Role, Shift } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
 import { dayLabel, monthLabel, monthOf, monthWeeks, weekDays, weekdayShort, type CalendarView } from './calendar'
 import { ViolationFix, type FixProps } from './FixPanel'
-import { type CalendarIndex, violationKey } from './calendarData'
+import { type CalendarIndex, violatingWorkers, violationKey } from './calendarData'
 import { dropAction, explainViolation, isLockedShift, type CellRef, type DropAction, type DropTarget } from './edit'
 import { isFiltering, NO_FILTER, slotMatches, type RosterFilter } from './filter'
 import { ils, SHIFT_INFO, violationLabel } from './names'
@@ -96,10 +96,12 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
   const locked = isLockedShift(date, shift, index.freeFrom(month))
   const editable = edit != null && !locked && month === targetMonth
   const warnings = index.warningsAt(date, shift)
+  const violating = violatingWorkers(warnings, date, shift)
+  const violationTitle = [...new Set(warnings.map((v) => violationLabel(v.code)))].join(', ')
   const cost = index.costAt(date, shift)
   const problem = edit?.problem && edit.problem.cell.date === date && edit.problem.cell.shift === shift ? edit.problem : null
   return (
-    <div className={`shift-block${locked ? ' locked' : ''}${problem ? ' cell-problem' : ''}`}>
+    <div className={`shift-block${locked ? ' locked' : ''}${problem ? ' cell-problem' : ''}${warnings.length > 0 ? ' has-violation' : ''}`}>
       {locked && <span className="lock" title="Shift already started">locked</span>}
       {roles.map((r) => {
         const names = index.assignmentsAt(date, shift, r)
@@ -112,16 +114,19 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
             <span className={`role role-${r}`} title={ROLE_NAME[r]}><i className="role-dot" aria-hidden="true" />{ROLE_LABEL[r]}</span>
             {names.map((a) => {
               const name = index.nameOf(a.worker_id)
+              const bad = violating.has(a.worker_id)
+              const badClass = bad ? ' chip-violation' : ''
+              const badMark = bad ? <span className="chip-violation-mark" aria-label="Rule violation">⚠</span> : null
               const chipKey = `a|${a.worker_id}|${date}|${shift}`
               const target: DropTarget = { kind: 'assignment', assignment: a }
               return editable
-                ? <button key={a.worker_id} title={`${name} — click to open, drag to move or swap`} draggable
-                    className={`chip chip-btn${focusClass(a.worker_id)}${dnd.dragging === a ? ' dragging' : ''}${edit?.selectedKey === `${a.worker_id}|${date}|${shift}` ? ' chip-selected' : ''}${dnd.dropClass(target, chipKey)}`}
+                ? <button key={a.worker_id} title={bad ? `${name}: ${violationTitle} — click to fix` : `${name} — click to open, drag to move or swap`} draggable
+                    className={`chip chip-btn${badClass}${focusClass(a.worker_id)}${dnd.dragging === a ? ' dragging' : ''}${edit?.selectedKey === `${a.worker_id}|${date}|${shift}` ? ' chip-selected' : ''}${dnd.dropClass(target, chipKey)}`}
                     onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', a.worker_id); dnd.setDragging(a) }}
                     onDragEnd={() => { dnd.setDragging(null); dnd.setOver(null) }}
                     {...dnd.dropProps(target, chipKey)}
-                    onClick={() => edit.onAssignment(a)}><span className="chip-text">{name}</span></button>
-                : <span key={a.worker_id} className={`chip${focusClass(a.worker_id)}`} title={name}><span className="chip-text">{name}</span></span>
+                    onClick={() => edit.onAssignment(a)}>{badMark}<span className="chip-text">{name}</span></button>
+                : <span key={a.worker_id} className={`chip${badClass}${focusClass(a.worker_id)}`} title={bad ? `${name}: ${violationTitle}` : name}>{badMark}<span className="chip-text">{name}</span></span>
             })}
             {missing > 0 && (
               gap?.locked || locked
@@ -143,7 +148,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
       {(warnings.length > 0 || (full && cost)) && (
         <div className="shift-meta">
           {warnings.length > 0 && (
-            <span className="warn" title={[...new Set(warnings.map((v) => violationLabel(v.code)))].join(', ')}>
+            <span className="warn" title={violationTitle}>
               <span aria-hidden="true">⚠</span> {warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}
             </span>
           )}
@@ -291,7 +296,7 @@ function MonthView({ ctx }: { ctx: Ctx }) {
               const status = index.status(monthOf(d))
               const warnings = index.warningsAt(d)
               return (
-                <button key={d} role="gridcell" className={`mcell${focusId && shifts.some((s) => roles.some((r) => index.assignmentsAt(d, s, r).some((a) => a.worker_id === focusId))) ? ' mcell-focus' : ''}${d === today ? ' is-today' : ''}${d === anchor ? ' is-selected' : ''}${monthOf(d) !== monthOf(anchor) ? ' mcell-out' : ''}`}
+                <button key={d} role="gridcell" className={`mcell${focusId && shifts.some((s) => roles.some((r) => index.assignmentsAt(d, s, r).some((a) => a.worker_id === focusId))) ? ' mcell-focus' : ''}${d === today ? ' is-today' : ''}${d === anchor ? ' is-selected' : ''}${monthOf(d) !== monthOf(anchor) ? ' mcell-out' : ''}${warnings.length > 0 ? ' mcell-violation' : ''}`}
                   onClick={() => onOpenDay(d)} aria-label={`Open ${dayLabel(d)}`}>
                   <span className="mday">{Number(d.slice(8))}{d.slice(8) === '01' && <span className="dmon"> {monthLabel(monthOf(d)).split(' ')[0]}</span>}</span>
                   {status !== 'ready'
@@ -309,7 +314,7 @@ function MonthView({ ctx }: { ctx: Ctx }) {
                             </span>
                           )
                         })}
-                        {warnings.length > 0 && <span className="warn"><span aria-hidden="true">⚠</span> {warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}</span>}
+                        {warnings.length > 0 && <span className="warn" title={[...new Set(warnings.map((v) => violationLabel(v.code)))].join(', ')}><span aria-hidden="true">⚠</span> {warnings.length} rule {warnings.length === 1 ? 'issue' : 'issues'}</span>}
                         {focusId && (() => {
                           const mine = shifts.filter((s) => roles.some((r) => index.assignmentsAt(d, s, r).some((a) => a.worker_id === focusId)))
                           return mine.length > 0 ? <span className="mfocus" title={`${index.nameOf(focusId)} works ${mine.join(', ')}`}>● {mine.join(' · ')}</span> : null

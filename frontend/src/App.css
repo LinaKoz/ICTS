@@ -139,7 +139,7 @@ button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit
 
 /* roster calendar */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.roster-page { --shift-a: #8ea2cf; --shift-b: #fb923c; --shift-c: #a3e635; --amber: #f59e0b; --role-gg: #60a5fa; --role-scr: #2dd4bf; --role-sup: #f472b6; --surface: var(--code-bg); }
+.roster-page { --shift-a: #8ea2cf; --shift-b: #fb923c; --shift-c: #a3e635; --amber: #f59e0b; --violation: #ef4444; --violation-bg: rgba(239, 68, 68, 0.14); --role-gg: #60a5fa; --role-scr: #2dd4bf; --role-sup: #f472b6; --surface: var(--code-bg); }
 .roster-page button:focus-visible, .roster-page input:focus-visible, .roster-page summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cal-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .cal-nav { display: flex; gap: 2px; }
@@ -201,7 +201,13 @@ button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit
 .chip.chip-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--accent-bg); }
 .chip.gap { background: rgba(245, 158, 11, 0.12); border-color: var(--amber); color: var(--amber); }
 .chip.gap.past { background: transparent; border-style: dashed; opacity: 0.8; }
-.warn { display: inline-flex; align-items: center; gap: 4px; color: var(--amber); font-size: 0.72rem; }
+.warn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--violation); border-radius: 999px; background: var(--violation-bg); color: var(--violation); font-size: 0.74rem; font-weight: 600; justify-self: start; }
+/* Hard rule violations: red, distinct from amber coverage gaps. */
+.shift-block.has-violation { box-shadow: inset 3px 0 0 var(--violation); padding-left: 4px; }
+.chip.chip-violation { border-color: var(--violation); background: var(--violation-bg); color: var(--text-h); box-shadow: 0 0 0 1px var(--violation); gap: 4px; }
+.chip-violation-mark { flex: none; color: var(--violation); font-weight: 700; }
+.mcell.mcell-violation { box-shadow: inset 3px 0 0 var(--violation); }
+.mcell.mcell-violation.is-selected:not(.is-today) { box-shadow: inset 3px 0 0 var(--violation), inset 0 0 0 2px var(--accent); }
 .shift-meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .shift-cost { font-size: 0.72rem; }
 .cal-noroster { font-size: 0.72rem; font-style: italic; padding: 6px 2px; }
