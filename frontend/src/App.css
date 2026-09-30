@@ -151,7 +151,9 @@ button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit
 .cal-actions { margin-bottom: 10px; position: relative; }
 .cal-actions-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .cal-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cal-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cal-scope { display: grid; gap: 4px; }
+.cal-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-status .badge { margin-right: 0; }
 .cal-scope .badge { margin-right: 0; }
 .cal-scope-month { color: var(--text-h); }
 .cal-scope-note { font-size: 0.8rem; margin: 6px 0 0; }
@@ -313,3 +315,11 @@ button.mini-day:hover { border-color: var(--accent-border); }
 .cal-day-violations .suggestion { grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
 .cal-day-violations .suggestion > button { grid-column: 2; grid-row: 1 / span 2; }
 .approval-history { max-height: 260px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; }
+.cal-header { position: sticky; top: 0; z-index: 15; margin: 0 -4px 10px; padding: 6px 4px 2px; background: var(--bg); }
+.cal-header .cal-toolbar { margin-bottom: 8px; }
+.cal-header-editing { box-shadow: 0 2px 0 var(--accent); }
+.badge-editing { border-color: var(--accent); background: var(--accent-bg); color: var(--text-h); }
+@media (max-width: 900px), (max-height: 640px) { .cal-header { position: static; } }
+.cal-summary { justify-content: center; }
+.cal-summary dl { justify-content: center; }
+.cal-summary dl > div { text-align: center; }

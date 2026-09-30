@@ -155,30 +155,30 @@ export function RosterPage() {
   const focusWorker = shown?.workers?.find((w) => w.worker_id === focusId) ?? null
   const monthDates = Array.from({ length: daysInMonth(month) }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
   const focusShifts = focusWorker && meta.data ? shiftsOfWorker(index, focusWorker.worker_id, monthDates, meta.data.shifts, meta.data.roles) : []
+  const approvedEvent = existing?.status === 'APPROVED' ? [...existing.approval_history].reverse().find((e) => !e.revoked_at) : undefined
   const openDay = (date: string) => { setView('day'); goTo(date) }
   const selectedKey = selection?.kind === 'assignment' ? `${selection.assignment.worker_id}|${selection.assignment.date}|${selection.assignment.shift}` : null
   const ruleText = (on: boolean) => (on ? 'no back-to-back shifts' : 'back-to-back shifts allowed')
 
   return (
     <div className="roster-page">
+      <div className={`cal-header${editing ? ' cal-header-editing' : ''}`}>
       <CalendarToolbar view={view} anchor={anchor} today={today} onView={setView} onAnchor={goTo}
         extra={<WorkerSearch workers={shown?.workers ?? []} focusId={focusId} onFocus={setFocusId} />} />
-      {focusWorker && shown && (
-        <WorkerFocusCard worker={focusWorker} month={month} costs={shown.costs} today={today} monthShifts={focusShifts} visibleDates={visibleDates(view, anchor)}
-          onOpenDay={(d) => { setView('day'); goTo(d) }} onClear={() => setFocusId(null)} />
-      )}
 
       <section className="cal-actions" aria-label={`Roster actions for ${monthLabel(month)}`}>
         <div className="cal-actions-row">
           <div className="cal-scope">
-            <strong className="cal-scope-month">{monthLabel(month)}</strong>
-            <StatusBadge roster={roster.data} />
-            {existing && <span className="badge" title="The rule the stored roster was generated with">Applied rule: {ruleText(existing.forbid_adjacent_shifts)}</span>}
+            <div className="cal-status" title={`Generate, save, approve and edit apply to ${monthLabel(month)}`}>
+              <StatusBadge roster={roster.data} />
+              {approvedEvent && <span className="muted">by {approvedEvent.approved_by} · {new Date(approvedEvent.approved_at).toLocaleDateString('en-GB')}</span>}
+              {editing && <span className="badge badge-editing">Editing</span>}
+            </div>
           </div>
           <span className="spacer" />
           <div className="cal-buttons">
             <details className="gen-settings">
-              <summary>Generation settings</summary>
+              <summary><span aria-hidden="true">⚙</span> Generation settings</summary>
               <div className="gen-pop">
                 <label className="check">
                   <input type="checkbox" checked={forbid} onChange={(e) => setForbid(e.target.checked)} />
@@ -187,21 +187,25 @@ export function RosterPage() {
                 <p className="muted">Applies to the next generation for {monthLabel(month)}.{existing && ` The current roster uses: ${ruleText(existing.forbid_adjacent_shifts)}.`}</p>
               </div>
             </details>
-            {existing && <button onClick={runGenerate} disabled={generate.isPending}>{generate.isPending ? 'Generating…' : 'Regenerate'}</button>}
+            {existing && <button onClick={runGenerate} disabled={generate.isPending} title="Creates a new proposal to review before saving">{generate.isPending ? 'Generating…' : 'Regenerate'}</button>}
             {!existing && <button className="primary" onClick={runGenerate} disabled={generate.isPending}>{generate.isPending ? 'Generating…' : 'Generate roster'}</button>}
             {existing && canEdit && (editMode
               ? <button className="primary" onClick={finishEditing}>Done editing</button>
               : <button className="primary" onClick={() => setEditMode(true)} disabled={!ids.isSuccess}>Edit roster</button>)}
           </div>
         </div>
-        <p className="muted cal-scope-note">
-          {editMode && canEdit
-            ? 'Editing: click a worker to change, or drag to move or swap. '
-            : ''}
-          Generate, save, approve and edit apply to {monthLabel(month)}.
-          {otherMonths.length > 0 && ` This view also shows ${otherMonths.map(monthLabel).join(' and ')} (view only): open one of its days to work on it.`}
-        </p>
+        {(editMode && canEdit || otherMonths.length > 0) && (
+          <p className="muted cal-scope-note">
+            {editMode && canEdit ? 'Editing: click a worker to change, or drag to move or swap. ' : ''}
+            {otherMonths.length > 0 && `Actions apply to ${monthLabel(month)}. This view also shows ${otherMonths.map(monthLabel).join(' and ')} (view only): open one of its days to work on it.`}
+          </p>
+        )}
       </section>
+      </div>
+      {focusWorker && shown && (
+        <WorkerFocusCard worker={focusWorker} month={month} costs={shown.costs} today={today} monthShifts={focusShifts} visibleDates={visibleDates(view, anchor)}
+          onOpenDay={(d) => { setView('day'); goTo(d) }} onClear={() => setFocusId(null)} />
+      )}
 
       {generate.isPending && <div className="panel" role="status"><span className="spinner" /> Generating roster, this can take up to a minute…</div>}
       {generate.isError && <ErrorPanel error={generate.error} onRetry={runGenerate} onReload={reload} />}

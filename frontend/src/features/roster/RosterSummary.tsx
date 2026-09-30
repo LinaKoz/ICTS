@@ -16,8 +16,7 @@ export function RosterSummary({ month, demand, view }: Props) {
   const pct = required > 0 ? Math.round((filled / required) * 100) : 100
   const costs = view.costs
   return (
-    <section className="cal-summary" aria-label={`Summary for ${monthLabel(month)}, whole month`}>
-      <span className="cal-scope-tag">{monthLabel(month)} · whole month</span>
+    <section className="cal-summary" aria-label={`Summary for ${monthLabel(month)}, whole month`} title={`Figures for all of ${monthLabel(month)}, not only the visible days`}>
       <dl>
         <div><dt>Coverage</dt><dd>{filled}/{required} positions <span className="muted">({pct}%)</span></dd></div>
         <div className={unfilled > 0 ? 'is-warn' : ''}><dt>Unfilled</dt><dd>{unfilled > 0 && <span aria-hidden="true">⚠ </span>}{unfilled}</dd></div>
