@@ -146,18 +146,36 @@ async def _finish(session: AsyncSession, roster: Roster, revoked: bool, ra: Rost
 @router.get(
     "/{month}/assignments",
     response_model=list[EditableAssignmentOut],
-    responses=error_responses(401, 403, 404, 422),
+    responses=error_responses(401, 403, 404, 409, 422),
 )
 async def list_assignments(
     month: MonthPath,
+    version: Annotated[int | None, Query(description="the roster version the caller shows; 409 if the roster moved on")] = None,
     _user: User = Depends(require_role("PLANNER", "MANAGER")),
     session: AsyncSession = Depends(get_session),
 ) -> list[EditableAssignmentOut]:
-    """Stored assignments with their ids (the ids `DELETE`/`move` address)."""
-    roster = (await session.execute(select(Roster).where(Roster.month == parse_month(month)))).scalar_one_or_none()
+    """Stored assignments with their ids (the ids `DELETE`/`move` address).
+
+    The UI joins these ids to `GET /rosters/{month}` by (worker, date, shift),
+    so with `version` the ids are guaranteed to belong to that same roster
+    version: otherwise a stale id could send an edit to a row that has moved
+    since, and the edit's own version check would not notice."""
+    month_date = parse_month(month)
+    current_version = select(Roster.row_version).where(Roster.month == month_date)
+    roster = (await session.execute(select(Roster).where(Roster.month == month_date))).scalar_one_or_none()
     if roster is None:
         raise NotFoundError(f"no roster for {month}")
-    return [_out(ra) for ra in await _load_stored(session, roster)]
+    before = roster.row_version
+    rows = [_out(ra) for ra in await _load_stored(session, roster)]
+    # Read committed: an edit may commit between the two reads. Edits always bump the version,
+    # so an unchanged version means the rows belong to it.
+    after = (await session.execute(current_version)).scalar_one()
+    if version is not None and (before != version or after != version):
+        raise VersionConflictError(
+            f"the roster is at version {after}, not {version}; reload it",
+            details={"current_version": after},
+        )
+    return rows
 
 
 @router.post(

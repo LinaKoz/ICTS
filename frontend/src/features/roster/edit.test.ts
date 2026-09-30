@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { AssignmentOut, WorkerRefOut } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
 import { mapError } from '../../errors/mapError'
-import { buildMoveBody, dropAction, explainEditError, idLookup, isApprovedEditError, isLockedShift, moveUnchanged, needsApprovalAck, violationLines, workersForRole } from './edit'
+import { buildMoveBody, dropAction, dropIds, explainEditError, idLookup, idsForVersion, isApprovedEditError, isLockedShift, moveUnchanged, needsApprovalAck, violationLines, workersForRole } from './edit'
 
 const a: AssignmentOut = { worker_id: '7', date: '2026-03-20', shift: 'A', role: 'GENERAL_GUARD' }
 
@@ -119,5 +119,36 @@ describe('explainEditError', () => {
       '2026-10-08 shift C already has all the general guard positions it needs, so there is no free spot.',
     ])
     expect(explainEditError(new ApiError(409, 'X', 'm'), String)).toEqual([])
+  })
+})
+
+describe('assignment ids for the roster on screen', () => {
+  const row = (id: number, worker_id: string, date: string) => ({ id, worker_id, date, shift: 'A' as const, role: 'GENERAL_GUARD' as const })
+  const w1d5: AssignmentOut = { worker_id: '1', date: '2099-01-05', shift: 'A', role: 'GENERAL_GUARD' }
+  const w2d6: AssignmentOut = { worker_id: '2', date: '2099-01-06', shift: 'A', role: 'GENERAL_GUARD' }
+
+  it('uses an id list only when it belongs to the shown roster version', () => {
+    const ids = { version: 3, assignments: [row(11, '1', '2099-01-05')] }
+    expect(idsForVersion(ids, 3)).toEqual(ids.assignments)
+    // A list from another version (e.g. the placeholder while v4 loads) could join a chip to a moved row.
+    expect(idsForVersion(ids, 4)).toBeNull()
+    expect(idsForVersion(undefined, 3)).toBeNull()
+    expect(idLookup(idsForVersion(ids, 4))(w1d5)).toBeUndefined()
+  })
+
+  it('reports a dragged chip without an id as missing instead of skipping silently', () => {
+    const idOf = idLookup([row(22, '2', '2099-01-06')])
+    expect(dropIds(w1d5, { kind: 'move', date: '2099-01-07', shift: 'A' }, idOf)).toEqual({ kind: 'missing' })
+  })
+
+  it('reports a swap target without an id as missing', () => {
+    const idOf = idLookup([row(11, '1', '2099-01-05')])
+    expect(dropIds(w1d5, { kind: 'swap', other: w2d6 }, idOf)).toEqual({ kind: 'missing' })
+  })
+
+  it('resolves both ids when they are present', () => {
+    const idOf = idLookup([row(11, '1', '2099-01-05'), row(22, '2', '2099-01-06')])
+    expect(dropIds(w1d5, { kind: 'move', date: '2099-01-07', shift: 'A' }, idOf)).toEqual({ kind: 'move', id: 11 })
+    expect(dropIds(w1d5, { kind: 'swap', other: w2d6 }, idOf)).toEqual({ kind: 'swap', id: 11, otherId: 22 })
   })
 })

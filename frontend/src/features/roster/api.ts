@@ -55,13 +55,29 @@ export function useSave(month: string) {
 
 export const assignmentsKey = (month: string) => ['roster-assignments', month] as const
 
-/** Stored assignments with ids (the edit endpoints address them by id). */
-export function useAssignmentIds(month: string, enabled: boolean) {
+export interface AssignmentIds { version: number; assignments: EditableAssignmentOut[] }
+
+/** Stored assignments with ids (the edit endpoints address them by id), fetched for exactly the roster
+ * version on screen: the server refuses a list of another version (409), so ids joined to the shown
+ * roster never point at a row that has moved since. While the next version loads, the previous list
+ * stays as placeholder data and callers must compare `version` before using it. */
+export function useAssignmentIds(month: string, version: number | undefined, enabled: boolean) {
+  const qc = useQueryClient()
   return useQuery({
-    queryKey: assignmentsKey(month),
-    enabled,
+    queryKey: [...assignmentsKey(month), version],
+    enabled: enabled && version !== undefined,
     retry: false,
-    queryFn: () => apiFetch<EditableAssignmentOut[]>(`/rosters/${month}/assignments`),
+    placeholderData: (prev) => prev,
+    queryFn: async (): Promise<AssignmentIds> => {
+      try {
+        const assignments = await apiFetch<EditableAssignmentOut[]>(`/rosters/${month}/assignments?version=${version}`)
+        return { version: version!, assignments }
+      } catch (e) {
+        // The roster moved on: refetch it, which re-keys this query to the new version.
+        if (e instanceof ApiError && e.status === 409) void qc.invalidateQueries({ queryKey: rosterKey(month) })
+        throw e
+      }
+    },
   })
 }
 
@@ -165,7 +181,7 @@ export function useApprove(month: string) {
 export function useRevoke(month: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (req: { expected_version: number; reason: string }) =>
+    mutationFn: (req: { expected_version: number; approval_id: number; reason: string }) =>
       apiFetch<ApprovalResultOut>(`/rosters/${month}/revoke`, { method: 'POST', body: req }),
     onSettled: () => qc.invalidateQueries({ queryKey: rosterKey(month) }),
   })

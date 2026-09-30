@@ -89,7 +89,7 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
             </>
           )}
           {ackBox}
-          <EditErrors error={error} nameOf={nameOf} onReload={() => { reset(); onClose() }}
+          <EditErrors error={move.error} nameOf={nameOf} onReload={() => { reset(); onClose() }}
             heading={target ? `Can't do that: ${nameOf(target.workerId)} on ${target.date} shift ${target.shift}` : undefined} />
           <div className="actions">
             <button className="primary" disabled={pending || ackNeeded || !target || moveUnchanged(selection.assignment, target)}
@@ -130,7 +130,10 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
           ))}
         </>
       )}
-      {selection.kind === 'assignment' && <EditErrors error={remove.error} nameOf={nameOf} onReload={() => { reset(); onClose() }} />}
+      {selection.kind === 'assignment' && (
+        <EditErrors error={remove.error} nameOf={nameOf} onReload={() => { reset(); onClose() }}
+          heading={`Can't remove ${nameOf(selection.assignment.worker_id)} from ${selection.assignment.date} shift ${selection.assignment.shift}`} />
+      )}
     </section>
   )
 }

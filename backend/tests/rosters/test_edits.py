@@ -58,6 +58,30 @@ def test_add_valid_increments_version_and_returns_assignment(planner, db):
 
 
 @requires_db
+def test_assignment_ids_are_bound_to_the_roster_version_shown(planner, db):
+    """Ids fetched at v1 would join W's D5/A chip to the row that has since moved to D7 (the D5/A
+    chip is now the other row), and a move sent with the fresh roster version would pass. With the
+    shown version the stale list is refused instead."""
+    client, uid = planner
+    w = _worker(db, uid, "111111118")
+    roster = insert_roster(db, JAN, uid)
+    first = insert_assignment(db, roster, w, D5, "A", GG)
+    second = insert_assignment(db, roster, w, date(2099, 1, 6), "A", GG)
+    stale = client.get("/api/rosters/2099-01/assignments", params={"version": 1}).json()
+    assert {(a["date"], a["id"]) for a in stale} == {("2099-01-05", first), ("2099-01-06", second)}
+    mv = lambda aid, d, v: client.post(f"/api/rosters/2099-01/assignments/{aid}/move", json={"date": d, "expected_version": v})
+    assert mv(first, "2099-01-07", 1).status_code == 200
+    assert mv(second, "2099-01-05", 2).status_code == 200
+
+    resp = client.get("/api/rosters/2099-01/assignments", params={"version": 1})
+    assert resp.status_code == 409 and _code(resp) == "VERSION_CONFLICT"
+    assert resp.json()["error"]["details"] == {"current_version": 3}
+    fresh = client.get("/api/rosters/2099-01/assignments", params={"version": 3}).json()
+    assert {(a["date"], a["id"]) for a in fresh} == {("2099-01-05", second), ("2099-01-07", first)}
+    assert client.get("/api/rosters/2099-01/assignments").status_code == 200  # without a version: unchanged behaviour
+
+
+@requires_db
 def test_add_rejects_new_violations(planner, db):
     client, uid = planner
     unavailable = _worker(db, uid, "111111118", availability=["TUE:A"])
