@@ -10,6 +10,7 @@ import { EditErrors, EditPanel, type Selection } from './EditPanel'
 import { buildMoveBody, explainEditError, idLookup, needsApprovalAck, type CellRef, type DropAction } from './edit'
 import { nameLookup } from './names'
 import { describeOutcome } from './outcome'
+import { downloadCsv, rosterCsv } from './exportCsv'
 import { FilterBar } from './FilterBar'
 import { GenerationSettings } from './GenerationSettings'
 import { NO_FILTER, type RosterFilter } from './filter'
@@ -165,6 +166,10 @@ export function RosterPage() {
   const monthDates = Array.from({ length: daysInMonth(month) }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
   const focusShifts = focusWorker && meta.data ? shiftsOfWorker(index, focusWorker.worker_id, monthDates, meta.data.shifts, meta.data.roles) : []
   const approvedEvent = existing?.status === 'APPROVED' ? [...existing.approval_history].reverse().find((e) => !e.revoked_at) : undefined
+  const exportCsv = () => {
+    if (!shown) return
+    downloadCsv(`roster-${month}${previewUsable ? '-preview' : ''}.csv`, rosterCsv(shown.assignments, nameLookup(shown.workers)))
+  }
   const openDay = (date: string) => { setView('day'); goTo(date) }
   const selectedKey = selection?.kind === 'assignment' ? `${selection.assignment.worker_id}|${selection.assignment.date}|${selection.assignment.shift}` : null
 
@@ -188,6 +193,9 @@ export function RosterPage() {
           </div>
           <span className="spacer" />
           <div className="cal-buttons">
+            {shown && shown.assignments.length > 0 && (
+              <button onClick={exportCsv} title={`Download the ${previewUsable ? 'unsaved proposal' : 'roster'} for ${monthLabel(month)} as a CSV file`}>Export CSV</button>
+            )}
             <GenerationSettings forbid={forbid} onForbid={setForbid} monthName={monthLabel(month)} storedForbid={existing ? existing.forbid_adjacent_shifts : null} />
             {existing && <button onClick={runGenerate} disabled={generate.isPending} title="Creates a new proposal to review before saving">{generate.isPending ? 'Generating…' : 'Regenerate'}</button>}
             {!existing && <button className="primary" onClick={runGenerate} disabled={generate.isPending}>{generate.isPending ? 'Generating…' : 'Generate roster'}</button>}
