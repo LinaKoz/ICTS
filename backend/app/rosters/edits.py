@@ -49,7 +49,7 @@ from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, BuiltProblem, _pos, build_problem, is_history_month, parse_month
 from app.rosters.serialize import load_worker_refs, violation_to_out
 from app.rosters.suggestions import replacements, suggest
-from app.scheduling.types import Assignment, Role, Shift, validate_roster, worsened
+from app.scheduling.types import Assignment, Role, Shift, Violation, ViolationCode, validate_roster, worsened
 from app.workers.models import Worker
 
 router = APIRouter(prefix="/api/rosters", tags=["rosters"])
@@ -285,9 +285,15 @@ async def swap_assignments(
     new_b = Assignment(a.worker_id, b.date, b.shift, b.role)
     before = [_to_assignment(ra) for ra in stored]
     rest = [x for x in before if x not in (a, b)]
+    # Checked before the gate: the double-booked rows would hit the unique slot constraint on flush.
     for moved in (new_a, new_b):
-        if any(x.worker_id == moved.worker_id and x.date == moved.date and x.shift == moved.shift for x in rest):
-            raise ValidationAppError(f"worker {moved.worker_id} already works {moved.date} shift {moved.shift.value}")
+        taken = next((x for x in rest if (x.worker_id, x.date, x.shift) == (moved.worker_id, moved.date, moved.shift)), None)
+        if taken is not None:
+            dup = Violation(ViolationCode.DUPLICATE_ASSIGNMENT, (moved.worker_id, moved.date, moved.shift), 1, (taken, moved))
+            raise HardViolationsError(
+                f"worker {moved.worker_id} already works {moved.date} shift {moved.shift.value}",
+                details=[violation_to_out(dup, set()).model_dump(mode="json")],
+            )
     _gate(built, before, [*rest, new_a, new_b])
 
     revoked = await _commit_edit(session, roster, user, body.acknowledge_approved_edit)

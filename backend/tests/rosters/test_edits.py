@@ -407,7 +407,7 @@ def test_swap_rejects_bad_pairs_and_worsening(planner, db):
 
 
 @requires_db
-def test_swap_rejected_when_it_would_break_a_rule_and_when_approved_unacknowledged(planner, db):
+def test_swap_rejected_when_it_would_break_a_rule(planner, db):
     client, uid = planner
     w1 = _worker(db, uid, "111111118")
     w2 = _worker(db, uid, "222222226", availability=["MON:A"])
@@ -417,3 +417,62 @@ def test_swap_rejected_when_it_would_break_a_rule_and_when_approved_unacknowledg
     resp = _swap(client, "2099-01", a, b, 1)
     assert resp.status_code == 422 and _code(resp) == "HARD_VIOLATIONS"
     assert _version(db, JAN) == 1
+
+
+def _workers_of(db, roster) -> dict[int, int]:
+    return dict(_q(db, "SELECT id, worker_id FROM roster_assignments WHERE roster_id = %s", roster))
+
+
+@requires_db
+def test_swap_that_double_books_a_worker_is_a_structured_duplicate(planner, db):
+    client, uid = planner
+    w1, w2 = _worker(db, uid, "111111118"), _worker(db, uid, "222222226")
+    roster = insert_roster(db, JAN, uid)
+    a = insert_assignment(db, roster, w1, D5, "A", GG)
+    b = insert_assignment(db, roster, w2, date(2099, 1, 7), "A", GG)
+    # w2 already holds D5 A in another role, so taking a's slot would double-book them.
+    insert_assignment(db, roster, w2, D5, "A", "SCREENER")
+    before = _workers_of(db, roster)
+    resp = _swap(client, "2099-01", a, b, 1)
+    assert resp.status_code == 422 and _code(resp) == "HARD_VIOLATIONS"
+    details = resp.json()["error"]["details"]
+    assert [v["code"] for v in details] == ["DUPLICATE_ASSIGNMENT"]
+    assert details[0]["key"] == [str(w2), D5.isoformat(), "A"]
+    assert {(x["worker_id"], x["date"], x["shift"]) for x in details[0]["assignments"]} == {(str(w2), D5.isoformat(), "A")}
+    assert _workers_of(db, roster) == before and _version(db, JAN) == 1
+
+
+@requires_db
+def test_valid_swap_on_approved_roster_needs_acknowledgement_then_revokes(planner, db):
+    client, uid = planner
+    w1, w2 = _worker(db, uid, "111111118"), _worker(db, uid, "222222226")
+    roster = insert_roster(db, JAN, uid, status="APPROVED")
+    insert_approval(db, roster, uid)
+    a = insert_assignment(db, roster, w1, D5, "A", GG)
+    b = insert_assignment(db, roster, w2, date(2099, 1, 7), "A", GG)
+    resp = _swap(client, "2099-01", a, b, 1)
+    assert resp.status_code == 409 and _code(resp) == "APPROVED_EDIT_NOT_ACKNOWLEDGED"
+    assert _workers_of(db, roster) == {a: w1, b: w2}
+    assert _q(db, "SELECT status, row_version FROM rosters") == [("APPROVED", 1)]
+
+    resp = _swap(client, "2099-01", a, b, 1, acknowledge_approved_edit=True)
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["status"] == "DRAFT" and resp.json()["approval_revoked"] is True
+    assert _workers_of(db, roster) == {a: w2, b: w1}
+    assert _q(db, "SELECT revoke_cause, revoked_by FROM roster_approvals") == [("EDIT", uid)]
+
+
+@requires_db
+def test_swap_with_a_started_shift_on_either_side_is_locked(planner, db, freeze):
+    client, uid = planner
+    w1, w2 = _worker(db, uid, "111111118"), _worker(db, uid, "222222226")
+    roster = insert_roster(db, date(2026, 3, 1), uid)
+    started = insert_assignment(db, roster, w1, date(2026, 3, 5), "A", GG)
+    upcoming = insert_assignment(db, roster, w2, date(2026, 3, 20), "A", GG)
+    later = insert_assignment(db, roster, w1, date(2026, 3, 25), "A", GG)
+    freeze(datetime(2026, 3, 10, 10, 0))
+    assert _code(_swap(client, "2026-03", started, upcoming, 1)) == "LOCKED_SHIFT"  # source started
+    assert _code(_swap(client, "2026-03", upcoming, started, 1)) == "LOCKED_SHIFT"  # destination started
+    assert _workers_of(db, roster) == {started: w1, upcoming: w2, later: w1}
+    assert _version(db, date(2026, 3, 1)) == 1
+    assert _swap(client, "2026-03", upcoming, later, 1).status_code == 200  # both free: allowed
