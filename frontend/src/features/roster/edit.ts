@@ -53,6 +53,11 @@ export function needsApprovalAck(status: string | undefined): boolean {
   return status === 'APPROVED'
 }
 
+/** Which assignment's replacements to load: none until the planner picks one, then only that one. */
+export function replacementTargets<T extends { id: number }>(fixable: T[], selectedId: number | null): T[] {
+  return fixable.filter(({ id }) => id === selectedId)
+}
+
 /** Readable lines for a 422 HARD_VIOLATIONS body (`details` is a ViolationOut[]). */
 export function violationLines(err: unknown, nameOf: (id: string) => string): string[] {
   if (!(err instanceof ApiError) || err.code !== 'HARD_VIOLATIONS' || !Array.isArray(err.details)) return []

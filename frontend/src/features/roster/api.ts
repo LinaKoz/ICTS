@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
 import type { components } from '../../api/types'
 import type {
@@ -6,6 +6,7 @@ import type {
   Role, RosterOut, SaveRequest, SaveResponseOut, Shift, SuggestionsOut, SwapAssignmentRequest,
 } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
+import { addMonths } from './calendar'
 
 /** Month is YYYY-MM in the URL path (assumption: not yet in OpenAPI). */
 export const rosterKey = (month: string) => ['roster', month] as const
@@ -48,7 +49,7 @@ export function useSave(month: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (req: SaveRequest) => apiFetch<SaveResponseOut>(`/rosters/${month}/save`, { method: 'POST', body: req }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: rosterKey(month) }),
+    onSuccess: () => invalidateAfterEdit(qc, month),
   })
 }
 
@@ -85,15 +86,24 @@ export function useReplacements(month: string, assignmentId: number, enabled: bo
   })
 }
 
-/** Every edit changes the roster's version, so refetch the roster, ids and suggestions. */
+/** The months before and after `month` (YYYY-MM), across year boundaries. */
+export const adjacentMonths = (month: string): [string, string] =>
+  [addMonths(`${month}-01`, -1).slice(0, 7), addMonths(`${month}-01`, 1).slice(0, 7)]
+
+/** Every edit changes the roster's version, so refetch the roster, ids and suggestions. A boundary
+ * assignment also changes the neighbouring months' adjacency violations, so those are refetched too;
+ * `invalidateQueries` only refetches queries that are on screen, the rest are just marked stale. */
+export function invalidateAfterEdit(qc: QueryClient, month: string) {
+  return Promise.all([month, ...adjacentMonths(month)].flatMap((m) => [
+    qc.invalidateQueries({ queryKey: rosterKey(m) }),
+    qc.invalidateQueries({ queryKey: assignmentsKey(m) }),
+    qc.invalidateQueries({ queryKey: ['roster-suggestions', m] }),
+  ]))
+}
+
 function useEditInvalidation(month: string) {
   const qc = useQueryClient()
-  return () =>
-    Promise.all([
-      qc.invalidateQueries({ queryKey: rosterKey(month) }),
-      qc.invalidateQueries({ queryKey: assignmentsKey(month) }),
-      qc.invalidateQueries({ queryKey: ['roster-suggestions', month] }),
-    ])
+  return () => invalidateAfterEdit(qc, month)
 }
 
 export function useAddAssignment(month: string) {

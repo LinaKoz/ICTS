@@ -28,6 +28,11 @@ export interface CalendarIndex {
 
 const cell = (date: string, shift: string, role?: string) => (role ? `${date}|${shift}|${role}` : `${date}|${shift}`)
 
+/** Identity of a violation: its code and involved assignments, in any order. Neighbouring months both
+ * report an adjacency pair across their boundary, so this also dedupes those and keys React lists. */
+export const violationKey = (v: ViolationOut): string =>
+  `${v.code}|${v.assignments.map((a) => `${a.worker_id}:${a.date}:${a.shift}`).sort().join(',')}`
+
 /** Merges the rosters of every month the visible range touches into date-addressed lookups. */
 export function buildIndex(sources: MonthSource[]): CalendarIndex {
   const statusByMonth = new Map(sources.map((s) => [s.month, s.status]))
@@ -37,12 +42,15 @@ export function buildIndex(sources: MonthSource[]): CalendarIndex {
   const costs = new Map<string, ShiftCostOut>()
   const warnings = new Map<string, ViolationOut[]>()
   const workers: WorkerRefOut[] = []
+  const seenViolations = new Set<string>()
   for (const { data } of sources) {
     if (!data) continue
     for (const a of data.assignments) assignments.set(cell(a.date, a.shift, a.role), [...(assignments.get(cell(a.date, a.shift, a.role)) ?? []), a])
     for (const g of data.gaps) gaps.set(cell(g.date, g.shift, g.role), g)
     for (const c of data.costs?.per_shift ?? []) costs.set(cell(c.date, c.shift), c)
     for (const v of data.violations) {
+      if (seenViolations.has(violationKey(v))) continue
+      seenViolations.add(violationKey(v))
       const keys = new Set(v.assignments.map((a) => cell(a.date, a.shift)))
       for (const k of keys) warnings.set(k, [...(warnings.get(k) ?? []), v])
     }
