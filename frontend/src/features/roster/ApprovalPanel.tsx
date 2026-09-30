@@ -5,7 +5,7 @@ import { ErrorPanel } from '../../errors/ErrorPanel'
 import { mapError } from '../../errors/mapError'
 import type { ApprovalEventOut, RosterOut } from '../../api/schemas'
 import { useApprovalPreview, useApprove, useRevoke } from './api'
-import { buildApproveBody, canSubmitApproval, describeRevocation, shortageLines } from './approval'
+import { buildApproveBody, canSubmitApproval, describeRevocation, openApprovalId, shortageLines } from './approval'
 import { nameLookup, violationLabel } from './names'
 import { violationLines } from './edit'
 
@@ -46,7 +46,8 @@ export function ApprovalPanel({ month, roster }: { month: string; roster: Roster
   const revoke = useRevoke(month)
   const [ack, setAck] = useState(false)
   const [reason, setReason] = useState('')
-  const [confirmRevoke, setConfirmRevoke] = useState(false)
+  // The approval shown when the dialog opened: a refetch never swaps in a newer one behind the manager's reason.
+  const [revokeTarget, setRevokeTarget] = useState<number | null>(null)
   const [revokeReason, setRevokeReason] = useState('')
 
   const p = preview.data
@@ -71,23 +72,23 @@ export function ApprovalPanel({ month, roster }: { month: string; roster: Roster
           <p>Approved. Editing or regenerating it returns it to draft.</p>
           {isManager ? (
             <div className="actions">
-              <button disabled={revoke.isPending} onClick={() => { revoke.reset(); setRevokeReason(''); setConfirmRevoke(true) }}>Revoke approval</button>
+              <button disabled={revoke.isPending} onClick={() => { revoke.reset(); setRevokeReason(''); setRevokeTarget(openApprovalId(roster)) }}>Revoke approval</button>
             </div>
           ) : <p className="muted">Only a manager can revoke an approval.</p>}
-          {confirmRevoke && (
-            <Modal label="Revoke approval" onClose={() => setConfirmRevoke(false)}>
+          {revokeTarget !== null && (
+            <Modal label="Revoke approval" onClose={() => setRevokeTarget(null)}>
               <h3>Revoke the approval?</h3>
               <p>The roster returns to draft. No assignment changes; the approval stays in the history with your reason.</p>
               <label className="field">Reason (required)
                 <textarea rows={3} maxLength={500} autoFocus value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="Why is the approval being withdrawn?" />
               </label>
-              {revoke.isError && <ErrorPanel error={revoke.error} onReload={() => { revoke.reset(); setConfirmRevoke(false) }} />}
+              {revoke.isError && <ErrorPanel error={revoke.error} onReload={() => { revoke.reset(); setRevokeTarget(null) }} />}
               <div className="actions">
                 <button className="primary" disabled={revoke.isPending || revokeReason.trim() === ''}
-                  onClick={() => revoke.mutate({ expected_version: roster.version, reason: revokeReason.trim() }, { onSuccess: () => setConfirmRevoke(false) })}>
+                  onClick={() => revoke.mutate({ expected_version: roster.version, approval_id: revokeTarget, reason: revokeReason.trim() }, { onSuccess: () => setRevokeTarget(null) })}>
                   {revoke.isPending ? 'Revoking…' : 'Revoke approval'}
                 </button>
-                <button onClick={() => setConfirmRevoke(false)}>Cancel</button>
+                <button onClick={() => setRevokeTarget(null)}>Cancel</button>
               </div>
             </Modal>
           )}

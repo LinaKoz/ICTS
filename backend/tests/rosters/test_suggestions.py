@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from app.rosters.suggestions import replacements, suggest
-from app.scheduling.types import DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput
+from app.scheduling import DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput
 from tests.conftest import requires_db
 from tests.rosters.helpers import insert_assignment, insert_contract, insert_roster, insert_worker
 

@@ -4,10 +4,10 @@ import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { AssignmentOut, GenerateOutcomeOut, RosterOut } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
 import { WorkerDetail } from '../workers/WorkerDetailPage'
-import { rosterKey, useAssignmentIds, useGenerate, useMeta, useMoveAssignment, useRoster, useRosters, useSave, useSwapAssignment } from './api'
+import { assignmentsKey, rosterKey, useAssignmentIds, useGenerate, useMeta, useMoveAssignment, useRoster, useRosters, useSave, useSwapAssignment } from './api'
 import { ApprovalPanel } from './ApprovalPanel'
 import { EditErrors, EditPanel, type Selection } from './EditPanel'
-import { buildMoveBody, explainEditError, idLookup, needsApprovalAck, type CellRef, type DropAction } from './edit'
+import { buildMoveBody, dropIds, explainEditError, IDS_UPDATING_MESSAGE, idLookup, idsForVersion, needsApprovalAck, type CellRef, type DropAction } from './edit'
 import { nameLookup } from './names'
 import { describeOutcome } from './outcome'
 import { downloadCsv, rosterCsv } from './exportCsv'
@@ -64,9 +64,12 @@ export function RosterPage() {
   const previewUsable = preview?.outcome === 'solved' && preview.assignments != null && preview.fingerprint != null
   // Manual edits work on the stored roster only: not on a preview, not on history.
   const canEdit = existing != null && !existing.is_history && !previewUsable
-  const ids = useAssignmentIds(month, canEdit)
-  const idOf = idLookup(ids.data)
-  const editing = canEdit && editMode && ids.isSuccess
+  const ids = useAssignmentIds(month, existing?.version, canEdit)
+  const idOf = idLookup(idsForVersion(ids.data, existing?.version))
+  // Not `isSuccess`: after an edit the old version's list is refetched and refused (409) until the roster
+  // refetch re-keys it; keeping its data avoids leaving edit mode meanwhile, and `idOf` ignores it anyway.
+  const idsLoaded = ids.data !== undefined
+  const editing = canEdit && editMode && idsLoaded
 
   /** Moves the visible date. Anything tied to the month (preview, edits, dialogs) resets only when the month changes. */
   function goTo(date: string) {
@@ -97,20 +100,39 @@ export function RosterPage() {
     )
   }
 
+  /** Ids and roster are loaded separately; never guess a row. Refresh both and ask the user to retry. */
+  function idsMissing() {
+    setDropMessage(IDS_UPDATING_MESSAGE)
+    void qc.invalidateQueries({ queryKey: rosterKey(month) })
+    void qc.invalidateQueries({ queryKey: assignmentsKey(month) })
+  }
+
+  /** A chip was clicked: select it for editing, or explain why that is not possible yet. */
+  function selectAssignment(a: AssignmentOut) {
+    const id = idOf(a)
+    if (id === undefined) {
+      move.reset(); swap.reset(); setAttempt(null); setSelection(null)
+      idsMissing()
+      return
+    }
+    setDropMessage(null)
+    setSelection({ kind: 'assignment', assignment: a, id })
+  }
+
   /** A chip was dropped: move to a free slot, or swap with another worker. */
   function applyDrop(from: AssignmentOut, action: DropAction, where: CellRef) {
     move.reset(); swap.reset(); setDropMessage(null); setAttempt(where)
     if (action.kind === 'reject') { setDropMessage(action.message); return }
-    const id = idOf(from)
-    if (!existing || id === undefined) return
+    if (!existing) return
+    const ids = dropIds(from, action, idOf)
+    if (ids.kind === 'missing') { idsMissing(); return }
     const approved = needsApprovalAck(existing.status)
     if (approved && !window.confirm('This roster is approved. Editing returns it to draft and revokes the approval. Continue?')) return
     const common = { expected_version: existing.version, acknowledge_approved_edit: approved }
-    if (action.kind === 'move') {
-      move.mutate({ id, ...buildMoveBody(from, { workerId: from.worker_id, date: action.date, shift: action.shift }, existing.version, approved) })
-    } else {
-      const otherId = idOf(action.other)
-      if (otherId !== undefined) swap.mutate({ id, other_assignment_id: otherId, ...common })
+    if (ids.kind === 'move' && action.kind === 'move') {
+      move.mutate({ id: ids.id, ...buildMoveBody(from, { workerId: from.worker_id, date: action.date, shift: action.shift }, existing.version, approved) })
+    } else if (ids.kind === 'swap') {
+      swap.mutate({ id: ids.id, other_assignment_id: ids.otherId, ...common })
     }
   }
 
@@ -201,7 +223,7 @@ export function RosterPage() {
             {!existing && <button className="primary" onClick={runGenerate} disabled={generate.isPending}>{generate.isPending ? 'Generating…' : 'Generate roster'}</button>}
             {existing && canEdit && (editMode
               ? <button className="primary" onClick={finishEditing}>Done editing</button>
-              : <button className="primary" onClick={() => setEditMode(true)} disabled={!ids.isSuccess}>Edit roster</button>)}
+              : <button className="primary" onClick={() => setEditMode(true)} disabled={!idsLoaded}>Edit roster</button>)}
           </div>
         </div>
         {(editMode && canEdit || otherMonths.length > 0) && (
@@ -268,9 +290,9 @@ export function RosterPage() {
             view={view} anchor={anchor} today={today} targetMonth={month}
             shifts={meta.data.shifts} roles={meta.data.roles} demand={meta.data.demand} index={index}
             onOpenDay={openDay} focusId={focusId} filter={filter}
-            fix={canEdit && ids.isSuccess && existing ? { month, roster: existing, idOf } : undefined}
+            fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined}
             edit={editing && view !== 'month' ? {
-              onAssignment: (a) => { const id = idOf(a); if (id !== undefined) setSelection({ kind: 'assignment', assignment: a, id }) },
+              onAssignment: selectAssignment,
               onGap: (slot) => setSelection({ kind: 'gap', slot }),
               onDrop: applyDrop,
               problem,

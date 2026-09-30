@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from datetime import date
 
-from app.scheduling.types import (
+from app.scheduling import (
     DEFAULT_DEMAND, Assignment, Problem, Role, Shift, Weekday, WorkerInput,
 )
 

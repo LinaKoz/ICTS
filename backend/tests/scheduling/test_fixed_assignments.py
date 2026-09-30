@@ -1,8 +1,8 @@
 """§4.9 Fixed assignments and existing violations."""
 from datetime import date
 
-from app.scheduling.types import (
-    Assignment, Problem, Role, Shift, Solved, SolverConfig, ViolationCode, Weekday, solve,
+from app.scheduling import (
+    Assignment, Problem, Role, Shift, Solved, SolverConfig, ViolationCode, solve,
 )
 from tests.scheduling.conftest import make_worker
 
@@ -145,7 +145,7 @@ def test_fully_locked_month_returns_fixed_unchanged_optimal():
 def test_gate_rejects_worse_than_fixed_via_mocked_solution(monkeypatch):
     """An injected solution that adds a shift to a worker already over the
     cap (magnitude 16 -> 24) is rejected, even though the key is the same."""
-    import app.scheduling.types as T
+    import app.scheduling.solver as T
 
     worker = make_worker("w1", Role.GENERAL_GUARD, min_hours=0, max_hours=64)
     fixed = tuple(Assignment("w1", date(YEAR, MONTH, d), Shift.A, Role.GENERAL_GUARD) for d in range(1, 11))  # 80h

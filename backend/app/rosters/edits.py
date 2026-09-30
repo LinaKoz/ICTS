@@ -49,7 +49,7 @@ from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, BuiltProblem, _pos, build_problem, is_history_month, parse_month
 from app.rosters.serialize import load_worker_refs, violation_to_out
 from app.rosters.suggestions import replacements, suggest
-from app.scheduling.types import Assignment, Role, Shift, validate_roster, worsened
+from app.scheduling import Assignment, Role, Shift, Violation, ViolationCode, validate_roster, worsened
 from app.workers.models import Worker
 
 router = APIRouter(prefix="/api/rosters", tags=["rosters"])
@@ -146,18 +146,36 @@ async def _finish(session: AsyncSession, roster: Roster, revoked: bool, ra: Rost
 @router.get(
     "/{month}/assignments",
     response_model=list[EditableAssignmentOut],
-    responses=error_responses(401, 403, 404, 422),
+    responses=error_responses(401, 403, 404, 409, 422),
 )
 async def list_assignments(
     month: MonthPath,
+    version: Annotated[int | None, Query(description="the roster version the caller shows; 409 if the roster moved on")] = None,
     _user: User = Depends(require_role("PLANNER", "MANAGER")),
     session: AsyncSession = Depends(get_session),
 ) -> list[EditableAssignmentOut]:
-    """Stored assignments with their ids (the ids `DELETE`/`move` address)."""
-    roster = (await session.execute(select(Roster).where(Roster.month == parse_month(month)))).scalar_one_or_none()
+    """Stored assignments with their ids (the ids `DELETE`/`move` address).
+
+    The UI joins these ids to `GET /rosters/{month}` by (worker, date, shift),
+    so with `version` the ids are guaranteed to belong to that same roster
+    version: otherwise a stale id could send an edit to a row that has moved
+    since, and the edit's own version check would not notice."""
+    month_date = parse_month(month)
+    current_version = select(Roster.row_version).where(Roster.month == month_date)
+    roster = (await session.execute(select(Roster).where(Roster.month == month_date))).scalar_one_or_none()
     if roster is None:
         raise NotFoundError(f"no roster for {month}")
-    return [_out(ra) for ra in await _load_stored(session, roster)]
+    before = roster.row_version
+    rows = [_out(ra) for ra in await _load_stored(session, roster)]
+    # Read committed: an edit may commit between the two reads. Edits always bump the version,
+    # so an unchanged version means the rows belong to it.
+    after = (await session.execute(current_version)).scalar_one()
+    if version is not None and (before != version or after != version):
+        raise VersionConflictError(
+            f"the roster is at version {after}, not {version}; reload it",
+            details={"current_version": after},
+        )
+    return rows
 
 
 @router.post(
@@ -285,9 +303,15 @@ async def swap_assignments(
     new_b = Assignment(a.worker_id, b.date, b.shift, b.role)
     before = [_to_assignment(ra) for ra in stored]
     rest = [x for x in before if x not in (a, b)]
+    # Checked before the gate: the double-booked rows would hit the unique slot constraint on flush.
     for moved in (new_a, new_b):
-        if any(x.worker_id == moved.worker_id and x.date == moved.date and x.shift == moved.shift for x in rest):
-            raise ValidationAppError(f"worker {moved.worker_id} already works {moved.date} shift {moved.shift.value}")
+        taken = next((x for x in rest if (x.worker_id, x.date, x.shift) == (moved.worker_id, moved.date, moved.shift)), None)
+        if taken is not None:
+            dup = Violation(ViolationCode.DUPLICATE_ASSIGNMENT, (moved.worker_id, moved.date, moved.shift), 1, (taken, moved))
+            raise HardViolationsError(
+                f"worker {moved.worker_id} already works {moved.date} shift {moved.shift.value}",
+                details=[violation_to_out(dup, set()).model_dump(mode="json")],
+            )
     _gate(built, before, [*rest, new_a, new_b])
 
     revoked = await _commit_edit(session, roster, user, body.acknowledge_approved_edit)

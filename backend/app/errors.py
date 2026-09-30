@@ -104,6 +104,10 @@ class NotApprovedError(ConflictError):
     code = "NOT_APPROVED"
 
 
+class StaleApprovalError(ConflictError):
+    code = "STALE_APPROVAL"
+
+
 # --- 413: request too large ------------------------------------------------
 
 

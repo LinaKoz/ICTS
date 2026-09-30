@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.changes.service import is_locked_violation
-from app.scheduling.types import Assignment, Role, Shift, Violation, ViolationCode
+from app.scheduling import Assignment, Role, Shift, Violation, ViolationCode
 
 MONTH = date(2026, 9, 1)
 FREE_FROM = (date(2026, 9, 15), Shift.C)

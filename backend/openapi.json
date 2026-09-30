@@ -1081,7 +1081,7 @@
           "rosters"
         ],
         "summary": "List Assignments",
-        "description": "Stored assignments with their ids (the ids `DELETE`/`move` address).",
+        "description": "Stored assignments with their ids (the ids `DELETE`/`move` address).\n\nThe UI joins these ids to `GET /rosters/{month}` by (worker, date, shift),\nso with `version` the ids are guaranteed to belong to that same roster\nversion: otherwise a stale id could send an edit to a row that has moved\nsince, and the edit's own version check would not notice.",
         "operationId": "list_assignments_api_rosters__month__assignments_get",
         "parameters": [
           {
@@ -1095,6 +1095,24 @@
               "title": "Month"
             },
             "description": "YYYY-MM"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "the roster version the caller shows; 409 if the roster moved on",
+              "title": "Version"
+            },
+            "description": "the roster version the caller shows; 409 if the roster moved on"
           }
         ],
         "responses": {
@@ -1134,6 +1152,16 @@
           },
           "404": {
             "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ...",
             "content": {
               "application/json": {
                 "schema": {
@@ -4559,6 +4587,10 @@
             "type": "integer",
             "title": "Expected Version"
           },
+          "approval_id": {
+            "type": "integer",
+            "title": "Approval Id"
+          },
           "reason": {
             "anyOf": [
               {
@@ -4574,7 +4606,8 @@
         },
         "type": "object",
         "required": [
-          "expected_version"
+          "expected_version",
+          "approval_id"
         ],
         "title": "RevokeRequest"
       },

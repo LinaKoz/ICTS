@@ -21,6 +21,32 @@ export function idLookup(editable: EditableAssignmentOut[] | null | undefined): 
   return (a) => byKey.get(cellKey(a))
 }
 
+/** The id list, only if it was fetched for the roster version on screen (never a placeholder of another). */
+export function idsForVersion(
+  ids: { version: number; assignments: EditableAssignmentOut[] } | undefined,
+  version: number | undefined,
+): EditableAssignmentOut[] | null {
+  return ids && version !== undefined && ids.version === version ? ids.assignments : null
+}
+
+/** Shown when a chip has no id for the version on screen; the data is refreshed and the user retries. */
+export const IDS_UPDATING_MESSAGE = 'Assignment data is updating. Please try again.'
+
+export type DropIds = { kind: 'move'; id: number } | { kind: 'swap'; id: number; otherId: number } | { kind: 'missing' }
+
+/** The row ids a move or swap addresses; `missing` if the dragged chip or the swap target has none. */
+export function dropIds(
+  from: AssignmentOut,
+  action: Exclude<DropAction, { kind: 'reject' }>,
+  idOf: (a: AssignmentOut) => number | undefined,
+): DropIds {
+  const id = idOf(from)
+  if (id === undefined) return { kind: 'missing' }
+  if (action.kind === 'move') return { kind: 'move', id }
+  const otherId = idOf(action.other)
+  return otherId === undefined ? { kind: 'missing' } : { kind: 'swap', id, otherId }
+}
+
 export interface MoveTarget { workerId: string; date: string; shift: Shift }
 
 /** Sends only what changed; role always stays the source's slot role. */
@@ -51,6 +77,11 @@ export function workersForRole(workers: WorkerRefOut[] | null | undefined, role:
 /** An approved roster needs an explicit acknowledgement before any edit (P12). */
 export function needsApprovalAck(status: string | undefined): boolean {
   return status === 'APPROVED'
+}
+
+/** Which assignment's replacements to load: none until the planner picks one, then only that one. */
+export function replacementTargets<T extends { id: number }>(fixable: T[], selectedId: number | null): T[] {
+  return fixable.filter(({ id }) => id === selectedId)
 }
 
 /** Readable lines for a 422 HARD_VIOLATIONS body (`details` is a ViolationOut[]). */

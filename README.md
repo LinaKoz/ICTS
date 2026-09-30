@@ -36,6 +36,7 @@ The passwords, the session secret and the database credentials come from environ
 | `SESSION_SECRET` | `dev-session-secret-change-me` in `.env.example` | signs the session cookie. If empty, the backend generates a random secret at start and logs a warning (sessions then reset on restart) |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `icts`, `icts`, `icts` | database credentials, used by the `db` and `backend` services |
 | `FRONTEND_PORT` | `8080` | host port of the web UI and the `/api` proxy |
+| `BACKEND_PORT` | `8000` | host port of the backend (bound to 127.0.0.1, for debugging) |
 
 The seed creates a missing user but never overwrites an existing one, so after changing a password reset the database (below).
 
@@ -82,6 +83,8 @@ backend/
   app/csvio/         parse, import preview/confirm, export
   app/rosters/       problem_builder, evaluation, generation, save, costs, edits, suggestions, approval
   app/scheduling/    the pure engine: standard library + ortools only, no database or web imports
+                       types.py (data contract), validation.py (input check, roster validator, metrics),
+                       diagnostics.py (proven lower bounds), solver.py (the CP-SAT model), _helpers.py
   alembic/, tests/, bench/, openapi.json
 frontend/            React, TypeScript, Vite, React Router, TanStack Query; API types generated from openapi.json
 sample-data/         workers.csv, contract-changes-shortage.csv
@@ -93,7 +96,7 @@ tests/e2e/           httpx flows against the running stack
 - **Concurrency.** Every write that touches scheduling data first takes one transaction-scoped Postgres advisory lock, then checks optimistic versions (`row_version` / `expected_version`) and fingerprints; a mismatch is 409. Writes are serialised, which is fine for a single-site tool; reads and solving are not affected.
 - **Time.** One helper, `now_israel()` (`Asia/Jerusalem`), decides the current month and which shifts have already started. The containers run on UTC.
 - **Auth.** A signed HttpOnly, SameSite=Lax session cookie, same origin through nginx. State-changing requests whose `Origin` header names a different host:port than `Host` are rejected with 403 `CSRF_REJECTED` (`SameSite` ignores ports, so this closes the other-localhost-port case); requests without `Origin` (curl, tests) pass. Roles: `PLANNER` and `MANAGER`. (The worker role `SUPERVISOR` has nothing to do with app permissions.)
-- **One error shape** for every non-2xx response: `{"error": {"code", "message", "details"}}`. Statuses: 400/401/403/404; 409 `VERSION_CONFLICT`, `STALE_PREVIEW`, `ALREADY_CONFIRMED`, `WORKER_IN_USE`, `APPROVED_EDIT_NOT_ACKNOWLEDGED`, `ALREADY_APPROVED`, `NOT_APPROVED`; 413 `FILE_TOO_LARGE`, `TOO_MANY_ROWS`; 415; 422 (validation, `HARD_VIOLATIONS` with the violation list, `LOCKED_SHIFT`, `WARNINGS_NOT_ACKNOWLEDGED`); 429 `GENERATION_IN_PROGRESS`; 500 `ENGINE_ERROR`.
+- **One error shape** for every non-2xx response: `{"error": {"code", "message", "details"}}`. Statuses: 400/401/403/404; 409 `VERSION_CONFLICT`, `STALE_PREVIEW`, `STALE_APPROVAL`, `ALREADY_CONFIRMED`, `WORKER_IN_USE`, `APPROVED_EDIT_NOT_ACKNOWLEDGED`, `ALREADY_APPROVED`, `NOT_APPROVED`; 413 `FILE_TOO_LARGE`, `TOO_MANY_ROWS`; 415; 422 (validation, `HARD_VIOLATIONS` with the violation list, `LOCKED_SHIFT`, `WARNINGS_NOT_ACKNOWLEDGED`); 429 `GENERATION_IN_PROGRESS`; 500 `ENGINE_ERROR`.
 
 ## Database schema and indexes
 
@@ -169,7 +172,7 @@ Value aliases (case-insensitive; spaces, hyphens and underscores are equal): rol
 
 ## Scheduling design
 
-The engine (`backend/app/scheduling/`) is pure Python on CP-SAT. It is given a `Problem` (month, demand, workers with contracts already resolved for that month, `free_from`, fixed and neighbour assignments, the adjacency flag) and returns one of `Solved`, `NoSolutionWithinLimit`, `InvalidInput` or `EngineError`.
+The engine (`backend/app/scheduling/`) is pure Python on CP-SAT; the model itself is in `solver.py`. It is given a `Problem` (month, demand, workers with contracts already resolved for that month, `free_from`, fixed and neighbour assignments, the adjacency flag) and returns one of `Solved`, `NoSolutionWithinLimit`, `InvalidInput` or `EngineError`.
 
 **Demand and rules from the brief.** Default demand is 2 General Guard, 2 Screener and 1 Supervisor per shift (15 slots a day), held in one constant. Hard constraints: availability, role, at most 2 shifts per worker per calendar day, at most `max_hours` per month (a shift is 8 hours), no overstaffing. No labour-law rules are simulated. Coverage (demand) and minimum hours are **soft**: with too few workers the engine returns a partial roster with the gaps and shortfalls flagged instead of failing, so "zero new assignments" is always feasible.
 
@@ -257,7 +260,7 @@ What this shows, honestly:
 
 **Core (from the brief):** worker CRUD with ID validation; immutable, versioned contracts with month resolution; CSV import (preview, partial success, confirm) and export; roster generation with gap and shortfall alerts before saving; a day-by-shift grid; manual add/remove/move under a repair rule; estimated costs; sample data; `docker compose up`.
 
-**Bonus feature 1: manager approval with automatic invalidation and an audit trail.** *Rationale:* a roster that goes live should have a named person's sign-off, and a signed-off roster must never silently stop being valid. A manager approves a draft (planners get 403). Soft shortages (coverage gaps, minimum-hour shortfalls) may be approved only with an explicit acknowledgement, a reason and the fingerprint of the exact shortages the manager saw (a changed list is 409 `STALE_PREVIEW`); **hard violations can never be acknowledged** and block approval with 422 `HARD_VIOLATIONS`. Any later change that would invalidate the roster revokes the approval automatically and returns it to draft: a manual edit (`EDIT`), regeneration (`REGENERATE`), a contract change by UI or CSV that creates hard violations (`CONTRACT_CHANGE`, referencing `contract_version:{id}` or `import:{id}`), or a worker status/role change (`WORKER_CHANGE`, `worker:{id}`); a manager can also revoke by hand (`MANUAL`). Editing an approved roster asks for an explicit acknowledgement first. The audit trail is the approval history on the roster: every approval and revocation, in order, with actor, time, roster version, reason, the acknowledged-shortage snapshot, and revoke cause and reference. It covers approval events; it is not a log of every edit.
+**Bonus feature 1: manager approval with automatic invalidation and an audit trail.** *Rationale:* a roster that goes live should have a named person's sign-off, and a signed-off roster must never silently stop being valid. A manager approves a draft (planners get 403). Soft shortages (coverage gaps, minimum-hour shortfalls) may be approved only with an explicit acknowledgement, a reason and the fingerprint of the exact shortages the manager saw (a changed list is 409 `STALE_PREVIEW`); **hard violations can never be acknowledged** and block approval with 422 `HARD_VIOLATIONS`. Any later change that would invalidate the roster revokes the approval automatically and returns it to draft: a manual edit (`EDIT`), regeneration (`REGENERATE`), a contract change by UI or CSV that creates hard violations (`CONTRACT_CHANGE`, referencing `contract_version:{id}` or `import:{id}`), or a worker status/role change (`WORKER_CHANGE`, `worker:{id}`); a manager can also revoke by hand (`MANUAL`, with an optional reason). A revoke names the approval the manager saw (`approval_id`); if another manager revoked and re-approved in between, it is 409 `STALE_APPROVAL` and the newer approval stays. Approve needs no such id: it requires a draft at `expected_version` under the scheduling lock, and any content change bumps the version. Editing an approved roster asks for an explicit acknowledgement first. The audit trail is the approval history on the roster: every approval and revocation, in order, with actor, time, roster version, reason, the acknowledged-shortage snapshot, and revoke cause and reference. It covers approval events; it is not a log of every edit.
 
 **Bonus feature 2: gap-fill suggestions with reasons.** *Rationale:* "shift X cannot be filled" is only useful with a way to fix it. For any open (upcoming) slot the planner gets ranked candidates, each with human-readable reasons (for example "Screener - available Tue B - 96/160 h (64 h below minimum) - 1 shift that day"), and applies one in a click. A candidate must be an active, contracted worker of the right role whose addition introduces no new or worse hard violation (including the adjacency rule where it applies). Ranking is by minimum-hours deficit (largest first), then assigned hours (fewest first), then name, so the people furthest below their contracted minimum are offered first. Applying is the ordinary add endpoint, re-validated. There are no solver calls, swap chains or cost-based ranking. This goes beyond the mandatory manual add: it finds and explains the candidates.
 
@@ -286,7 +289,6 @@ Known limitations (found and left as is; none blocks the flows above):
 - **A cancelled generate request keeps solving.** Cancelling the HTTP request releases the busy guard, but the spawned solve keeps running; the next generation queues behind it on the single worker process for up to the solver time limit.
 - **Engine warm-up is not retried.** If the startup warm-up fails, `/api/health` stays `engine: not_ready` until a pool crash replaces the executor (requests still try to solve).
 - **The database session stays open during the solve**, holding one pooled connection for up to the time limit. Only one generation runs at a time, so the pool cannot be exhausted.
-- **`MANUAL` revoke stores no reason** (the revoke endpoint takes only `expected_version`); the audit row records who and when.
 - **A CSV preview is stored whole as JSONB** in `csv_imports`; a 5,000-row import makes a large document. Fine for a demo; imports are never expired or cleaned up.
 - **Mock API (`VITE_API_MOCK=1`)** covers only login and the roster routes; imports, approval, edits and workers need the real backend.
 - **Approving the current month needs an acknowledgement** if any started shift was left unfilled: those past shortages are counted as soft shortages ("past" gaps) even though they cannot be fixed.
@@ -345,7 +347,7 @@ pytest tests/e2e -v                                          # E2E_BASE_URL defa
 To keep it away from any other running stack, use a separate project name and port:
 
 ```
-FRONTEND_PORT=18080 docker compose -p t9 up -d --build
+FRONTEND_PORT=18080 BACKEND_PORT=18000 docker compose -p t9 up -d --build
 E2E_BASE_URL=http://localhost:18080 pytest tests/e2e -v
 docker compose -p t9 down -v
 ```

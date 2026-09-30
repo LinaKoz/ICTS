@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { DatePicker } from './DatePicker'
 import { rangeLabel, shiftAnchor, type CalendarView } from './calendar'
 
 const VIEWS: { id: CalendarView; label: string }[] = [
@@ -27,10 +28,7 @@ export function CalendarToolbar({ view, anchor, today, onView, onAnchor, extra }
         <button aria-label={`Next ${view}`} onClick={() => onAnchor(shiftAnchor(view, anchor, 1))}>›</button>
       </div>
       <h2 className="cal-range" aria-live="polite">{rangeLabel(view, anchor)}</h2>
-      <label className="cal-datepick">
-        <span className="sr-only">Go to date</span>
-        <input type="date" value={anchor} onChange={(e) => e.target.value && onAnchor(e.target.value)} />
-      </label>
+      <DatePicker value={anchor} onChange={onAnchor} label="Go to date" />
       <span className="spacer" />
       {extra}
       <div className="seg" role="group" aria-label="Calendar view">

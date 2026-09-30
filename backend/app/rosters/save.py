@@ -26,7 +26,7 @@ from app.rosters.approval import revoke
 from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, _pos, build_problem, compute_fingerprint, is_history_month, parse_month
 from app.rosters.serialize import violation_to_out
-from app.scheduling.types import Assignment, Role, Shift, validate_roster, worsened
+from app.scheduling import Assignment, Role, Shift, validate_roster, worsened
 
 router = APIRouter(tags=["rosters"])
 

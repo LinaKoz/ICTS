@@ -11,7 +11,7 @@ import argparse
 import dataclasses
 import time
 
-from app.scheduling.types import Solved, SolverConfig, solve
+from app.scheduling import Solved, SolverConfig, solve
 
 from bench.fixtures import SMALL_FIXTURES, scale_fixture
 

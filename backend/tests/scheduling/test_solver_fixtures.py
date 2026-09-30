@@ -2,10 +2,10 @@
 import itertools
 from datetime import date
 
-from app.scheduling.types import (
+from app.scheduling import (
     Assignment, Problem, Role, Shift, SolverConfig, Solved, Weekday, solve,
 )
-from tests.scheduling.conftest import FULL_AVAILABILITY, make_worker
+from tests.scheduling.conftest import make_worker
 
 YEAR, MONTH = 2026, 11
 FF = (date(YEAR, MONTH, 1), Shift.A)

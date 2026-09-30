@@ -218,6 +218,11 @@ export interface paths {
         /**
          * List Assignments
          * @description Stored assignments with their ids (the ids `DELETE`/`move` address).
+         *
+         *     The UI joins these ids to `GET /rosters/{month}` by (worker, date, shift),
+         *     so with `version` the ids are guaranteed to belong to that same roster
+         *     version: otherwise a stale id could send an edit to a row that has moved
+         *     since, and the edit's own version check would not notice.
          */
         get: operations["list_assignments_api_rosters__month__assignments_get"];
         put?: never;
@@ -1248,6 +1253,8 @@ export interface components {
         RevokeRequest: {
             /** Expected Version */
             expected_version: number;
+            /** Approval Id */
+            approval_id: number;
             /** Reason */
             reason?: string | null;
         };
@@ -2405,7 +2412,10 @@ export interface operations {
     };
     list_assignments_api_rosters__month__assignments_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description the roster version the caller shows; 409 if the roster moved on */
+                version?: number | null;
+            };
             header?: never;
             path: {
                 /** @description YYYY-MM */
@@ -2444,6 +2454,15 @@ export interface operations {
             };
             /** @description NOT_FOUND */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description CONFLICT family: VERSION_CONFLICT, STALE_PREVIEW, ALREADY_APPROVED, NOT_APPROVED, ... */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

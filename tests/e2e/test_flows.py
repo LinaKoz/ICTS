@@ -339,13 +339,19 @@ def test_hard_violation_edit_returns_422_with_the_violation_list(planner, state)
     month = state["month"]
     roster = get_roster(planner, month)
     guard = next(a for a in roster["assignments"] if a["role"] == "GENERAL_GUARD")
-    day = roster["assignments"][0]["date"]
+    occupied = {(a["worker_id"], a["date"], a["shift"]) for a in roster["assignments"]}
+    day, shift = next(
+        (a["date"], s)
+        for a in roster["assignments"]
+        for s in ("A", "B", "C")
+        if (guard["worker_id"], a["date"], s) not in occupied
+    )
     r = planner.post(
         f"/api/rosters/{month}/assignments",
         json={
             "worker_id": guard["worker_id"],
             "date": day,
-            "shift": "A",
+            "shift": shift,
             "role": "SUPERVISOR",  # a guard in a supervisor slot
             "expected_version": roster["version"],
         },

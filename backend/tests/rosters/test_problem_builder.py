@@ -23,7 +23,7 @@ def _run(coro):
 
 def test_free_from_future_month_is_first_of_month_a():
     from app.rosters.problem_builder import compute_free_from
-    from app.scheduling.types import Shift
+    from app.scheduling import Shift
 
     now = datetime(2026, 1, 15, 10, 0, tzinfo=TZ)
     assert compute_free_from(date(2026, 3, 1), now) == (date(2026, 3, 1), Shift.A)
@@ -31,7 +31,7 @@ def test_free_from_future_month_is_first_of_month_a():
 
 def test_free_from_past_month_is_fully_locked():
     from app.rosters.problem_builder import compute_free_from
-    from app.scheduling.types import Shift
+    from app.scheduling import Shift
 
     now = datetime(2026, 3, 15, 10, 0, tzinfo=TZ)
     assert compute_free_from(date(2026, 1, 1), now) == (date(2026, 2, 1), Shift.A)
@@ -39,7 +39,7 @@ def test_free_from_past_month_is_fully_locked():
 
 def test_free_from_current_month_mid_shift():
     from app.rosters.problem_builder import compute_free_from
-    from app.scheduling.types import Shift
+    from app.scheduling import Shift
 
     now = datetime(2026, 3, 10, 10, 30, tzinfo=TZ)  # inside shift B on day 10
     assert compute_free_from(date(2026, 3, 1), now) == (date(2026, 3, 10), Shift.C)
@@ -47,7 +47,7 @@ def test_free_from_current_month_mid_shift():
 
 def test_free_from_current_month_exactly_at_shift_start_is_locked():
     from app.rosters.problem_builder import compute_free_from
-    from app.scheduling.types import Shift
+    from app.scheduling import Shift
 
     now = datetime(2026, 3, 10, 8, 0, 0, tzinfo=TZ)  # exactly B's start: B has "started"
     assert compute_free_from(date(2026, 3, 1), now) == (date(2026, 3, 10), Shift.C)
@@ -55,7 +55,7 @@ def test_free_from_current_month_exactly_at_shift_start_is_locked():
 
 def test_free_from_current_month_before_midnight_rolls_to_next_day():
     from app.rosters.problem_builder import compute_free_from
-    from app.scheduling.types import Shift
+    from app.scheduling import Shift
 
     now = datetime(2026, 3, 10, 23, 59, 0, tzinfo=TZ)
     assert compute_free_from(date(2026, 3, 1), now) == (date(2026, 3, 11), Shift.A)
@@ -69,7 +69,7 @@ def test_build_problem_excludes_no_contract_worker_and_includes_inactive(db):
     import app.models  # noqa: F401
     from app.db import async_session_factory
     from app.rosters.problem_builder import build_problem
-    from app.scheduling.types import Role
+    from app.scheduling import Role
 
     user_id = insert_user(db)
     with_contract = insert_worker(db, "111111118", role="GENERAL_GUARD")
@@ -98,7 +98,7 @@ def test_build_problem_loads_started_shifts_as_fixed_assignments(db):
     import app.models  # noqa: F401
     from app.db import async_session_factory
     from app.rosters.problem_builder import build_problem
-    from app.scheduling.types import Shift
+    from app.scheduling import Shift
 
     user_id = insert_user(db)
     worker_id = insert_worker(db, "111111118")

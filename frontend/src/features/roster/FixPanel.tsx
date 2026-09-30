@@ -3,7 +3,7 @@ import { ErrorPanel } from '../../errors/ErrorPanel'
 import type { AssignmentOut, RosterOut, ViolationOut } from '../../api/schemas'
 import { useMoveAssignment, useRemoveAssignment, useReplacements } from './api'
 import { EditErrors } from './EditPanel'
-import { isLockedShift, needsApprovalAck } from './edit'
+import { isLockedShift, needsApprovalAck, replacementTargets } from './edit'
 import { nameLookup, violationLabel } from './names'
 
 interface FixProps {
@@ -16,7 +16,7 @@ function AssignmentFixes({ month, roster, assignment, id, ack, onDone }: {
   month: string; roster: RosterOut; assignment: AssignmentOut; id: number; ack: boolean; onDone: () => void
 }) {
   const nameOf = nameLookup(roster.workers)
-  const options = useReplacements(month, id, true)
+  const options = useReplacements(month, id, true) // mounted only for the selected assignment
   const move = useMoveAssignment(month)
   const remove = useRemoveAssignment(month)
   const pending = move.isPending || remove.isPending
@@ -51,14 +51,12 @@ function AssignmentFixes({ month, roster, assignment, id, ack, onDone }: {
   )
 }
 
-/** Stable React key for a violation, so per-violation state (open, approval ack) never moves to another one. */
-export const violationKey = (v: ViolationOut): string =>
-  `${v.code}|${v.assignments.map((a) => `${a.worker_id}:${a.date}:${a.shift}`).join(',')}`
-
-/** One violation with a "Fix" toggle that lists up to five replacements (and removal) per involved assignment. */
+/** One violation with a "Fix" toggle that lists its editable assignments; picking one loads up to five
+ * replacements (and removal) for that assignment only. */
 export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: ViolationOut; fix: FixProps; text?: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   const [ack, setAck] = useState(false)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const nameOf = nameLookup(fix.roster.workers)
   const fixable = v.assignments.flatMap((a) => {
     const id = fix.idOf(a)
@@ -69,7 +67,7 @@ export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: Violati
     <li>
       {text ?? `${violationLabel(v.code)} (×${v.magnitude}) ${v.assignments.map((a) => `${nameOf(a.worker_id)} ${a.date} ${a.shift}`).join('; ')}`}
       {fixable.length > 0 && (
-        <button className="link" aria-expanded={open} onClick={() => { setOpen(!open); setAck(false) }}>{open ? 'Hide fixes' : 'Fix'}</button>
+        <button className="link" aria-expanded={open} onClick={() => { setOpen(!open); setAck(false); setSelectedId(null) }}>{open ? 'Hide fixes' : 'Fix'}</button>
       )}
       {open && (
         <>
@@ -79,8 +77,19 @@ export function ViolationFix({ v, fix, text, defaultOpen = false }: { v: Violati
               This roster is approved. Editing returns it to draft and revokes the approval.
             </label>
           )}
-          {fixable.map(({ a, id }) => (
-            <AssignmentFixes key={id} month={fix.month} roster={fix.roster} assignment={a} id={id} ack={ack} onDone={() => { setOpen(false); setAck(false) }} />
+          <p className="muted">Pick an assignment to see who could take it over:</p>
+          <ul className="fix-targets">
+            {fixable.map(({ a, id }) => (
+              <li key={id}>
+                <button className="link" aria-expanded={selectedId === id} onClick={() => setSelectedId(selectedId === id ? null : id)}>
+                  {nameOf(a.worker_id)}, {a.date} shift {a.shift}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {replacementTargets(fixable, selectedId).map(({ a, id }) => (
+            // After an edit the roster refetches; a violation that remains stays listed with its panel open.
+            <AssignmentFixes key={id} month={fix.month} roster={fix.roster} assignment={a} id={id} ack={ack} onDone={() => { setSelectedId(null); setAck(false) }} />
           ))}
         </>
       )}

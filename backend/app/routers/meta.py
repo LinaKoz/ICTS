@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from app.api_schemas.meta import CsvAliasesOut, DemandEntry, MetaOut
 from app.csvio.parse import HEADER_ALIASES
-from app.scheduling.types import DEFAULT_DEMAND
+from app.scheduling import DEFAULT_DEMAND
 
 router = APIRouter(prefix="/api", tags=["meta"])
 

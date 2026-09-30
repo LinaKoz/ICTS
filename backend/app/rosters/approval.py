@@ -36,6 +36,7 @@ from app.errors import (
     LockedShiftError,
     NotApprovedError,
     NotFoundError,
+    StaleApprovalError,
     StalePreviewError,
     VersionConflictError,
     WarningsNotAcknowledgedError,
@@ -279,6 +280,21 @@ async def revoke_approval(
         )
     if roster.status != "APPROVED":
         raise NotApprovedError("this roster is not approved")
+    # Approving and revoking leave row_version alone, so the version check
+    # cannot tell approval #1 from a later #2; the approval id can.
+    open_id = (
+        await session.execute(
+            select(RosterApproval.id)
+            .where(RosterApproval.roster_id == roster.id, RosterApproval.revoked_at.is_(None))
+            .order_by(RosterApproval.approved_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if open_id != body.approval_id:
+        raise StaleApprovalError(
+            "the approval you are revoking is no longer the current one; reload the roster",
+            details={"current_approval_id": open_id},
+        )
     reason = (body.reason or "").strip() or None
     await revoke(session, roster, cause="MANUAL", ref=None, revoked_by=user.id, reason=reason)
     await session.flush()

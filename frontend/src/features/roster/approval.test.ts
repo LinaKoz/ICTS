@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ApprovalPreviewOut } from '../../api/schemas'
-import { buildApproveBody, canSubmitApproval, describeRef, describeRevocation, shortageLines } from './approval'
+import { buildApproveBody, canSubmitApproval, describeRef, describeRevocation, openApprovalId, shortageLines } from './approval'
 
 const preview = (over: Partial<ApprovalPreviewOut> = {}): ApprovalPreviewOut => ({
   version: 3, status: 'DRAFT', is_history: false, hard_violations: [], coverage_gaps: [], hour_shortfalls: [],
@@ -53,5 +53,16 @@ describe('canSubmitApproval / buildApproveBody', () => {
   })
   it('hard violations can never be submitted', () => {
     expect(canSubmitApproval(preview({ can_approve: false, requires_acknowledgement: true }), true, 'why')).toBe(false)
+  })
+})
+
+describe('openApprovalId', () => {
+  it('is the newest unrevoked approval, which a manual revoke is bound to', () => {
+    const history = [{ id: 1, revoked_at: '2099-01-02T10:00:00Z' }, { id: 2, revoked_at: null }]
+    expect(openApprovalId({ approval_history: history })).toBe(2)
+  })
+  it('is null when every approval was revoked', () => {
+    expect(openApprovalId({ approval_history: [{ id: 1, revoked_at: '2099-01-02T10:00:00Z' }] })).toBeNull()
+    expect(openApprovalId({ approval_history: [] })).toBeNull()
   })
 })

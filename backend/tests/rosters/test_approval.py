@@ -51,6 +51,18 @@ def _approve(client, month, version=1, **kw):
     return client.post(f"/api/rosters/{month}/approve", json={"expected_version": version, **kw})
 
 
+def _open_approval_id(client, month) -> int | None:
+    hist = client.get(f"/api/rosters/{month}").json()["approval_history"]
+    return next((h["id"] for h in reversed(hist) if h["revoked_at"] is None), None)
+
+
+def _revoke(client, month, version=1, approval_id=None, **kw):
+    """Revokes the approval currently shown (or the given one), like the dialog does."""
+    if approval_id is None:
+        approval_id = _open_approval_id(client, month) or 0
+    return client.post(f"/api/rosters/{month}/revoke", json={"expected_version": version, "approval_id": approval_id, **kw})
+
+
 def _ack_body(client, month, reason="Known staffing shortage"):
     p = client.get(f"/api/rosters/{month}/approval-preview").json()
     return {"acknowledge_warnings": True, "reason": reason, "warnings_fingerprint": p["warnings_fingerprint"]}
@@ -64,7 +76,7 @@ def test_planner_gets_403_manager_succeeds_and_approver_and_time_are_recorded(du
     _full_roster(db, duo.planner_id)
     assert _approve(duo.as_("planner"), "2099-02").status_code == 403
     assert _q(db, "SELECT status FROM rosters") == [("DRAFT",)]
-    assert duo.client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1}).status_code == 403
+    assert duo.client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1, "approval_id": 1}).status_code == 403
 
     resp = _approve(duo.as_("manager"), "2099-02")  # no shortages: no acknowledgement needed
     assert resp.status_code == 200, resp.text
@@ -231,14 +243,14 @@ def test_version_conflict_is_409(duo, db):
     assert resp.status_code == 409 and _code(resp) == "VERSION_CONFLICT"
     assert resp.json()["error"]["details"] == {"current_version": 1}
     assert _q(db, "SELECT status FROM rosters") == [("DRAFT",)]
-    assert client.post("/api/rosters/2099-02/revoke", json={"expected_version": 7}).status_code == 409
+    assert _revoke(client, "2099-02", version=7).status_code == 409
 
 
 @requires_db
 def test_approving_twice_and_revoking_a_draft_are_409(duo, db):
     _full_roster(db, duo.planner_id)
     client = duo.as_("manager")
-    assert client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1}).json()["error"]["code"] == "NOT_APPROVED"
+    assert _revoke(client, "2099-02").json()["error"]["code"] == "NOT_APPROVED"
     assert _approve(client, "2099-02").status_code == 200
     resp = _approve(client, "2099-02")
     assert resp.status_code == 409 and _code(resp) == "ALREADY_APPROVED"
@@ -261,7 +273,7 @@ def test_manual_revoke_and_history_order(duo, db):
     _full_roster(db, duo.planner_id)
     client = duo.as_("manager")
     assert _approve(client, "2099-02").status_code == 200
-    rv = client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1})
+    rv = _revoke(client, "2099-02")
     assert rv.status_code == 200 and rv.json()["status"] == "DRAFT"
     assert rv.json()["event"]["revoke_cause"] == "MANUAL" and rv.json()["event"]["revoked_by"] == "manager"
     assert _approve(client, "2099-02").status_code == 200
@@ -272,17 +284,40 @@ def test_manual_revoke_and_history_order(duo, db):
 
 
 @requires_db
+def test_stale_revoke_dialog_never_revokes_a_newer_approval(duo, db):
+    """A opens the dialog on #1; B revokes #1 and approves again (#2). Approving
+    and revoking keep the roster version, so only the approval id catches A's stale submit."""
+    _full_roster(db, duo.planner_id)
+    client = duo.as_("manager")
+    assert _approve(client, "2099-02").status_code == 200
+    first = _open_approval_id(client, "2099-02")  # what A's dialog shows
+    assert _revoke(client, "2099-02", reason="B withdraws").status_code == 200
+    assert _approve(client, "2099-02").status_code == 200
+    second = _open_approval_id(client, "2099-02")
+    assert second != first
+    before = _q(db, "SELECT * FROM roster_approvals WHERE id = %s", second)
+
+    resp = _revoke(client, "2099-02", approval_id=first, reason="A's reason for #1")
+    assert resp.status_code == 409 and _code(resp) == "STALE_APPROVAL"
+    assert resp.json()["error"]["details"] == {"current_approval_id": second}
+    assert _q(db, "SELECT * FROM roster_approvals WHERE id = %s", second) == before  # #2 untouched
+    assert _q(db, "SELECT revoked_at IS NULL FROM roster_approvals WHERE id = %s", second) == [(True,)]
+    assert _q(db, "SELECT status FROM rosters") == [("APPROVED",)]
+    assert _q(db, "SELECT count(*) FROM roster_approvals WHERE revoke_reason = %s", "A's reason for #1") == [(0,)]
+
+
+@requires_db
 def test_manual_revoke_stores_the_reason_and_history_returns_it(duo, db):
     _full_roster(db, duo.planner_id)
     client = duo.as_("manager")
     assert _approve(client, "2099-02").status_code == 200
-    rv = client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1, "reason": "  worker called in sick  "})
+    rv = _revoke(client, "2099-02", reason="  worker called in sick  ")
     assert rv.status_code == 200 and rv.json()["event"]["revoke_reason"] == "worker called in sick"
     hist = client.get("/api/rosters/2099-02").json()["approval_history"]
     assert hist[0]["revoke_reason"] == "worker called in sick"
     # A blank reason is stored as none; an automatic revocation never has one.
     assert _approve(client, "2099-02").status_code == 200
-    rv = client.post("/api/rosters/2099-02/revoke", json={"expected_version": 1, "reason": "   "})
+    rv = _revoke(client, "2099-02", reason="   ")
     assert rv.status_code == 200 and rv.json()["event"]["revoke_reason"] is None
 
 

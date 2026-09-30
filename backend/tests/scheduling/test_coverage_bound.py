@@ -1,5 +1,5 @@
 """§4.9 Coverage bound arithmetic (pure function)."""
-from app.scheduling.types import _coverage_lower_bound
+from app.scheduling.solver import _coverage_lower_bound
 
 
 def test_tight_bound_returns_exactly_u_star():

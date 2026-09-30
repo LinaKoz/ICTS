@@ -1,9 +1,10 @@
 """§4.9 Diagnostics."""
 from datetime import date
 
-from app.scheduling.types import (
-    Problem, Role, Shift, Solved, SolverConfig, Weekday, diagnose, roster_metrics, solve, _day_cap, _fixed_index,
+from app.scheduling import (
+    Problem, Role, Shift, Solved, SolverConfig, diagnose, solve,
 )
+from app.scheduling._helpers import _day_cap, _fixed_index
 from tests.scheduling.conftest import make_worker
 
 YEAR, MONTH = 2026, 11
@@ -21,7 +22,7 @@ def test_slot_and_role_deficits_correct():
 
 
 def test_day_cap_respects_fixed_shifts_both_modes():
-    from app.scheduling.types import Assignment
+    from app.scheduling import Assignment
     worker = make_worker("w1", Role.GENERAL_GUARD, max_hours=744)
     fixed = (Assignment("w1", date(YEAR, MONTH, 1), Shift.A, Role.GENERAL_GUARD),)
     demand = {(Shift.B, Role.GENERAL_GUARD): 1, (Shift.C, Role.GENERAL_GUARD): 1}
@@ -62,7 +63,7 @@ def test_gaps_beyond_proven_missing_marked_suspected():
     coincidental hard cap that the slot_deficit proof (which only checks
     remaining_max_shifts and the daily cap) cannot see: a same-day adjacency
     with a fixed shift. The realized gap can exceed proven_missing."""
-    from app.scheduling.types import Assignment
+    from app.scheduling import Assignment
     demand = {(Shift.A, Role.GENERAL_GUARD): 1}
     w1 = make_worker("w1", Role.GENERAL_GUARD, max_hours=744)
     fixed = (Assignment("w1", date(YEAR, MONTH, 1), Shift.B, Role.GENERAL_GUARD),)

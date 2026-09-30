@@ -19,6 +19,8 @@ class ApproveRequest(BaseModel):
 
 class RevokeRequest(BaseModel):
     expected_version: int
+    # The approval the manager saw when opening the dialog; a newer one is never revoked in its place.
+    approval_id: int
     reason: str | None = Field(default=None, max_length=500)  # why the manager withdraws the approval
 
 

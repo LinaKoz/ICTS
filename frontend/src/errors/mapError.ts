@@ -56,6 +56,14 @@ export function mapError(err: unknown): MappedError {
   if (err.status === 409 && err.code === 'ALREADY_APPROVED') {
     return { title: 'Already approved', message: 'This roster was approved in the meantime.', presentation: 'panel', action: 'reload' }
   }
+  if (err.status === 409 && err.code === 'STALE_APPROVAL') {
+    return {
+      title: 'Approval changed',
+      message: 'The approval you were revoking was replaced by a newer one. Reload the roster and review it before revoking.',
+      presentation: 'panel',
+      action: 'reload',
+    }
+  }
   if (err.status === 409 && err.code === 'NOT_APPROVED') {
     return { title: 'Not approved', message: 'This roster is no longer approved.', presentation: 'panel', action: 'reload' }
   }

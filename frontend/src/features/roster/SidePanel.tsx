@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { CostsOut, CoverageGapOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
-import { ViolationFix, violationKey, type FixProps } from './FixPanel'
+import { ViolationFix, type FixProps } from './FixPanel'
+import { violationKey } from './calendarData'
 import { ils, nameLookup, violationLabel } from './names'
 
 interface Props {
