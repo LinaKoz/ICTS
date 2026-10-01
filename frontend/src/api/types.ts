@@ -578,6 +578,8 @@ export interface components {
             acknowledged_warnings?: components["schemas"]["AcknowledgedWarningsOut"] | null;
             /** Revoke Ref */
             revoke_ref?: string | null;
+            /** Revoke Ref Label */
+            revoke_ref_label?: string | null;
             /** Revoked By */
             revoked_by?: string | null;
             /** Revoke Reason */

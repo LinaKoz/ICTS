@@ -41,10 +41,12 @@ from app.errors import (
     VersionConflictError,
     WarningsNotAcknowledgedError,
 )
+from app.contracts.models import ContractVersion
 from app.rosters.evaluation import Evaluation, evaluate
 from app.rosters.models import Roster, RosterApproval
 from app.rosters.problem_builder import MONTH_PATTERN, is_history_month, parse_month
 from app.rosters.serialize import coverage_gap_to_out, hour_shortfall_to_out, violation_to_out
+from app.workers.models import Worker
 
 REVOKE_CAUSES = ("EDIT", "REGENERATE", "CONTRACT_CHANGE", "WORKER_CHANGE", "MANUAL")
 
@@ -129,10 +131,41 @@ async def load_approval_history(session: AsyncSession, roster_id: int) -> list[A
     if user_ids:
         users = (await session.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()
         names = {u.id: u.display_name for u in users}
-    return [_event_out(r, names) for r in rows]
+    labels = await _ref_labels(session, [r.revoke_ref for r in rows if r.revoke_ref])
+    return [_event_out(r, names, labels) for r in rows]
 
 
-def _event_out(r: RosterApproval, names: dict[int, str]) -> ApprovalEventOut:
+def _split_ref(ref: str) -> tuple[str, int] | None:
+    kind, _, raw = ref.partition(":")
+    return (kind, int(raw)) if raw.isdigit() else None
+
+
+async def _ref_labels(session: AsyncSession, refs: list[str]) -> dict[str, str]:
+    """`contract_version:{id}` refs carry the table-wide row id; resolve them
+    to the worker's name and per-worker `version_no`, and `worker:{id}` to
+    the name. Import refs stay as they are (the import id is meaningful)."""
+    parsed = [(ref, p) for ref in refs if (p := _split_ref(ref))]
+    cv_ids = {i for _, (kind, i) in parsed if kind == "contract_version"}
+    versions = {}
+    if cv_ids:
+        rows = (await session.execute(select(ContractVersion).where(ContractVersion.id.in_(cv_ids)))).scalars().all()
+        versions = {cv.id: cv for cv in rows}
+    worker_ids = {i for _, (kind, i) in parsed if kind == "worker"} | {cv.worker_id for cv in versions.values()}
+    workers = {}
+    if worker_ids:
+        rows = (await session.execute(select(Worker).where(Worker.id.in_(worker_ids)))).scalars().all()
+        workers = {w.id: w.full_name for w in rows}
+    labels: dict[str, str] = {}
+    for ref, (kind, i) in parsed:
+        if kind == "contract_version" and (cv := versions.get(i)):
+            name = workers.get(cv.worker_id, f"worker {cv.worker_id}")
+            labels[ref] = f"{name}, contract v{cv.version_no} from {cv.effective_month:%m/%Y}"
+        elif kind == "worker" and i in workers:
+            labels[ref] = workers[i]
+    return labels
+
+
+def _event_out(r: RosterApproval, names: dict[int, str], labels: dict[str, str] | None = None) -> ApprovalEventOut:
     return ApprovalEventOut(
         approved_by=names.get(r.approved_by, "unknown"),
         approved_at=r.approved_at.isoformat(),
@@ -145,6 +178,7 @@ def _event_out(r: RosterApproval, names: dict[int, str]) -> ApprovalEventOut:
         if r.acknowledged_warnings
         else None,
         revoke_ref=r.revoke_ref,
+        revoke_ref_label=(labels or {}).get(r.revoke_ref) if r.revoke_ref else None,
         revoked_by=names.get(r.revoked_by, "unknown") if r.revoked_by is not None else None,
         revoke_reason=r.revoke_reason,
     )

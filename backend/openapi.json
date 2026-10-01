@@ -2677,6 +2677,17 @@
             ],
             "title": "Revoke Ref"
           },
+          "revoke_ref_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoke Ref Label"
+          },
           "revoked_by": {
             "anyOf": [
               {

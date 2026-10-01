@@ -95,6 +95,9 @@ class ApprovalEventOut(BaseModel):
     roster_version: int  # the roster's row_version when it was approved
     acknowledged_warnings: AcknowledgedWarningsOut | None = None  # None when approved with no shortages
     revoke_ref: str | None = None  # contract_version:{id}, worker:{id}, import:{id}; None for EDIT/REGENERATE/MANUAL
+    # Human reading of revoke_ref: "Alice Guard, contract v3 from 10/2026" (the worker's own
+    # version_no, not the row id) or the worker's name; None when there is nothing to resolve.
+    revoke_ref_label: str | None = None
     revoked_by: str | None = None
     revoke_reason: str | None = None  # the manager's free-text reason; only MANUAL revocations carry one
 

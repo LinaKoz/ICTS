@@ -11,6 +11,8 @@ describe('describeRevocation', () => {
   it('labels every cause and its reference', () => {
     expect(describeRevocation({ revoke_cause: null, revoke_ref: null })).toBeNull()
     expect(describeRevocation({ revoke_cause: 'EDIT', revoke_ref: null })).toBe('roster edited')
+    expect(describeRevocation({ revoke_cause: 'CONTRACT_CHANGE', revoke_ref: 'contract_version:92', revoke_ref_label: 'Worker 05, contract v3 from 10/2026' }))
+      .toBe('contract change (Worker 05, contract v3 from 10/2026)')
     expect(describeRevocation({ revoke_cause: 'REGENERATE', revoke_ref: null })).toBe('roster regenerated')
     expect(describeRevocation({ revoke_cause: 'CONTRACT_CHANGE', revoke_ref: 'contract_version:12' })).toBe('contract change (contract version 12)')
     expect(describeRevocation({ revoke_cause: 'CONTRACT_CHANGE', revoke_ref: 'import:4' })).toBe('contract change (CSV import 4)')

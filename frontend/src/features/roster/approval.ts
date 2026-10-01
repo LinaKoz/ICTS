@@ -11,11 +11,12 @@ const CAUSE_LABEL: Record<Cause, string> = {
   MANUAL: 'revoked by a manager',
 }
 
-/** "roster edited", "contract change (contract version 12)"; refs are `contract_version:{id}`, `worker:{id}`, `import:{id}`. */
-export function describeRevocation(ev: Pick<ApprovalEventOut, 'revoke_cause' | 'revoke_ref'>): string | null {
+/** "roster edited", "contract change (Alice Guard, contract v3 from 10/2026)". The server's
+ * `revoke_ref_label` wins; the raw ref (`contract_version:{id}`, `worker:{id}`, `import:{id}`) is the fallback. */
+export function describeRevocation(ev: Pick<ApprovalEventOut, 'revoke_cause' | 'revoke_ref' | 'revoke_ref_label'>): string | null {
   if (!ev.revoke_cause) return null
   const label = CAUSE_LABEL[ev.revoke_cause] ?? ev.revoke_cause
-  const ref = describeRef(ev.revoke_ref)
+  const ref = ev.revoke_ref_label ?? describeRef(ev.revoke_ref)
   return ref ? `${label} (${ref})` : label
 }
 

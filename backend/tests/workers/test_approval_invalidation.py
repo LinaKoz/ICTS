@@ -52,6 +52,8 @@ def test_contract_change_revokes_with_the_contract_version_reference(world):
 
     (ev,) = _history(planner)
     assert (ev["revoke_cause"], ev["revoke_ref"], ev["revoked_by"]) == ("CONTRACT_CHANGE", f"contract_version:{version_id}", "planner")
+    # The label uses the worker's own version number, not the table-wide row id.
+    assert ev["revoke_ref_label"] == "Alice Guard, contract v2 from 09/2026"
     assert ev["approved_by"] == "manager" and ev["roster_version"] == 1 and ev["reason"] == "Known gaps, agreed with ops"
     assert ev["acknowledged_warnings"]["coverage_gaps"] and ev["revoked_at"] is not None
     status, version = roster_row(db, ids["sep"])
@@ -90,6 +92,7 @@ def test_worker_change_revokes_with_the_worker_reference(world):
 
     (ev,) = _history(planner)
     assert (ev["revoke_cause"], ev["revoke_ref"], ev["revoked_by"]) == ("WORKER_CHANGE", f"worker:{w}", "planner")
+    assert ev["revoke_ref_label"] == "Alice Guard"
     assert roster_row(db, ids["sep"])[0] == "DRAFT"
     p = duo.as_("manager").get("/api/rosters/2026-09/approval-preview").json()
     assert [v["code"] for v in p["hard_violations"]] == ["INACTIVE_WORKER"] and p["can_approve"] is False
@@ -132,6 +135,7 @@ def test_csv_import_confirm_revokes_with_the_import_reference(world):
 
     (ev,) = _history(planner)
     assert (ev["revoke_cause"], ev["revoke_ref"], ev["revoked_by"]) == ("CONTRACT_CHANGE", f"import:{import_id}", "planner")
+    assert ev["revoke_ref_label"] is None
     assert roster_row(db, ids["sep"])[0] == "DRAFT"
     p = duo.as_("manager").get("/api/rosters/2026-09/approval-preview").json()
     assert [v["code"] for v in p["hard_violations"]] == ["UNAVAILABLE"] and p["can_approve"] is False
