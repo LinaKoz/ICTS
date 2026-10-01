@@ -120,6 +120,8 @@ input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border
 /* imports feature */
 .import-page .muted { color: var(--text-h); opacity: 1; font-size: 1rem; line-height: 1.5; font-weight: 500; }
 .import-page td .muted { font-size: 0.9rem; }
+.import-page .panel.form > .muted { font-size: 1.1rem; font-weight: 600; }
+.import-page .form label { color: var(--text-h); font-size: 1rem; font-weight: 600; }
 .row-errors { margin: 0; padding-left: 16px; }
 .row-errors li { margin: 1px 0; }
 button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
