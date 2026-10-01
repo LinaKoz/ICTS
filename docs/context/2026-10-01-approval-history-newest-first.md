@@ -41,3 +41,7 @@ consumer of `approval_history` exists besides the panel.
 ## Commit hygiene
 
 One commit: backend order, UI, tests, docs.
+
+## Follow-up (e816f42)
+
+The e2e flows in `tests/e2e/test_flows.py` still read the history oldest first (`[-1]` for the latest event, causes `["EDIT", None]`). This failed three e2e tests in CI from this commit on; the third failed as a cascade, because the contract test stopped before restoring the contract. They now read `[0]` and expect `[None, "EDIT"]`. `openApprovalId` (`frontend/src/features/roster/approval.ts`) and the approved-by line in `RosterPage` made the same assumption. Only one approval is open at a time, so it was not visible, but both now take the first match.
