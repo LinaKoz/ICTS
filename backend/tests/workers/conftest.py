@@ -64,6 +64,7 @@ def freeze(monkeypatch):
             "app.changes.service.now_israel",
             "app.workers.router.now_israel",
             "app.contracts.router.now_israel",
+            "app.csvio.router.now_israel",
         ):
             monkeypatch.setattr(target, lambda now=now: now)
         return now
