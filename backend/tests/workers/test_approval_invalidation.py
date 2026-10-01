@@ -73,7 +73,7 @@ def test_contract_change_revokes_with_the_contract_version_reference(world):
     assert planner.post(f"/api/workers/{w}/contracts", json={**fix, "fingerprint": fp}).status_code == 200
     _, version = roster_row(db, ids["sep"])
     assert _approve_sep(duo.as_("manager"), version).status_code == 200
-    first, second = _history(duo.client)
+    second, first = _history(duo.client)
     assert first["revoke_cause"] == "CONTRACT_CHANGE" and second["revoke_cause"] is None
     assert second["roster_version"] == version > first["roster_version"]
 

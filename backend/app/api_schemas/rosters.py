@@ -81,7 +81,7 @@ class ApprovalEventOut(BaseModel):
     """One approval and, if it ended, its revocation (audit trail, bonus 1).
 
     `approved_by` / `revoked_by` are user display names. The history is
-    ordered oldest first (approved_at, id).
+    ordered newest first (approved_at, id, both descending).
     """
 
     approved_by: str

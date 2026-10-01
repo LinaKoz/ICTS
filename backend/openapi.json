@@ -2711,7 +2711,7 @@
           "roster_version"
         ],
         "title": "ApprovalEventOut",
-        "description": "One approval and, if it ended, its revocation (audit trail, bonus 1).\n\n`approved_by` / `revoked_by` are user display names. The history is\nordered oldest first (approved_at, id)."
+        "description": "One approval and, if it ended, its revocation (audit trail, bonus 1).\n\n`approved_by` / `revoked_by` are user display names. The history is\nordered newest first (approved_at, id, both descending)."
       },
       "ApprovalPreviewOut": {
         "properties": {

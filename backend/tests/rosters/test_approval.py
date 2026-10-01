@@ -53,7 +53,7 @@ def _approve(client, month, version=1, **kw):
 
 def _open_approval_id(client, month) -> int | None:
     hist = client.get(f"/api/rosters/{month}").json()["approval_history"]
-    return next((h["id"] for h in reversed(hist) if h["revoked_at"] is None), None)
+    return next((h["id"] for h in hist if h["revoked_at"] is None), None)
 
 
 def _revoke(client, month, version=1, approval_id=None, **kw):
@@ -278,9 +278,9 @@ def test_manual_revoke_and_history_order(duo, db):
     assert rv.json()["event"]["revoke_cause"] == "MANUAL" and rv.json()["event"]["revoked_by"] == "manager"
     assert _approve(client, "2099-02").status_code == 200
     hist = client.get("/api/rosters/2099-02").json()["approval_history"]
-    assert [h["revoke_cause"] for h in hist] == ["MANUAL", None]  # every approval kept, oldest first
-    assert hist[0]["id"] < hist[1]["id"] and hist[0]["approved_at"] <= hist[1]["approved_at"]
-    assert hist[0]["revoked_at"] is not None and hist[1]["revoked_at"] is None
+    assert [h["revoke_cause"] for h in hist] == [None, "MANUAL"]  # every approval kept, newest first
+    assert hist[0]["id"] > hist[1]["id"] and hist[0]["approved_at"] >= hist[1]["approved_at"]
+    assert hist[0]["revoked_at"] is None and hist[1]["revoked_at"] is not None
 
 
 @requires_db
@@ -351,7 +351,7 @@ def test_edit_revokes_with_cause_edit_and_history_records_everything(duo, db):
     body = _ack_body(manager, "2099-02", reason="one guard short")
     r = _approve(manager, "2099-02", version=2, **body)
     assert r.status_code == 200, r.text
-    first, second = manager.get("/api/rosters/2099-02").json()["approval_history"]
+    second, first = manager.get("/api/rosters/2099-02").json()["approval_history"]
     assert (first["id"], second["id"]) == (ev["id"], r.json()["event"]["id"])
     assert second["roster_version"] == 2 and second["revoke_cause"] is None
     assert second["acknowledged_warnings"]["coverage_gaps"][0]["date"] == "2099-02-10"

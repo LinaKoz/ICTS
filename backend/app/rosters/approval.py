@@ -112,13 +112,13 @@ def _hard_violations(ev: Evaluation) -> list:
 
 
 async def load_approval_history(session: AsyncSession, roster_id: int) -> list[ApprovalEventOut]:
-    """Every approval of the roster (with its revocation, if any), oldest first."""
+    """Every approval of the roster (with its revocation, if any), newest first."""
     rows = (
         (
             await session.execute(
                 select(RosterApproval)
                 .where(RosterApproval.roster_id == roster_id)
-                .order_by(RosterApproval.approved_at, RosterApproval.id)
+                .order_by(RosterApproval.approved_at.desc(), RosterApproval.id.desc())
             )
         )
         .scalars()
@@ -300,4 +300,4 @@ async def revoke_approval(
     await session.flush()
     history = await load_approval_history(session, roster.id)
     await session.commit()
-    return ApprovalResultOut(version=roster.row_version, status="DRAFT", event=history[-1])
+    return ApprovalResultOut(version=roster.row_version, status="DRAFT", event=history[0])

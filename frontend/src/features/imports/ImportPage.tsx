@@ -244,7 +244,7 @@ export function ImportPage() {
   const [done, setDone] = useState<ImportConfirmOut | null>(null)
 
   return (
-    <div>
+    <div className="import-page">
       <div className="toolbar"><h2 className="page-title">Import and export</h2></div>
       {done ? (
         <>
