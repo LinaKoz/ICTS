@@ -235,6 +235,15 @@ async def _candidate_rosters(
     return sorted(rosters.values(), key=lambda r: r.month), counts
 
 
+async def affected_rosters(session: AsyncSession, cs: ChangeSet, now: datetime) -> list[Roster]:
+    """The rosters `cs` would touch against the current data (the same
+    selection preview and apply use). For callers that keep their own
+    preview base, such as CSV confirm's stale check."""
+    planned = await _plan_contracts(session, cs)
+    rosters, _ = await _candidate_rosters(session, await _min_months(session, cs, planned, now))
+    return rosters
+
+
 async def _fingerprint(
     session: AsyncSession,
     cs: ChangeSet,

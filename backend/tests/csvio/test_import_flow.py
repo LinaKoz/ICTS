@@ -10,7 +10,7 @@ import pytest
 from tests.conftest import requires_db
 from tests.csvio.conftest import count, post_csv
 from tests.csvio.helpers import ALL_DAYS, FULL, csv_text, row, valid_id
-from tests.rosters.helpers import insert_contract, insert_worker
+from tests.rosters.helpers import insert_approval, insert_assignment, insert_contract, insert_roster, insert_worker
 from tests.workers.scenario import FREE, LOCKED, NOW, approvals, assignment_count, roster_row, seed, slot
 
 A, B, C = valid_id(1000001), valid_id(1000002), valid_id(1000003)
@@ -143,6 +143,29 @@ def test_stale_when_a_new_worker_appears_or_a_roster_changes(world):
     r = confirm(client, prev["id"])
     assert r.status_code == 409 and r.json()["error"]["code"] == "STALE_PREVIEW"
     assert q(db, "SELECT count(*) FROM contract_versions WHERE import_id IS NOT NULL") == [(0,)]
+
+
+@requires_db
+def test_stale_when_a_roster_becomes_affected_after_the_preview(world):
+    client, uid, db = world
+    w = insert_worker(db, A, "Alice", "GENERAL_GUARD")
+    insert_contract(db, w, uid, effective_month=date(2026, 1, 1))
+    prev = post_csv(client, csv_text(FULL, [row(A, "Alice", month="2026-10", hi="8")])).json()
+    assert prev["counts"]["changed"] == 1 and prev["affected_rosters"] == []
+
+    # Meanwhile an October roster using the worker is saved and approved; the
+    # new 8 h cap would give it a MAX_HOURS violation the preview never showed.
+    oct_ = insert_roster(db, date(2026, 10, 1), uid, status="APPROVED")
+    for day in (5, 6):
+        insert_assignment(db, oct_, w, date(2026, 10, day), "A", "GENERAL_GUARD")
+    insert_approval(db, oct_, uid)
+
+    r = confirm(client, prev["id"])
+    assert r.status_code == 409 and r.json()["error"]["code"] == "STALE_PREVIEW", r.text
+    assert "roster 2026-10 is now affected" in r.json()["error"]["details"]["reasons"]
+    assert roster_row(db, oct_) == ("APPROVED", 1)
+    assert approvals(db, oct_) == [(None, None, None, False)]
+    assert count(db, "contract_versions") == 1
 
 
 @requires_db
