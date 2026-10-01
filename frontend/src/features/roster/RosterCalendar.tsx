@@ -310,7 +310,7 @@ function MonthView({ ctx }: { ctx: Ctx }) {
               return (
                 <button key={d} role="gridcell" className={`mcell${focusId && shifts.some((s) => roles.some((r) => index.assignmentsAt(d, s, r).some((a) => a.worker_id === focusId))) ? ' mcell-focus' : ''}${d === today ? ' is-today' : ''}${d === anchor ? ' is-selected' : ''}${monthOf(d) !== monthOf(anchor) ? ' mcell-out' : ''}${warnings.length > 0 ? ' mcell-violation' : ''}`}
                   onClick={() => onOpenDay(d)} aria-label={`Open ${dayLabel(d)}`}>
-                  <span className="mday">{Number(d.slice(8))}{d.slice(8) === '01' && <span className="dmon"> {monthLabel(monthOf(d)).split(' ')[0]}</span>}</span>
+                  <span className="mday"><span className="mnum">{Number(d.slice(8))}</span>{d.slice(8) === '01' && <span className="dmon">{monthLabel(monthOf(d)).split(' ')[0]}</span>}</span>
                   {status !== 'ready'
                     ? <span className="muted mnone">{status === 'loading' ? 'Loading…' : status === 'error' ? 'Could not load' : 'No roster'}</span>
                     : (

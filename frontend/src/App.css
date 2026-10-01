@@ -243,8 +243,8 @@ button.link { background: none; border: none; padding: 0 0 0 8px; color: inherit
 .mcell { display: grid; align-content: start; gap: 3px; min-height: 112px; padding: 6px 8px; text-align: left; border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0; background: var(--bg); font-size: 0.75rem; }
 .mcell:hover { background: var(--surface); }
 .mcell-out { opacity: 0.6; }
-.mday { font-size: 0.85rem; font-weight: 600; color: var(--text-h); }
-.mcell.is-today .mday { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px; background: var(--accent); color: #fff; justify-self: start; }
+.mday { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--text-h); }
+.mcell.is-today .mnum { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px; background: var(--accent); color: #fff; }
 .mcell.is-selected:not(.is-today) { box-shadow: inset 0 0 0 2px var(--accent); }
 .mnone { font-style: italic; }
 .msum { display: flex; gap: 4px; color: var(--text); }
