@@ -172,3 +172,18 @@ Branch: `feat/roster-calendar`, then merged into `main`
   overflowed under the pill.
 - Now the pill (`.mnum`) wraps only the number; `.mday` is a flex row, so the
   month name sits beside it. Checked in headless Chrome: same row, inside the cell.
+
+## Follow-up: CSV test date bug and stronger filter emphasis (1 Oct 2026)
+
+- CI on `main` failed `test_csv_import_confirm_revokes_with_the_import_reference`
+  once September became history. Cause: the `freeze` fixture in
+  `tests/workers/conftest.py` pinned `now_israel` in five modules but not
+  `app.csvio.router`, so the import preview used the real date. The app was
+  right; the test depended on the date. `app.csvio.router.now_israel` is now
+  frozen too. Full backend suite: 435 passed on the real date.
+- Role/shift filter, stronger emphasis: non-matching slots are blurred and
+  muted (`.slot-dim`, `.msum-dim`; hover shows them again); matching slots get
+  an accent frame (`.slot-hit`, `.msum-hit`). Only a role or shift filter
+  frames slots (`isSlotFiltering` in `filter.ts`, tested). The worker-name
+  focus dims other chips with a blur too (`.chip-dim`).
+  Checked in headless Chrome with Screener + shift B: 7 slots framed, 56 blurred.
