@@ -9,7 +9,7 @@ import { ApprovalPanel } from './ApprovalPanel'
 import { EditErrors, EditPanel, type Selection } from './EditPanel'
 import { buildMoveBody, dropIds, explainEditError, IDS_UPDATING_MESSAGE, idLookup, idsForVersion, needsApprovalAck, type CellRef, type DropAction } from './edit'
 import { nameLookup } from './names'
-import { describeOutcome } from './outcome'
+import { describeOutcome, saveRequest } from './outcome'
 import { downloadCsv, rosterCsv } from './exportCsv'
 import { FilterBar } from './FilterBar'
 import { GenerationSettings } from './GenerationSettings'
@@ -43,6 +43,8 @@ export function RosterPage() {
   const month = monthOf(anchor)
   const [forbid, setForbid] = useState(false)
   const [preview, setPreview] = useState<GenerateOutcomeOut | null>(null)
+  // The "forbid back-to-back" flag the preview was generated with; saving must send it, not the toggle's current value.
+  const [previewForbid, setPreviewForbid] = useState(false)
   const [confirmReplace, setConfirmReplace] = useState(false)
   const [saved, setSaved] = useState(false)
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -97,19 +99,15 @@ export function RosterPage() {
 
   function runGenerate() {
     setSaved(false); setConfirmReplace(false); save.reset()
-    generate.mutate(forbid, { onSuccess: setPreview, onError: () => setPreview(null) })
+    const used = forbid
+    generate.mutate(used, { onSuccess: (p) => { setPreview(p); setPreviewForbid(used) }, onError: () => setPreview(null) })
   }
 
   function doSave() {
-    if (!preview || !previewUsable) return
+    const req = preview && saveRequest(preview, previewForbid, existing?.version ?? null)
+    if (!req) return
     save.mutate(
-      {
-        assignments: preview.assignments!,
-        fingerprint: preview.fingerprint!,
-        expected_version: existing?.version ?? null,
-        replace_existing: existing != null,
-        forbid_adjacent_shifts: forbid,
-      },
+      req,
       { onSuccess: () => { setPreview(null); setConfirmReplace(false); setSaved(true) } },
     )
   }
@@ -326,7 +324,7 @@ export function RosterPage() {
             } : undefined}
           />
           <div className="cal-aside" aria-label={`Details for ${monthLabel(month)}`}>
-            {existing && !previewUsable && <ApprovalPanel month={month} roster={existing} />}
+            {existing && !previewUsable && <ApprovalPanel key={month} month={month} roster={existing} />}
             {shown && (
               <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} overages={shown.overages} costs={shown.costs} workers={shown.workers}
                 fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined} />

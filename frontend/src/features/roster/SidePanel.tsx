@@ -4,6 +4,7 @@ import { CostBreakdown } from './CostBreakdown'
 import { ViolationFix, type FixProps } from './FixPanel'
 import { violationKey } from './calendarData'
 import { ils, nameLookup, violationLabel } from './names'
+import { roleLabel } from '../workers/labels'
 
 interface Props {
   violations: ViolationOut[]
@@ -44,7 +45,7 @@ export const SidePanel = forwardRef<HTMLElement, Props>(function SidePanel({ vio
         {openGaps.length === 0 ? <p className="muted">None</p> : (
           <ul className="scroll-list">{openGaps.map((g) => (
             <li key={`${g.date}${g.shift}${g.role}`}>
-              {g.date} {g.shift} {g.role.toLowerCase().replace('_', ' ')}: {g.assigned}/{g.required}
+              {g.date} {g.shift} {roleLabel(g.role).toLowerCase()}: {g.assigned}/{g.required}
               {g.locked ? ' (past)' : g.proven_missing > 0 ? ' (cannot be filled)' : ''}
             </li>
           ))}</ul>

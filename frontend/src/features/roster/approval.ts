@@ -1,4 +1,5 @@
 import type { ApprovalEventOut, ApprovalPreviewOut, ApproveRequest, CoverageGapOut, HourShortfallOut } from '../../api/schemas'
+import { roleLabel } from '../workers/labels'
 
 type Cause = NonNullable<ApprovalEventOut['revoke_cause']>
 
@@ -37,7 +38,7 @@ export function shortageLines(
 ): string[] {
   const gapLines = gaps
     .filter((g) => g.missing > 0)
-    .map((g) => `${g.date} ${g.shift} ${g.role.toLowerCase().replace('_', ' ')}: ${g.assigned}/${g.required}${g.locked ? ' (past)' : ''}`)
+    .map((g) => `${g.date} ${g.shift} ${roleLabel(g.role).toLowerCase()}: ${g.assigned}/${g.required}${g.locked ? ' (past)' : ''}`)
   const hourLines = shortfalls
     .filter((s) => s.missing_hours > 0)
     .map((s) => `${nameOf(s.worker_id)}: ${s.assigned_hours}/${s.min_hours} h (${s.missing_hours} h below minimum)`)

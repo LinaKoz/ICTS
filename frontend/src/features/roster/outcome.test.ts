@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GenerateOutcomeOut } from '../../api/schemas'
-import { describeOutcome } from './outcome'
+import { describeOutcome, saveRequest } from './outcome'
 
 const base: GenerateOutcomeOut = { outcome: 'solved', warnings: [] }
 const cov = (status: 'OPTIMAL' | 'FEASIBLE', lower_bound: number, locked_uncovered = 0) => ({
@@ -36,5 +36,17 @@ describe('describeOutcome', () => {
       'No roster found in time; nothing was changed',
     ])
     expect(describeOutcome({ ...base, outcome: 'engine_error', message: 'x' }).kind).toBe('error')
+  })
+})
+
+describe('saveRequest', () => {
+  const solved: GenerateOutcomeOut = { ...base, assignments: [], fingerprint: 'fp' }
+  it('sends the flag the preview was generated with', () => {
+    expect(saveRequest(solved, true, null)).toMatchObject({ forbid_adjacent_shifts: true, replace_existing: false, expected_version: null })
+    expect(saveRequest(solved, false, 4)).toMatchObject({ forbid_adjacent_shifts: false, replace_existing: true, expected_version: 4 })
+  })
+  it('is null for a preview that cannot be saved', () => {
+    expect(saveRequest({ ...solved, fingerprint: null }, false, null)).toBeNull()
+    expect(saveRequest({ ...solved, outcome: 'invalid_input' }, false, null)).toBeNull()
   })
 })

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { ErrorPanel } from '../../errors/ErrorPanel'
+import { currentMonth } from '../roster/calendar'
+import { SHIFT_INFO } from '../roster/names'
 import type { ContractApplyOut, ContractOut, ContractPreviewOut } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
 import { useApplyContract, useContracts, usePreviewContract } from './api'
@@ -7,11 +9,6 @@ import {
   DAYS, SHIFTS, availabilitySummary, dayLabel, fieldErrors, formFromContract, isStalePreview, lockedViolationWarnings,
   contractChangeLines, contractFormChanged, previewHeadline, rosterEffect, setShiftDays, toContractInput, toggleToken, validateContractForm, type ContractForm,
 } from './logic'
-
-function currentMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
 function ContractRow({ c, resolved }: { c: ContractOut; resolved: boolean }) {
   return (
@@ -26,20 +23,13 @@ function ContractRow({ c, resolved }: { c: ContractOut; resolved: boolean }) {
   )
 }
 
-/** Hours and names as shown on the availability cards. */
-const SHIFT_CARD: Record<(typeof SHIFTS)[number], { name: string; hours: string }> = {
-  A: { name: 'Night', hours: '00:00–08:00' },
-  B: { name: 'Day', hours: '08:00–16:00' },
-  C: { name: 'Evening', hours: '16:00–24:00' },
-}
-
 /** One card per shift with a toggle per weekday; tokens stay `DAY:SHIFT`. */
 function ShiftCards({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   return (
     <div className="shift-cards">
       {SHIFTS.map((s) => {
         const allOn = DAYS.every((d) => value.includes(`${d}:${s}`))
-        const { name, hours } = SHIFT_CARD[s]
+        const { name, hours } = SHIFT_INFO[s]
         return (
           <fieldset key={s} className="shift-card">
             <legend className="sr-only">Shift {s}, {name}, {hours}</legend>
@@ -201,7 +191,8 @@ function NewVersionForm({ workerId, base, onApplied }: { workerId: number; base:
 export function ContractsSection({ workerId, currentContract }: { workerId: number; currentContract: ContractOut | null }) {
   const [month, setMonth] = useState(currentMonth)
   const [applied, setApplied] = useState<ContractApplyOut | null>(null)
-  const contracts = useContracts(workerId, month)
+  // Previous month's data stays while another month loads, so the new-version form below is not unmounted.
+  const contracts = useContracts(workerId, month, { keepPrevious: true })
   const base = contracts.data?.resolved ?? currentContract
 
   return (
@@ -236,7 +227,9 @@ export function ContractsSection({ workerId, currentContract }: { workerId: numb
       )}
       {contracts.error instanceof ApiError && contracts.error.status === 404 && <p>This worker no longer exists.</p>}
       </div>
-      {contracts.data && <NewVersionForm key={contracts.data.versions.length} workerId={workerId} base={base} onApplied={setApplied} />}
+      {/* Re-filled when a version is added or the base it was copied from changes, so the change summary
+          always compares against the contract the form was filled from. */}
+      {contracts.data && <NewVersionForm key={`${contracts.data.versions.length}|${base?.id ?? 'none'}`} workerId={workerId} base={base} onApplied={setApplied} />}
     </section>
   )
 }

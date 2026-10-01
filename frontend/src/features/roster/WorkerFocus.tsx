@@ -1,10 +1,10 @@
 import { useId, useState } from 'react'
-import type { CostsOut, Role, Shift, WorkerRefOut } from '../../api/schemas'
+import type { CostsOut, Shift, WorkerRefOut } from '../../api/schemas'
 import { useContracts } from '../workers/api'
 import { dayLabel, monthLabel, monthOf, monthWeeks, weekdayShort } from './calendar'
 import { SHIFT_INFO } from './names'
+import { roleLabel } from '../workers/labels'
 
-const ROLE_NAME: Record<Role, string> = { GENERAL_GUARD: 'General guard', SCREENER: 'Screener', SUPERVISOR: 'Supervisor' }
 
 /** Search box that picks one worker to highlight across the calendar. */
 export function WorkerSearch({ workers, focusId, onFocus }: { workers: WorkerRefOut[]; focusId: string | null; onFocus: (id: string | null) => void }) {
@@ -40,7 +40,7 @@ export function WorkerSearch({ workers, focusId, onFocus }: { workers: WorkerRef
         <ul className="worker-suggest" id={listId} role="listbox">
           {matches.map((w, i) => (
             <li key={w.worker_id} id={`${listId}-${i}`} role="option" aria-selected={i === active} className={i === active ? 'is-active' : ''}>
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => pick(w.worker_id)}>{w.full_name} <span className="muted">{ROLE_NAME[w.role]}</span></button>
+              <button onMouseDown={(e) => e.preventDefault()} onClick={() => pick(w.worker_id)}>{w.full_name} <span className="muted">{roleLabel(w.role)}</span></button>
             </li>
           ))}
         </ul>
@@ -72,7 +72,7 @@ export function WorkerFocusCard({ worker, month, costs, today, monthShifts, visi
     <section className="focus-card" aria-label={`${worker.full_name}: hours and shifts`}>
       <header>
         <strong>{worker.full_name}</strong>
-        <span className="badge">{ROLE_NAME[worker.role]}</span>
+        <span className="badge">{roleLabel(worker.role)}</span>
         {worker.status !== 'ACTIVE' && <span className="badge">{worker.status.toLowerCase()}</span>}
       </header>
       <div className="focus-shifts">

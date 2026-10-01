@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { ErrorPanel } from '../../errors/ErrorPanel'
+import { currentMonth } from '../roster/calendar'
 import type { ImportConfirmOut, ImportPreviewOut, ImportRowOut } from '../../api/schemas'
 import { lockedViolationWarnings, rosterEffect } from '../workers/logic'
 import { roleLabel } from '../workers/labels'
@@ -9,11 +10,6 @@ import {
   exportFilename, exportSummary, fileProblem, formatDiff, groupRows, isActionable, stalePreviewOf, summaryLine,
   uploadErrorMessage, type ExportCounts,
 } from './logic'
-
-function currentMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
 function RowTable({ kind, rows, skipped, onToggle, disabled }: {
   kind: ImportRowOut['classification']; rows: ImportRowOut[]; skipped: ReadonlySet<string>; onToggle: (id: string) => void; disabled: boolean

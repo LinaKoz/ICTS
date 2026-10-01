@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ErrorPanel } from '../../errors/ErrorPanel'
-import type { ContractOut, Role, WorkerDetailOut, WorkerStatus, WorkerUpdateOut } from '../../api/schemas'
+import type { Role, WorkerDetailOut, WorkerStatus, WorkerUpdateOut } from '../../api/schemas'
 import { useUpdateWorker, useWorker } from './api'
 import { ContractsSection } from './ContractsSection'
 import { diffPatch, fieldErrors, roleStatusChangeLines, validateWorkerForm } from './logic'
@@ -28,7 +28,7 @@ function UpdateResult({ result }: { result: WorkerUpdateOut }) {
   )
 }
 
-function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: (r: WorkerUpdateOut) => void }) {
+function DetailsForm({ worker, onResult, onReload }: { worker: WorkerDetailOut; onResult: (r: WorkerUpdateOut) => void; onReload: () => void }) {
   const update = useUpdateWorker(worker.id)
   const [form, setForm] = useState({ national_id: worker.national_id, full_name: worker.full_name, role: worker.role as Role, status: worker.status as WorkerStatus })
   const [confirming, setConfirming] = useState<string[] | null>(null)
@@ -90,7 +90,7 @@ function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: 
           {patch && <button type="button" onClick={() => setForm({ national_id: worker.national_id, full_name: worker.full_name, role: worker.role, status: worker.status })}>Reset</button>}
         </div>
       )}
-      {otherError && <ErrorPanel error={update.error} onReload={() => { update.reset(); window.location.reload() }} />}
+      {otherError && <ErrorPanel error={update.error} onReload={() => { update.reset(); onReload() }} />}
     </form>
   )
 }
@@ -137,11 +137,11 @@ export function WorkerDetail({ id, embedded = false }: { id: number; embedded?: 
           {/* keyed by version so a reload after a conflict resets the form to the stored values */}
           <div className="worker-detail">
             <div className="wd-details">
-              <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} />
+              <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} onReload={() => void worker.refetch()} />
               {result && <UpdateResult result={result} />}
             </div>
             <div className="wd-history"><History worker={worker.data} /></div>
-            <ContractsSection workerId={id} currentContract={worker.data.current_contract as ContractOut | null} />
+            <ContractsSection key={id} workerId={id} currentContract={worker.data.current_contract} />
           </div>
         </>
       )}

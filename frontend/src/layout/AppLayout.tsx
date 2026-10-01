@@ -24,7 +24,7 @@ export function AppLayout() {
         </nav>
         <div className="rail-user">
           <span className="rail-name">{user?.display_name}<span className="rail-role">{user?.app_role.toLowerCase()}</span></span>
-          <button className="rail-signout" onClick={() => logout().then(() => nav('/login'))}>Sign out</button>
+          <button className="rail-signout" onClick={() => logout().catch(() => {}).finally(() => nav('/login'))}>Sign out</button>
         </div>
       </header>
       <main className="content"><Outlet /></main>

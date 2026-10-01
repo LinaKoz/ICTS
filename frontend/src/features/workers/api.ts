@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
 import type {
   ContractApplyOut, ContractInput, ContractPreviewOut, ContractsOut, Role, WorkerCreate, WorkerDetailOut, WorkerOut,
@@ -20,17 +20,19 @@ export function useWorkers(f: WorkerFilters) {
   if (f.status) qs.set('status', f.status)
   if (f.role) qs.set('role', f.role)
   const suffix = qs.size ? `?${qs}` : ''
-  return useQuery({ queryKey: [...workersKey, f], queryFn: () => apiFetch<WorkerOut[]>(`/workers${suffix}`) })
+  // Keep the previous list on screen while a new filter loads, instead of a skeleton on every keystroke.
+  return useQuery({ queryKey: [...workersKey, f], placeholderData: keepPreviousData, queryFn: () => apiFetch<WorkerOut[]>(`/workers${suffix}`) })
 }
 
 export function useWorker(id: number) {
   return useQuery({ queryKey: workerKey(id), retry: false, queryFn: () => apiFetch<WorkerDetailOut>(`/workers/${id}`) })
 }
 
-export function useContracts(id: number, resolvedFor: string) {
+export function useContracts(id: number, resolvedFor: string, opts: { keepPrevious?: boolean } = {}) {
   return useQuery({
     queryKey: contractsKey(id, resolvedFor),
     retry: false,
+    placeholderData: opts.keepPrevious ? keepPreviousData : undefined,
     queryFn: () => apiFetch<ContractsOut>(`/workers/${id}/contracts?resolved_for=${resolvedFor}`),
   })
 }

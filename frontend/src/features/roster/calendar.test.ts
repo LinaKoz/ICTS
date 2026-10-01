@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, addMonths, monthWeeks, rangeLabel, shiftAnchor, startOfWeek, todayIso, visibleMonths, weekDays } from './calendar'
+import { addDays, addMonths, currentMonth, monthWeeks, rangeLabel, shiftAnchor, startOfWeek, todayIso, visibleMonths, weekDays } from './calendar'
 
 describe('calendar dates', () => {
   it('starts weeks on Monday', () => {
@@ -36,5 +36,12 @@ describe('calendar dates', () => {
   })
   it('decides today in Israel time', () => {
     expect(todayIso(new Date('2026-10-08T22:30:00Z'))).toBe('2026-10-09')
+  })
+})
+
+describe('currentMonth', () => {
+  it('is the month in Asia/Jerusalem, not in UTC or the browser zone', () => {
+    // 30 Sep 22:30 UTC is already 1 Oct 01:30 in Israel.
+    expect(currentMonth(new Date('2026-09-30T22:30:00Z'))).toBe('2026-10')
   })
 })
