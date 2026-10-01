@@ -17,6 +17,12 @@ export function toggleToken(tokens: readonly string[], token: string): string[] 
   return normalizeAvailability(tokens.includes(token) ? tokens.filter((t) => t !== token) : [...tokens, token])
 }
 
+/** Every weekday of one shift on (`on`) or off, leaving the other shifts alone. */
+export function setShiftDays(tokens: readonly string[], shift: string, on: boolean): string[] {
+  const rest = tokens.filter((t) => !t.endsWith(`:${shift}`))
+  return normalizeAvailability(on ? [...rest, ...DAYS.map((d) => `${d}:${shift}`)] : rest)
+}
+
 /** "Mon ABC · Tue AB": readable availability for the version timeline. */
 export function availabilitySummary(tokens: readonly string[]): string {
   const by = new Map<string, string>()
@@ -48,6 +54,31 @@ export function formFromContract(c: ContractOut | null, month: string): Contract
     max_hours: c ? String(c.max_hours) : '',
     availability: c ? normalizeAvailability(c.availability) : [],
   }
+}
+
+/** What the form changes against the version it was filled from, one short line per field and per shift
+ * ("Max hours 192 → 160", "B: Thu, Fri removed"). Rate compares as a number, availability as a set; the
+ * month alone is no change, since identical values create no version (P5). */
+export function contractChangeLines(form: ContractForm, base: ContractOut | null): string[] {
+  if (!base) return []
+  const lines: string[] = []
+  if (Number(form.hourly_rate_ils) !== Number(base.hourly_rate_ils)) lines.push(`Rate ₪${base.hourly_rate_ils} → ₪${form.hourly_rate_ils.trim() || '?'}`)
+  if (form.min_hours.trim() !== String(base.min_hours)) lines.push(`Min hours ${base.min_hours} → ${form.min_hours.trim() || '?'}`)
+  if (form.max_hours.trim() !== String(base.max_hours)) lines.push(`Max hours ${base.max_hours} → ${form.max_hours.trim() || '?'}`)
+  const before = new Set(base.availability)
+  const after = new Set(form.availability)
+  for (const s of SHIFTS) {
+    const added = DAYS.filter((d) => after.has(`${d}:${s}`) && !before.has(`${d}:${s}`)).map(dayLabel)
+    const removed = DAYS.filter((d) => before.has(`${d}:${s}`) && !after.has(`${d}:${s}`)).map(dayLabel)
+    const parts = [added.length ? `${added.join(', ')} added` : '', removed.length ? `${removed.join(', ')} removed` : ''].filter(Boolean)
+    if (parts.length) lines.push(`${s}: ${parts.join('; ')}`)
+  }
+  return lines
+}
+
+/** Whether there is anything to preview. No base (a first contract): always. */
+export function contractFormChanged(form: ContractForm, base: ContractOut | null): boolean {
+  return !base || contractChangeLines(form, base).length > 0
 }
 
 const RATE = /^\d{1,8}(\.\d{1,2})?$/
