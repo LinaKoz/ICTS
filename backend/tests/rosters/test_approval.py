@@ -136,15 +136,30 @@ def test_no_contract_is_a_hard_violation_too(duo, db):
 def test_hard_violation_in_a_started_shift_blocks_approval(duo, db, freeze):
     freeze(datetime(2099, 1, 15, 10, 0))
     roster, _ = _sparse_roster(db, duo.planner_id)
-    off = insert_worker(db, "222222226", "Off Duty", GG)
-    insert_contract(db, off, duo.planner_id, effective_month=date(2026, 1, 1), availability=["TUE:A"])
-    insert_assignment(db, roster, off, date(2099, 1, 5), "A", GG)  # started long ago, cannot be edited
+    wrong = insert_worker(db, "222222226", "Wrong Slot", GG)
+    insert_contract(db, wrong, duo.planner_id, effective_month=date(2026, 1, 1))
+    insert_assignment(db, roster, wrong, date(2099, 1, 5), "A", "SCREENER")  # started long ago, cannot be edited
     client = duo.as_("manager")
     got = client.get("/api/rosters/2099-01").json()
-    assert got["free_from"][0] == "2099-01-15" and [v["code"] for v in got["violations"]] == ["UNAVAILABLE"]
+    assert got["free_from"][0] == "2099-01-15" and [v["code"] for v in got["violations"]] == ["WRONG_ROLE"]
     resp = _approve(client, "2099-01", **_ack_body(client, "2099-01"))
     assert resp.status_code == 422 and _code(resp) == "HARD_VIOLATIONS", resp.text
-    assert [v["code"] for v in resp.json()["error"]["details"]] == ["UNAVAILABLE"]
+    assert [v["code"] for v in resp.json()["error"]["details"]] == ["WRONG_ROLE"]
+
+
+@requires_db
+def test_unavailable_in_a_started_shift_is_not_a_violation(duo, db, freeze):
+    """Availability counts from the first free shift: a started shift the
+    worker is no longer available for neither shows nor blocks approval."""
+    freeze(datetime(2099, 1, 15, 10, 0))
+    roster, _ = _sparse_roster(db, duo.planner_id)
+    off = insert_worker(db, "333333334", "Off Duty", GG)
+    insert_contract(db, off, duo.planner_id, effective_month=date(2026, 1, 1), availability=["TUE:A"])
+    insert_assignment(db, roster, off, date(2099, 1, 5), "A", GG)
+    client = duo.as_("manager")
+    assert client.get("/api/rosters/2099-01").json()["violations"] == []
+    pv = client.get("/api/rosters/2099-01/approval-preview").json()
+    assert pv["hard_violations"] == [] and pv["can_approve"] is True
 
 
 # --- soft shortages -----------------------------------------------------------------

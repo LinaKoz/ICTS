@@ -13,6 +13,7 @@ from app.api_schemas.common import (
     CostsOut,
     CoverageGapOut,
     CoverageStatusOut,
+    HourOverageOut,
     HourShortfallOut,
     MinHoursStatusOut,
     Shift,
@@ -45,6 +46,7 @@ class GenerateOutcomeOut(BaseModel):
     min_hours: MinHoursStatusOut | None = None
     lexicographically_optimal: bool | None = None
     preexisting_violations: list[ViolationOut] | None = None
+    hour_overages: list[HourOverageOut] | None = None
     objective: ObjectiveOut | None = None
     costs: CostsOut | None = None
     workers: list[WorkerRefOut] | None = None  # name lookup for every worker id in this response
@@ -108,6 +110,7 @@ class RosterOut(BaseModel):
     violations: list[ViolationOut]
     coverage_gaps: list[CoverageGapOut]
     hour_shortfalls: list[HourShortfallOut]
+    hour_overages: list[HourOverageOut]
     costs: CostsOut
     workers: list[WorkerRefOut]  # name lookup for every worker id in this response
     updated_at: datetime  # last save/edit of this roster

@@ -1,10 +1,14 @@
 """§8 T5 contract-change acceptance: impact listing, apply semantics, stale
-base, P1 same-month correction, P2 locked violations, P5 identical data."""
+base, P1 same-month correction, started shifts exempt from availability and
+worked-hours limits, P5 identical data."""
 from __future__ import annotations
+
+from datetime import date
 
 import pytest
 
 from tests.conftest import requires_db
+from tests.rosters.helpers import insert_assignment
 from tests.workers.conftest import all_but, contract_body
 from tests.workers.scenario import (
     FREE,
@@ -169,31 +173,29 @@ def test_identical_contract_creates_no_version(world):
 
 
 @requires_db
-def test_retroactive_locked_violation_then_same_month_correction(world):
+def test_availability_change_skips_started_shifts(world):
+    """A retroactive availability change counts from the first free shift:
+    the already-worked Thursday A gets no UNAVAILABLE, so the approved
+    roster keeps its approval and nothing is locked."""
     client, uid, db, ids = world
     w = ids["w"]
-    wrong = contract_body("2026-09", all_but(slot(LOCKED)))  # excludes the already-worked Thursday A
-    p = _preview(client, w, wrong)
-    assert p["retroactive"] is True
-    assert [(lv["month"], lv["worker_id"], lv["worker_name"], lv["date"], lv["shift"], lv["code"]) for lv in p["locked_violations"]] == [
-        ("2026-09", str(w), "Alice Guard", "2026-09-10", "A", "UNAVAILABLE")
-    ]
-    assert p["affected_rosters"][0]["locked_violations"] == p["locked_violations"]
+    change = contract_body("2026-09", all_but(slot(LOCKED)))  # excludes the already-worked Thursday A
+    p = _preview(client, w, change)
+    assert p["retroactive"] is True and p["locked_violations"] == []
+    sep = next(r for r in p["affected_rosters"] if r["month"] == "2026-09")
+    assert sep["new_violations"] == [] and sep["revokes_approval"] is False
 
-    assert _apply(client, w, wrong, p["fingerprint"]).status_code == 200
+    assert _apply(client, w, change, p["fingerprint"]).status_code == 200
     roster = client.get("/api/rosters/2026-09").json()
-    assert roster["status"] == "DRAFT"  # stays unapproved
-    assert [(v["code"], v["key"][1]) for v in roster["violations"]] == [("UNAVAILABLE", "2026-09-10")]
+    assert roster["status"] == "APPROVED" and roster["violations"] == []
     assert assignment_count(db, ids["sep"]) == 3
 
-    # P1: a corrected version for the same month supersedes it; the violation goes away.
+    # P1: a later version for the same month supersedes it; both stay in history.
     fix = contract_body("2026-09")
     p2 = _preview(client, w, fix)
     assert p2["locked_violations"] == [] and p2["affected_rosters"][0]["new_violations"] == []
     out = _apply(client, w, fix, p2["fingerprint"]).json()
     assert out["created"] is True and out["contract"]["version_no"] == 3
-    roster = client.get("/api/rosters/2026-09").json()
-    assert roster["violations"] == [] and roster["status"] == "DRAFT"
 
     listing = client.get(f"/api/workers/{w}/contracts").json()
     assert [(v["version_no"], v["effective_month"]) for v in listing["versions"]] == [(3, "2026-09"), (2, "2026-09"), (1, "2026-01")]
@@ -221,3 +223,58 @@ def test_contract_endpoints_404_and_auth(world):
     assert client.post("/api/workers/9999/contracts/preview", json=body).status_code == 404
     assert client.post("/api/workers/9999/contracts", json={**body, "fingerprint": "x"}).status_code == 404
     assert client.post(f"/api/workers/{ids['w']}/contracts", json=body).status_code == 422  # fingerprint required
+
+
+@requires_db
+def test_availability_change_during_the_running_shift(world):
+    """The worker reports, mid-shift, that this weekday's B no longer works
+    for them: the running shift (15/09 B, started 08:00) is not flagged,
+    the same slot next week is."""
+    client, uid, db, ids = world
+    w = ids["w"]
+    running, next_week = (date(2026, 9, 15), "B"), (date(2026, 9, 22), "B")
+    insert_assignment(db, ids["sep"], w, *running, "GENERAL_GUARD")
+    change = contract_body("2026-09", all_but(slot(running)))
+    p = _preview(client, w, change)
+    assert p["locked_violations"] == [] and p["affected_rosters"][0]["new_violations"] == []
+    assert _apply(client, w, change, p["fingerprint"]).status_code == 200
+    assert client.get("/api/rosters/2026-09").json()["violations"] == []
+
+    insert_assignment(db, ids["sep"], w, *next_week, "GENERAL_GUARD")
+    roster = client.get("/api/rosters/2026-09").json()
+    assert [(v["code"], v["key"][1]) for v in roster["violations"]] == [("UNAVAILABLE", "2026-09-22")]
+
+
+@requires_db
+def test_max_hours_change_splits_worked_and_fixable_hours(world):
+    """Hours already worked above a lowered maximum are a warning; the
+    part the free shifts can still fix stays a MAX_HOURS violation."""
+    client, uid, db, ids = world
+    w, other = ids["w"], ids["other"]
+    # W: 10/09 A worked (8 h), 20/09 A upcoming (8 h). Max 0: 8 h over already, 8 h fixable.
+    p = _preview(client, w, contract_body("2026-09", max_hours=0))
+    sep = p["affected_rosters"][0]
+    assert [(v["code"], v["magnitude"]) for v in sep["new_violations"]] == [("MAX_HOURS", 8)]
+    assert p["locked_violations"] == [] and sep["revokes_approval"] is True
+    assert _apply(client, w, contract_body("2026-09", max_hours=0), p["fingerprint"]).status_code == 200
+    roster = client.get("/api/rosters/2026-09").json()
+    [v] = roster["violations"]
+    assert (v["code"], v["magnitude"]) == ("MAX_HOURS", 8)
+    assert [(a["date"], a["shift"]) for a in v["assignments"]] == [("2026-09-20", "A")]
+    assert roster["hour_overages"] == [{"worker_id": str(w), "max_hours": 0, "worked_hours": 8, "over_hours": 8}]
+
+
+@requires_db
+def test_max_hours_below_worked_hours_only_warns(planner, db, freeze):
+    freeze(NOW)
+    client, uid = planner
+    ids = seed(db, uid, sep_status="APPROVED")
+    other = ids["other"]  # only the worked 10/09 A in September
+    body = contract_body("2026-09", max_hours=0)
+    p = _preview(client, other, body)
+    assert p["locked_violations"] == [] and p["affected_rosters"][0]["new_violations"] == []
+    assert p["affected_rosters"][0]["revokes_approval"] is False
+    assert _apply(client, other, body, p["fingerprint"]).status_code == 200
+    roster = client.get("/api/rosters/2026-09").json()
+    assert roster["status"] == "APPROVED" and roster["violations"] == []
+    assert roster["hour_overages"] == [{"worker_id": str(other), "max_hours": 0, "worked_hours": 8, "over_hours": 8}]

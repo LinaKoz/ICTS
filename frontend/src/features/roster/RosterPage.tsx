@@ -167,12 +167,12 @@ export function RosterPage() {
   // The calendar shows the unsaved preview when there is one, otherwise the stored roster.
   const shown = previewUsable
     ? {
-        assignments: preview!.assignments!, gaps: preview!.coverage_gaps ?? [], shortfalls: preview!.hour_shortfalls ?? [],
+        assignments: preview!.assignments!, gaps: preview!.coverage_gaps ?? [], shortfalls: preview!.hour_shortfalls ?? [], overages: preview!.hour_overages ?? [],
         costs: preview!.costs ?? null, workers: preview!.workers ?? null, violations: preview!.preexisting_violations ?? [], freeFrom: existing?.free_from ?? null,
       }
     : existing
       ? {
-          assignments: existing.assignments, gaps: existing.coverage_gaps, shortfalls: existing.hour_shortfalls,
+          assignments: existing.assignments, gaps: existing.coverage_gaps, shortfalls: existing.hour_shortfalls, overages: existing.hour_overages,
           costs: existing.costs, workers: existing.workers, violations: existing.violations, freeFrom: existing.free_from,
         }
       : null
@@ -328,7 +328,7 @@ export function RosterPage() {
           <div className="cal-aside" aria-label={`Details for ${monthLabel(month)}`}>
             {existing && !previewUsable && <ApprovalPanel month={month} roster={existing} />}
             {shown && (
-              <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} costs={shown.costs} workers={shown.workers}
+              <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} overages={shown.overages} costs={shown.costs} workers={shown.workers}
                 fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined} />
             )}
           </div>

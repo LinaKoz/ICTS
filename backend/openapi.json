@@ -3732,6 +3732,20 @@
             ],
             "title": "Preexisting Violations"
           },
+          "hour_overages": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HourOverageOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hour Overages"
+          },
           "objective": {
             "anyOf": [
               {
@@ -3847,6 +3861,35 @@
         },
         "type": "object",
         "title": "GenerateRequest"
+      },
+      "HourOverageOut": {
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "title": "Worker Id"
+          },
+          "max_hours": {
+            "type": "integer",
+            "title": "Max Hours"
+          },
+          "worked_hours": {
+            "type": "integer",
+            "title": "Worked Hours"
+          },
+          "over_hours": {
+            "type": "integer",
+            "title": "Over Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker_id",
+          "max_hours",
+          "worked_hours",
+          "over_hours"
+        ],
+        "title": "HourOverageOut",
+        "description": "Hours already worked above the contract maximum: a warning, since\nno edit can undo them (hours that free shifts can fix stay MAX_HOURS)."
       },
       "HourShortfallOut": {
         "properties": {
@@ -4695,6 +4738,13 @@
             "type": "array",
             "title": "Hour Shortfalls"
           },
+          "hour_overages": {
+            "items": {
+              "$ref": "#/components/schemas/HourOverageOut"
+            },
+            "type": "array",
+            "title": "Hour Overages"
+          },
           "costs": {
             "$ref": "#/components/schemas/CostsOut"
           },
@@ -4734,6 +4784,7 @@
           "violations",
           "coverage_gaps",
           "hour_shortfalls",
+          "hour_overages",
           "costs",
           "workers",
           "updated_at",

@@ -1,5 +1,5 @@
 import { forwardRef, useState } from 'react'
-import type { CostsOut, CoverageGapOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
+import type { CostsOut, CoverageGapOut, HourOverageOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
 import { Modal } from '../../components/Modal'
 import { ViolationFix, type FixProps } from './FixPanel'
 import { violationKey } from './calendarData'
@@ -9,6 +9,8 @@ interface Props {
   violations: ViolationOut[]
   gaps: CoverageGapOut[]
   shortfalls: HourShortfallOut[]
+  /** Hours already worked above the maximum: nothing to fix, so a warning rather than a violation. */
+  overages?: HourOverageOut[]
   costs: CostsOut | null
   workers: WorkerRefOut[] | null | undefined
   /** Present only when the stored roster is editable: adds a Fix action to each violation. */
@@ -20,7 +22,7 @@ interface Props {
 }
 
 /** The violations list: scrolls on its own when long; each entry can jump the calendar to its shift. */
-export const SidePanel = forwardRef<HTMLElement, Props>(function SidePanel({ violations, gaps, shortfalls, costs, workers, fix, onShowViolation, flashViolations }, violationsRef) {
+export const SidePanel = forwardRef<HTMLElement, Props>(function SidePanel({ violations, gaps, shortfalls, overages = [], costs, workers, fix, onShowViolation, flashViolations }, violationsRef) {
   const nameOf = nameLookup(workers)
   const [showCosts, setShowCosts] = useState(false)
   const openGaps = gaps.filter((g) => g.missing > 0)
@@ -51,9 +53,19 @@ export const SidePanel = forwardRef<HTMLElement, Props>(function SidePanel({ vio
       <section className="panel">
         <h3>Hour shortfalls ({shortfalls.length})</h3>
         {shortfalls.length === 0 ? <p className="muted">None</p> : (
-          <ul className="scroll-list">{shortfalls.map((s) => <li key={s.worker_id}>{nameOf(s.worker_id)}: {s.assigned_hours}/{s.min_hours} h ({s.missing_hours} h below minimum)</li>)}</ul>
+          <ul className="scroll-list shortfall-list">{shortfalls.map((s) => <li key={s.worker_id}>{nameOf(s.worker_id)}: {s.assigned_hours}/{s.min_hours} h ({s.missing_hours} h below minimum)</li>)}</ul>
         )}
       </section>
+      {overages.length > 0 && (
+        <section className="panel">
+          <h3>Worked over maximum ({overages.length})</h3>
+          <ul className="scroll-list">{overages.map((o) => (
+            <li key={o.worker_id} title="Already worked in shifts that started; nothing left to fix">
+              <span aria-hidden="true">⚠ </span>{nameOf(o.worker_id)}: {o.worked_hours}/{o.max_hours} h worked ({o.over_hours} h over maximum)
+            </li>
+          ))}</ul>
+        </section>
+      )}
       <section className="panel cost-panel">
         <h3>Estimated cost</h3>
         {!costs ? <p className="muted">Not available</p> : (

@@ -959,6 +959,8 @@ export interface components {
             lexicographically_optimal?: boolean | null;
             /** Preexisting Violations */
             preexisting_violations?: components["schemas"]["ViolationOut"][] | null;
+            /** Hour Overages */
+            hour_overages?: components["schemas"]["HourOverageOut"][] | null;
             objective?: components["schemas"]["ObjectiveOut"] | null;
             costs?: components["schemas"]["CostsOut"] | null;
             /** Workers */
@@ -991,6 +993,21 @@ export interface components {
              * @default 0
              */
             random_seed: number;
+        };
+        /**
+         * HourOverageOut
+         * @description Hours already worked above the contract maximum: a warning, since
+         *     no edit can undo them (hours that free shifts can fix stay MAX_HOURS).
+         */
+        HourOverageOut: {
+            /** Worker Id */
+            worker_id: string;
+            /** Max Hours */
+            max_hours: number;
+            /** Worked Hours */
+            worked_hours: number;
+            /** Over Hours */
+            over_hours: number;
         };
         /** HourShortfallOut */
         HourShortfallOut: {
@@ -1294,6 +1311,8 @@ export interface components {
             coverage_gaps: components["schemas"]["CoverageGapOut"][];
             /** Hour Shortfalls */
             hour_shortfalls: components["schemas"]["HourShortfallOut"][];
+            /** Hour Overages */
+            hour_overages: components["schemas"]["HourOverageOut"][];
             costs: components["schemas"]["CostsOut"];
             /** Workers */
             workers: components["schemas"]["WorkerRefOut"][];

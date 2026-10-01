@@ -169,7 +169,7 @@ export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}
     const roster: RosterOut = {
       month: `${month}-01`, status: 'DRAFT', version: (existing?.version ?? 0) + 1, is_history: false,
       free_from: [`${month}-01`, 'A'], forbid_adjacent_shifts: req.forbid_adjacent_shifts,
-      assignments: req.assignments, violations: [], coverage_gaps: b.gaps, hour_shortfalls: b.shortfalls,
+      assignments: req.assignments, violations: [], coverage_gaps: b.gaps, hour_shortfalls: b.shortfalls, hour_overages: [],
       costs: b.costs, workers: b.workers, approval_history: [],
       updated_at: new Date().toISOString(), updated_by: user.display_name,
     }
