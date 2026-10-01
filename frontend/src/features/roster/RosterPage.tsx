@@ -199,7 +199,7 @@ export function RosterPage() {
   const focusWorker = shown?.workers?.find((w) => w.worker_id === focusId) ?? null
   const monthDates = Array.from({ length: daysInMonth(month) }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
   const focusShifts = focusWorker && meta.data ? shiftsOfWorker(index, focusWorker.worker_id, monthDates, meta.data.shifts, meta.data.roles) : []
-  const approvedEvent = existing?.status === 'APPROVED' ? [...existing.approval_history].reverse().find((e) => !e.revoked_at) : undefined
+  const approvedEvent = existing?.status === 'APPROVED' ? existing.approval_history.find((e) => !e.revoked_at) : undefined
   const exportCsv = () => {
     if (!shown) return
     downloadCsv(`roster-${month}${previewUsable ? '-preview' : ''}.csv`, rosterCsv(shown.assignments, nameLookup(shown.workers)))

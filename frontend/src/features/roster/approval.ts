@@ -65,7 +65,7 @@ export function buildApproveBody(preview: ApprovalPreviewOut, acknowledged: bool
   }
 }
 
-/** Id of the roster's current (unrevoked) approval, the one a manual revoke targets; history is oldest first. */
+/** Id of the roster's current (unrevoked) approval, the one a manual revoke targets; history is newest first. */
 export function openApprovalId(roster: { approval_history: Pick<ApprovalEventOut, 'id' | 'revoked_at'>[] }): number | null {
-  return roster.approval_history.findLast((ev) => ev.revoked_at == null)?.id ?? null
+  return roster.approval_history.find((ev) => ev.revoked_at == null)?.id ?? null
 }

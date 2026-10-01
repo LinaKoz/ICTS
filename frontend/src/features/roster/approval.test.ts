@@ -60,7 +60,7 @@ describe('canSubmitApproval / buildApproveBody', () => {
 
 describe('openApprovalId', () => {
   it('is the newest unrevoked approval, which a manual revoke is bound to', () => {
-    const history = [{ id: 1, revoked_at: '2099-01-02T10:00:00Z' }, { id: 2, revoked_at: null }]
+    const history = [{ id: 2, revoked_at: null }, { id: 1, revoked_at: '2099-01-02T10:00:00Z' }] // newest first
     expect(openApprovalId({ approval_history: history })).toBe(2)
   })
   it('is null when every approval was revoked', () => {
