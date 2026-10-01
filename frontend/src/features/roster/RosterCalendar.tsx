@@ -5,7 +5,7 @@ import { dayLabel, monthLabel, monthOf, monthWeeks, weekDays, weekdayShort, type
 import { ViolationFix, type FixProps } from './FixPanel'
 import { type CalendarIndex, violatingWorkers, violationKey } from './calendarData'
 import { dropAction, explainViolation, isLockedShift, type CellRef, type DropAction, type DropTarget } from './edit'
-import { isFiltering, NO_FILTER, slotMatches, type RosterFilter } from './filter'
+import { isFiltering, isSlotFiltering, NO_FILTER, slotMatches, type RosterFilter } from './filter'
 import { ils, SHIFT_INFO, violationLabel } from './names'
 
 const ROLE_LABEL: Record<Role, string> = { GENERAL_GUARD: 'GG', SCREENER: 'SCR', SUPERVISOR: 'SUP' }
@@ -118,7 +118,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
         const slotKey = `s|${date}|${shift}|${r}`
         const slotTarget: DropTarget = { kind: 'slot', slot: { date, shift, role: r } }
         return (
-          <div key={r} className={`slot${full ? ' slot-full' : ''}${filtering && !slotMatches(filter, shift, r) ? ' slot-dim' : ''}${editable ? dnd.dropClass(slotTarget, slotKey) : ''}`} {...(editable ? dnd.dropProps(slotTarget, slotKey) : {})}>
+          <div key={r} className={`slot${full ? ' slot-full' : ''}${filtering ? (slotMatches(filter, shift, r) ? (isSlotFiltering(filter) ? ' slot-hit' : '') : ' slot-dim') : ''}${editable ? dnd.dropClass(slotTarget, slotKey) : ''}`} {...(editable ? dnd.dropProps(slotTarget, slotKey) : {})}>
             <span className={`role role-${r}`} title={ROLE_NAME[r]}><i className="role-dot" aria-hidden="true" />{ROLE_LABEL[r]}</span>
             {names.map((a) => {
               const name = index.nameOf(a.worker_id)
@@ -321,7 +321,7 @@ function MonthView({ ctx }: { ctx: Ctx }) {
                           const assigned = shown.reduce((n, r) => n + index.assignmentsAt(d, s, r).length, 0)
                           const short = Math.max(0, required - assigned)
                           return (
-                            <span key={s} className={`msum${short > 0 ? ' short' : ''}${shown.length === 0 ? ' msum-dim' : ''}`} title={`Shift ${s} (${SHIFT_INFO[s].hours}): ${short > 0 ? `${short} unfilled` : 'fully staffed'}`}>
+                            <span key={s} className={`msum${short > 0 ? ' short' : ''}${shown.length === 0 ? ' msum-dim' : isSlotFiltering(filter) ? ' msum-hit' : ''}`} title={`Shift ${s} (${SHIFT_INFO[s].hours}): ${short > 0 ? `${short} unfilled` : 'fully staffed'}`}>
                               <b className={`sh sh-${s}`}>{s}</b> {assigned}/{required}{short > 0 && <span className="mflag"> ⚠ −{short}</span>}
                             </span>
                           )

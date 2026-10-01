@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AssignmentOut } from '../../api/schemas'
-import { NO_FILTER, assignmentMatches, isFiltering, slotMatches } from './filter'
+import { NO_FILTER, assignmentMatches, isFiltering, slotMatches, isSlotFiltering } from './filter'
 
 const a = (over: Partial<AssignmentOut> = {}): AssignmentOut => ({ worker_id: '1', date: '2026-10-05', shift: 'A', role: 'SCREENER', ...over })
 const nameOf = (id: string) => ({ '1': 'Dana Levi', '2': 'Omer Cohen' })[id] ?? `#${id}`
@@ -25,5 +25,14 @@ describe('roster filter', () => {
   it('slots ignore the worker filter', () => {
     expect(slotMatches({ ...NO_FILTER, worker: 'nobody' }, 'A', 'SCREENER')).toBe(true)
     expect(slotMatches({ ...NO_FILTER, role: 'SUPERVISOR' }, 'A', 'SCREENER')).toBe(false)
+  })
+})
+
+describe('isSlotFiltering', () => {
+  it('is on for a role or shift filter, not for a name or no filter', () => {
+    expect(isSlotFiltering(NO_FILTER)).toBe(false)
+    expect(isSlotFiltering({ ...NO_FILTER, worker: 'ben' })).toBe(false)
+    expect(isSlotFiltering({ ...NO_FILTER, role: 'SCREENER' })).toBe(true)
+    expect(isSlotFiltering({ ...NO_FILTER, shift: 'B' })).toBe(true)
   })
 })

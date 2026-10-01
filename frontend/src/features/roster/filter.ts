@@ -11,6 +11,9 @@ export const NO_FILTER: RosterFilter = { worker: '', role: 'ALL', shift: 'ALL' }
 
 export const isFiltering = (f: RosterFilter): boolean => f.worker.trim() !== '' || f.role !== 'ALL' || f.shift !== 'ALL'
 
+/** Is a role or shift filter set? Only then do matching slots get emphasised (a name search emphasises chips instead). */
+export const isSlotFiltering = (f: RosterFilter): boolean => f.role !== 'ALL' || f.shift !== 'ALL'
+
 /** Does a shift/role slot pass the role and shift filters? Gaps use this, they have no worker. */
 export function slotMatches(f: RosterFilter, shift: Shift, role: Role): boolean {
   return (f.shift === 'ALL' || f.shift === shift) && (f.role === 'ALL' || f.role === role)
