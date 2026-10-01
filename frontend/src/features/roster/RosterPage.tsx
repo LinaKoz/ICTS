@@ -262,7 +262,7 @@ export function RosterPage() {
       </div>
       {focusWorker && shown && (
         <WorkerFocusCard worker={focusWorker} month={month} costs={shown.costs} today={today} monthShifts={focusShifts} visibleDates={visibleDates(view, anchor)}
-          onOpenDay={(d) => { setView('day'); goTo(d) }} onClear={() => setFocusId(null)} />
+          onOpenDay={(d) => { setView('day'); goTo(d) }} />
       )}
 
       {generate.isPending && <div className="panel" role="status"><span className="spinner" /> Generating roster, this can take up to a minute…</div>}

@@ -1,25 +1,13 @@
-import { useId } from 'react'
-
-/** ICTS Rostering mark: a gradient tile holding a calendar whose cells read as shifts. */
-export function LogoMark({ size = 48, className }: { size?: number; className?: string }) {
-  const gradient = useId()
+/** ICTS Rostering mark: an ink tile crossed by the day's three shift bands. */
+export function LogoMark({ size = 40, className }: { size?: number; className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 48 48" width={size} height={size} aria-hidden="true">
-      <defs>
-        <linearGradient id={gradient} x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#60a5fa" />
-          <stop offset="1" stopColor="#6366f1" />
-        </linearGradient>
-      </defs>
-      <rect width="48" height="48" rx="14" fill={`url(#${gradient})`} />
-      <rect x="10" y="11" width="28" height="27" rx="6" fill="none" stroke="#fff" strokeWidth="2.2" opacity="0.95" />
-      <path d="M10 19h28" stroke="#fff" strokeWidth="2.2" opacity="0.95" />
-      <path d="M17 8v6M31 8v6" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
-      <rect x="14.5" y="23" width="6" height="5" rx="1.6" fill="#fff" />
-      <rect x="21.5" y="23" width="6" height="5" rx="1.6" fill="#fff" opacity="0.55" />
-      <rect x="28.5" y="23" width="5" height="5" rx="1.6" fill="#fff" opacity="0.55" />
-      <rect x="14.5" y="29.5" width="6" height="5" rx="1.6" fill="#fff" opacity="0.55" />
-      <rect x="21.5" y="29.5" width="12" height="5" rx="1.6" fill="#fff" />
+    <svg className={className} viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
+      <rect width="40" height="40" rx="6" fill="var(--ink)" />
+      <rect x="7" y="23" width="8" height="6" fill="var(--shift-a)" />
+      <rect x="16" y="23" width="8" height="6" fill="var(--shift-b)" />
+      <rect x="25" y="23" width="8" height="6" fill="var(--shift-c)" />
+      <rect x="7" y="11" width="26" height="2.5" fill="var(--surface)" />
+      <rect x="7" y="16" width="16" height="2.5" fill="var(--surface)" opacity="0.6" />
     </svg>
   )
 }

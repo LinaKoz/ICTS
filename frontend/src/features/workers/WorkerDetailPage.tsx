@@ -122,17 +122,27 @@ export function WorkerDetail({ id, embedded = false }: { id: number; embedded?: 
   const worker = useWorker(id)
   const [result, setResult] = useState<WorkerUpdateOut | null>(null)
   return (
-    <div>
+    <div className="worker-detail-wrap">
       {worker.isPending && <div className="skeleton" aria-busy="true" />}
       {worker.isError && <ErrorPanel error={worker.error} onRetry={() => worker.refetch()} />}
       {worker.data && (
         <>
-          {!embedded && <h2 className="page-title">{worker.data.full_name} <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : ''}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></h2>}
+          {!embedded && (
+            <header className="worker-head">
+              <h2 className="page-title">{worker.data.full_name}</h2>
+              <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : 'badge-inactive'}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
+              <p className="worker-sub">{roleLabel(worker.data.role)} · ID {worker.data.national_id}</p>
+            </header>
+          )}
           {/* keyed by version so a reload after a conflict resets the form to the stored values */}
-          <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} />
-          {result && <UpdateResult result={result} />}
-          <History worker={worker.data} />
-          <ContractsSection workerId={id} currentContract={worker.data.current_contract as ContractOut | null} />
+          <div className="worker-detail">
+            <div className="wd-details">
+              <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} />
+              {result && <UpdateResult result={result} />}
+            </div>
+            <div className="wd-history"><History worker={worker.data} /></div>
+            <ContractsSection workerId={id} currentContract={worker.data.current_contract as ContractOut | null} />
+          </div>
         </>
       )}
     </div>
@@ -143,8 +153,11 @@ export function WorkerDetailPage() {
   const id = Number(useParams().id)
   if (!Number.isInteger(id)) return <p>Unknown worker.</p>
   return (
-    <div>
-      <p><Link to="/workers">Back to workers</Link></p>
+    <div className="worker-detail-page">
+      <Link to="/workers" className="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        Back to workers
+      </Link>
       <WorkerDetail id={id} />
     </div>
   )

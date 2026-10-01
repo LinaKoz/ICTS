@@ -31,6 +31,11 @@ export function WorkerSearch({ workers, focusId, onFocus }: { workers: WorkerRef
             if (e.key === 'Escape') setOpen(false)
           }} />
       </label>
+      {focused && !q && (
+        <button type="button" className="worker-clear" onClick={() => onFocus(null)} aria-label={`Stop highlighting ${focused.full_name}`} title="Stop highlighting">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      )}
       {open && matches.length > 0 && (
         <ul className="worker-suggest" id={listId} role="listbox">
           {matches.map((w, i) => (
@@ -54,11 +59,10 @@ interface CardProps {
   /** Dates currently visible in the calendar; outlined in the mini calendar. */
   visibleDates: string[]
   onOpenDay: (date: string) => void
-  onClear: () => void
 }
 
 /** The focused worker's load: month hours against the contract's minimum and maximum, plus their shifts in the visible range. */
-export function WorkerFocusCard({ worker, month, costs, today, monthShifts, visibleDates, onOpenDay, onClear }: CardProps) {
+export function WorkerFocusCard({ worker, month, costs, today, monthShifts, visibleDates, onOpenDay }: CardProps) {
   const contract = useContracts(Number(worker.worker_id), month)
   const c = contract.data?.resolved ?? null
   const hours = costs?.per_worker.find((w) => w.worker_id === worker.worker_id)?.hours ?? 0
@@ -70,8 +74,6 @@ export function WorkerFocusCard({ worker, month, costs, today, monthShifts, visi
         <strong>{worker.full_name}</strong>
         <span className="badge">{ROLE_NAME[worker.role]}</span>
         {worker.status !== 'ACTIVE' && <span className="badge">{worker.status.toLowerCase()}</span>}
-        <span className="spacer" />
-        <button onClick={onClear} aria-label="Stop highlighting this worker">Clear</button>
       </header>
       <div className="focus-shifts">
         <p className="focus-total"><strong>{monthShifts.length} shifts</strong> in {monthLabel(month)}</p>

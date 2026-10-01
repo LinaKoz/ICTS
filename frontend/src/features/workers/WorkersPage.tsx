@@ -93,7 +93,7 @@ export function WorkersPage() {
   const deleteFailed = del.isError && !isWorkerInUse(del.error)
 
   return (
-    <div>
+    <div className="workers-page">
       <div className="toolbar">
         <h2 className="page-title">Workers</h2>
         <input placeholder="Search name or ID" aria-label="Search" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
