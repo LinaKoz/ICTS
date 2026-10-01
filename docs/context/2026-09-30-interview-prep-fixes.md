@@ -164,3 +164,11 @@ Branch: `feat/roster-calendar`, then merged into `main`
 - No correctness, security or reliability defect found.
 - The AI workflow files (CLAUDE.md, docs/context/, context_builder) stay in
   the repo by the user's choice.
+
+## Follow-up: "October" label in the month view (1 Oct 2026)
+
+- Why: on the 1st of a month that is also today, the purple "today" pill was a
+  fixed 26px grid wrapping both the number and the month name, so the name
+  overflowed under the pill.
+- Now the pill (`.mnum`) wraps only the number; `.mday` is a flex row, so the
+  month name sits beside it. Checked in headless Chrome: same row, inside the cell.
