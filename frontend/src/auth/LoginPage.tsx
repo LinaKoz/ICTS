@@ -4,23 +4,6 @@ import { useAuth } from './authContext'
 import { ErrorPanel } from '../errors/ErrorPanel'
 import { ApiError } from '../errors/ApiError'
 import { Logo } from '../components/Logo'
-import { SHIFT_INFO } from '../features/roster/names'
-
-function DayHero() {
-  return (
-    <figure className="login-day" aria-hidden="true">
-      <div className="login-day-band">
-        {(['A', 'B', 'C'] as const).map((s) => (
-          <div key={s} className={`login-day-seg band-${s}`}>
-            <span className="login-day-shift">Shift {s}</span>
-            <span className="login-day-name">{SHIFT_INFO[s].name}</span>
-          </div>
-        ))}
-      </div>
-      <div className="login-day-hours"><span>00:00</span><span>08:00</span><span>16:00</span><span>24:00</span></div>
-    </figure>
-  )
-}
 
 export function LoginPage() {
   const { login, status } = useAuth()
@@ -52,16 +35,16 @@ export function LoginPage() {
 
   return (
     <main className="login">
-      <aside className="login-brand">
+      <div className="login-backdrop" aria-hidden="true">
+        <span className="login-glow glow-a" />
+        <span className="login-glow glow-b" />
+        <span className="login-glow glow-c" />
+      </div>
+      <section className="login-card">
         <header className="login-header">
-          <h1>
-            <Logo />
-          </h1>
-          <p className="login-subtitle">Three shifts a day, every day of the month. Generate the roster, fill the gaps, send it for sign-off.</p>
+          <h1><Logo /></h1>
+          <p className="login-subtitle">Three shifts a day, every day of the month.</p>
         </header>
-        <DayHero />
-      </aside>
-      <section className="login-main">
       <form onSubmit={submit} className="login-form" aria-busy={busy}>
         <h2>Sign in</h2>
         <div className="login-fields">
