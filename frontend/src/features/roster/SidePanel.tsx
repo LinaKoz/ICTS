@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react'
 import type { CostsOut, CoverageGapOut, HourOverageOut, HourShortfallOut, ViolationOut, WorkerRefOut } from '../../api/schemas'
-import { Modal } from '../../components/Modal'
+import { CostBreakdown } from './CostBreakdown'
 import { ViolationFix, type FixProps } from './FixPanel'
 import { violationKey } from './calendarData'
 import { ils, nameLookup, violationLabel } from './names'
@@ -76,37 +76,7 @@ export const SidePanel = forwardRef<HTMLElement, Props>(function SidePanel({ vio
             </p>
             <button className="btn-outline" onClick={() => setShowCosts(true)}>View cost breakdown <span aria-hidden="true">›</span></button>
             {showCosts && (
-              <Modal label="Estimated cost per worker" onClose={() => setShowCosts(false)}>
-                <div className="modal-head">
-                  <h3>Estimated cost per worker</h3>
-                  <button className="modal-close" onClick={() => setShowCosts(false)} aria-label="Close" title="Close">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
-                      <path d="M5 5l14 14M19 5L5 19" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="table-scroll cost-table">
-                  <table className="table">
-                    <thead>
-                      <tr><th>Worker</th><th className="num">Hours</th><th className="num">Cost</th></tr>
-                    </thead>
-                    <tbody>
-                      <tr className="total-row">
-                        <td>Total</td>
-                        <td className="num">{Math.round(costs.per_worker.reduce((s, w) => s + Number(w.hours), 0) * 100) / 100} h</td>
-                        <td className="num">{ils(costs.monthly_total_ils)}</td>
-                      </tr>
-                      {costs.per_worker.map((w) => (
-                        <tr key={w.worker_id}>
-                          <td>{nameOf(w.worker_id)}</td>
-                          <td className="num">{w.hours} h</td>
-                          <td className="num">{w.amount_ils ? ils(w.amount_ils) : <span className="muted">unknown</span>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Modal>
+              <CostBreakdown costs={costs} nameOf={nameOf} onClose={() => setShowCosts(false)} />
             )}
           </>
         )}
