@@ -5,28 +5,6 @@ import { ErrorPanel } from '../errors/ErrorPanel'
 import { ApiError } from '../errors/ApiError'
 import { Logo } from '../components/Logo'
 
-const ART_SHIFTS: [number, number, string][] = [
-  [0, 0, '#3b82f6'], [1, 0, '#8b5cf6'], [2, 0, '#14b8a6'], [4, 0, '#3b82f6'],
-  [0, 1, '#14b8a6'], [1, 1, '#3b82f6'], [3, 1, '#8b5cf6'], [4, 1, '#14b8a6'], [5, 1, '#3b82f6'],
-  [1, 2, '#14b8a6'], [2, 2, '#8b5cf6'], [3, 2, '#3b82f6'], [5, 2, '#8b5cf6'], [6, 2, '#14b8a6'],
-  [0, 3, '#8b5cf6'], [2, 3, '#3b82f6'], [4, 3, '#14b8a6'], [6, 3, '#3b82f6'],
-]
-
-function RosterArt() {
-  return (
-    <svg className="login-art" viewBox="0 0 420 290" aria-hidden="true">
-      <rect x="0.5" y="0.5" width="419" height="289" rx="16" fill="#0f1218" stroke="#2e303a" />
-      {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-        <text key={i} x={38 + i * 52} y="34" textAnchor="middle" fontSize="11" fill="#9ca3af">{d}</text>
-      ))}
-      <rect x="116" y="46" width="44" height="216" rx="8" fill="#60a5fa" opacity="0.1" />
-      {ART_SHIFTS.map(([col, row, fill], i) => (
-        <rect key={i} x={16 + col * 52} y={52 + row * 52} width="44" height="40" rx="8" fill={fill} opacity="0.85" />
-      ))}
-    </svg>
-  )
-}
-
 export function LoginPage() {
   const { login, status } = useAuth()
   const nav = useNavigate()
@@ -57,16 +35,16 @@ export function LoginPage() {
 
   return (
     <main className="login">
-      <aside className="login-brand">
+      <div className="login-backdrop" aria-hidden="true">
+        <span className="login-glow glow-a" />
+        <span className="login-glow glow-b" />
+        <span className="login-glow glow-c" />
+      </div>
+      <section className="login-card">
         <header className="login-header">
-          <h1>
-            <Logo />
-          </h1>
-          <p className="login-subtitle">Plan shifts, manage availability, and review monthly rosters.</p>
+          <h1><Logo /></h1>
+          <p className="login-subtitle">Three shifts a day, every day of the month.</p>
         </header>
-        <RosterArt />
-      </aside>
-      <section className="login-main">
       <form onSubmit={submit} className="login-form" aria-busy={busy}>
         <h2>Sign in</h2>
         <div className="login-fields">

@@ -35,7 +35,7 @@ export const ils = (amount: string): string => `₪${ilsFmt.format(Number(amount
 
 /** Fixed shift hours (the three shifts never change); A runs through the night, so C ends at midnight. */
 export const SHIFT_INFO: Record<Shift, { name: string; hours: string }> = {
-  A: { name: 'Morning', hours: '00:00–08:00' },
+  A: { name: 'Night', hours: '00:00–08:00' },
   B: { name: 'Day', hours: '08:00–16:00' },
   C: { name: 'Evening', hours: '16:00–00:00' },
 }

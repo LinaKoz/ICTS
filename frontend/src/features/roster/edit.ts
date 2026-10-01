@@ -2,6 +2,7 @@ import type { AssignmentOut, EditableAssignmentOut, MoveAssignmentRequest, Role,
 import { ApiError } from '../../errors/ApiError'
 import type { Slot } from './api'
 import { violationLabel } from './names'
+import { roleLabel } from '../workers/labels'
 
 
 const SHIFT_ORDER: Shift[] = ['A', 'B', 'C']
@@ -93,7 +94,6 @@ export function violationLines(err: unknown, nameOf: (id: string) => string): st
   })
 }
 
-const ROLE_PHRASE: Record<Role, string> = { GENERAL_GUARD: 'general guard', SCREENER: 'screener', SUPERVISOR: 'supervisor' }
 
 /** One plain-language sentence for a violation, phrased around the attempted change. */
 export function explainViolation(v: ViolationOut, nameOf: (id: string) => string): string {
@@ -102,11 +102,11 @@ export function explainViolation(v: ViolationOut, nameOf: (id: string) => string
   const when = first ? `${first.date} shift ${first.shift}` : 'this shift'
   switch (v.code) {
     case 'DUPLICATE_ASSIGNMENT': return `${who} is already assigned to ${when}.`
-    case 'OVERSTAFFED': return `${when} already has all the ${first ? ROLE_PHRASE[first.role] : ''} positions it needs, so there is no free spot.`
+    case 'OVERSTAFFED': return `${when} already has all the ${first ? roleLabel(first.role).toLowerCase() : ''} positions it needs, so there is no free spot.`
     case 'DAILY_LIMIT': return `${who} would work more than two shifts on ${first?.date ?? 'that day'}.`
     case 'ADJACENT_SHIFTS': return `${who} would work back-to-back shifts (${v.assignments.map((a) => `${a.date} ${a.shift}`).join(' and ')}).`
     case 'UNAVAILABLE': return `${who} is not available for ${when}.`
-    case 'WRONG_ROLE': return `${who} is not qualified for the ${first ? ROLE_PHRASE[first.role] : 'requested'} role.`
+    case 'WRONG_ROLE': return `${who} is not qualified for the ${first ? roleLabel(first.role).toLowerCase() : 'requested'} role.`
     case 'INACTIVE_WORKER': return `${who} is inactive and cannot be assigned.`
     case 'UNKNOWN_WORKER': return 'That worker does not exist.'
     case 'OUT_OF_MONTH': return `${first?.date ?? 'That date'} is outside this roster's month.`

@@ -558,7 +558,7 @@ export interface components {
          * @description One approval and, if it ended, its revocation (audit trail, bonus 1).
          *
          *     `approved_by` / `revoked_by` are user display names. The history is
-         *     ordered oldest first (approved_at, id).
+         *     ordered newest first (approved_at, id, both descending).
          */
         ApprovalEventOut: {
             /** Approved By */
@@ -578,6 +578,8 @@ export interface components {
             acknowledged_warnings?: components["schemas"]["AcknowledgedWarningsOut"] | null;
             /** Revoke Ref */
             revoke_ref?: string | null;
+            /** Revoke Ref Label */
+            revoke_ref_label?: string | null;
             /** Revoked By */
             revoked_by?: string | null;
             /** Revoke Reason */
@@ -959,6 +961,8 @@ export interface components {
             lexicographically_optimal?: boolean | null;
             /** Preexisting Violations */
             preexisting_violations?: components["schemas"]["ViolationOut"][] | null;
+            /** Hour Overages */
+            hour_overages?: components["schemas"]["HourOverageOut"][] | null;
             objective?: components["schemas"]["ObjectiveOut"] | null;
             costs?: components["schemas"]["CostsOut"] | null;
             /** Workers */
@@ -991,6 +995,21 @@ export interface components {
              * @default 0
              */
             random_seed: number;
+        };
+        /**
+         * HourOverageOut
+         * @description Hours already worked above the contract maximum: a warning, since
+         *     no edit can undo them (hours that free shifts can fix stay MAX_HOURS).
+         */
+        HourOverageOut: {
+            /** Worker Id */
+            worker_id: string;
+            /** Max Hours */
+            max_hours: number;
+            /** Worked Hours */
+            worked_hours: number;
+            /** Over Hours */
+            over_hours: number;
         };
         /** HourShortfallOut */
         HourShortfallOut: {
@@ -1294,6 +1313,8 @@ export interface components {
             coverage_gaps: components["schemas"]["CoverageGapOut"][];
             /** Hour Shortfalls */
             hour_shortfalls: components["schemas"]["HourShortfallOut"][];
+            /** Hour Overages */
+            hour_overages: components["schemas"]["HourOverageOut"][];
             costs: components["schemas"]["CostsOut"];
             /** Workers */
             workers: components["schemas"]["WorkerRefOut"][];

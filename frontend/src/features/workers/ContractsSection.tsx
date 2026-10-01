@@ -1,17 +1,14 @@
 import { useState } from 'react'
 import { ErrorPanel } from '../../errors/ErrorPanel'
+import { currentMonth } from '../roster/calendar'
+import { SHIFT_INFO } from '../roster/names'
 import type { ContractApplyOut, ContractOut, ContractPreviewOut } from '../../api/schemas'
 import { ApiError } from '../../errors/ApiError'
 import { useApplyContract, useContracts, usePreviewContract } from './api'
 import {
   DAYS, SHIFTS, availabilitySummary, dayLabel, fieldErrors, formFromContract, isStalePreview, lockedViolationWarnings,
-  previewHeadline, rosterEffect, toContractInput, toggleToken, validateContractForm, type ContractForm,
+  contractChangeLines, contractFormChanged, previewHeadline, rosterEffect, setShiftDays, toContractInput, toggleToken, validateContractForm, type ContractForm,
 } from './logic'
-
-function currentMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
 function ContractRow({ c, resolved }: { c: ContractOut; resolved: boolean }) {
   return (
@@ -26,26 +23,37 @@ function ContractRow({ c, resolved }: { c: ContractOut; resolved: boolean }) {
   )
 }
 
-function AvailabilityGrid({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+/** One card per shift with a toggle per weekday; tokens stay `DAY:SHIFT`. */
+function ShiftCards({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   return (
-    <table className="mini availability" aria-label="Availability">
-      <thead><tr><th />{SHIFTS.map((s) => <th key={s}>{s}</th>)}</tr></thead>
-      <tbody>
-        {DAYS.map((d) => (
-          <tr key={d}>
-            <th>{dayLabel(d)}</th>
-            {SHIFTS.map((s) => {
-              const token = `${d}:${s}`
-              return (
-                <td key={s}>
-                  <input type="checkbox" aria-label={`${dayLabel(d)} ${s}`} checked={value.includes(token)} onChange={() => onChange(toggleToken(value, token))} />
-                </td>
-              )
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="shift-cards">
+      {SHIFTS.map((s) => {
+        const allOn = DAYS.every((d) => value.includes(`${d}:${s}`))
+        const { name, hours } = SHIFT_INFO[s]
+        return (
+          <fieldset key={s} className="shift-card">
+            <legend className="sr-only">Shift {s}, {name}, {hours}</legend>
+            <div className="shift-card-head">
+              <span className="shift-card-name">{s} · {name}</span>
+              <span className="shift-card-hours">{hours}</span>
+              <button type="button" className="shift-card-all" onClick={() => onChange(setShiftDays(value, s, !allOn))}>
+                {allOn ? 'Clear all' : 'Select all'}
+              </button>
+            </div>
+            <div className="day-toggles">
+              {DAYS.map((d) => {
+                const token = `${d}:${s}`
+                const on = value.includes(token)
+                return (
+                  <button key={d} type="button" className="day-toggle" aria-pressed={on} aria-label={`${dayLabel(d)} shift ${s}`}
+                    onClick={() => onChange(toggleToken(value, token))}>{dayLabel(d)}</button>
+                )
+              })}
+            </div>
+          </fieldset>
+        )
+      })}
+    </div>
   )
 }
 
@@ -119,56 +127,77 @@ function NewVersionForm({ workerId, base, onApplied }: { workerId: number; base:
       .catch((e: unknown) => { if (isStalePreview(e)) { setStale(true); setPreview(null) } })
   }
 
+  const changes = contractChangeLines(form, base)
+  const changed = contractFormChanged(form, base)
   const err = (f: string) => errors[f] && <span className="field-error" role="alert">{errors[f]}</span>
   const apiError = (previewMut.error ?? applyMut.error) as unknown
   const showApiError = Boolean(apiError) && Object.keys(serverErrors).length === 0 && !isStalePreview(apiError)
 
   return (
-    <section className="panel form" aria-label="New contract version">
-      <h3>New contract version</h3>
-      <p className="muted">Versions are never edited. A change is a new version from the chosen month; a second version for the same month supersedes the first and both are kept.</p>
-      <label>Effective from <input type="month" value={form.effective_month} onChange={(e) => edit({ ...form, effective_month: e.target.value })} />{err('effective_month')}</label>
-      <label>Hourly rate (ILS) <input inputMode="decimal" value={form.hourly_rate_ils} onChange={(e) => edit({ ...form, hourly_rate_ils: e.target.value })} />{err('hourly_rate_ils')}</label>
-      <label>Minimum hours per month <input inputMode="numeric" value={form.min_hours} onChange={(e) => edit({ ...form, min_hours: e.target.value })} />{err('min_hours')}</label>
-      <label>Maximum hours per month <input inputMode="numeric" value={form.max_hours} onChange={(e) => edit({ ...form, max_hours: e.target.value })} />{err('max_hours')}</label>
-      <div>
-        <span>Available shifts</span>
-        <AvailabilityGrid value={form.availability} onChange={(v) => edit({ ...form, availability: v })} />
+    <div className="wd-newver">
+      <section className="panel form newver-card" aria-label="New contract version">
+        <h3>New contract version</h3>
+        <p className="muted">Versions are never edited. A change is a new version from the chosen month; a second version for the same month supersedes the first and both are kept.</p>
+        <label>Effective from <input type="month" value={form.effective_month} onChange={(e) => edit({ ...form, effective_month: e.target.value })} />{err('effective_month')}</label>
+        <label>Hourly rate (ILS) <input inputMode="decimal" value={form.hourly_rate_ils} onChange={(e) => edit({ ...form, hourly_rate_ils: e.target.value })} />{err('hourly_rate_ils')}</label>
+        <label>Minimum hours per month <input inputMode="numeric" value={form.min_hours} onChange={(e) => edit({ ...form, min_hours: e.target.value })} />{err('min_hours')}</label>
+        <label>Maximum hours per month <input inputMode="numeric" value={form.max_hours} onChange={(e) => edit({ ...form, max_hours: e.target.value })} />{err('max_hours')}</label>
+      </section>
+      <section className="panel availability-card" aria-label="Available shifts">
+        <h3>Available shifts</h3>
+        <p className="muted">Choose the available days for each shift.</p>
+        <ShiftCards value={form.availability} onChange={(v) => edit({ ...form, availability: v })} />
         {err('availability')}
-      </div>
-      {stale && (
-        <div className="panel panel-warning" role="alert">
-          <strong>Data changed since the preview</strong>
-          <p>Nothing was applied. Review the new preview before confirming.</p>
-          <button onClick={runPreview}>Reload preview</button>
-        </div>
-      )}
-      {showApiError && <ErrorPanel error={apiError} onReload={runPreview} />}
-      {preview && <ImpactPreview p={preview} />}
-      <div className="actions">
-        {!preview ? (
-          <button className="primary" onClick={runPreview} disabled={previewMut.isPending}>{previewMut.isPending ? 'Checking impact…' : 'Preview impact'}</button>
-        ) : (
-          <>
-            <button className="primary" onClick={apply} disabled={applyMut.isPending || preview.unchanged}>
-              {applyMut.isPending ? 'Applying…' : 'Confirm and apply'}
-            </button>
-            <button onClick={() => setPreview(null)}>Cancel</button>
-          </>
+      </section>
+      {/* One action for both cards: availability is part of the same contract version. */}
+      <div className="newver-bar" role="group" aria-label="New contract version changes">
+        <p className="newver-changes" aria-live="polite">
+          {!base ? 'First contract for this worker'
+            : changes.length === 0 ? <span className="muted">No changes</span>
+            : <><strong>Changes:</strong> {changes.join(' · ')}</>}
+        </p>
+        {!preview && (
+          <button className="primary" onClick={runPreview} disabled={previewMut.isPending || !changed}
+            title={changed ? undefined : 'Change a value or a shift first'}>{previewMut.isPending ? 'Checking impact…' : 'Preview impact'}</button>
         )}
       </div>
-    </section>
+      {(stale || showApiError || preview) && (
+        <div className="newver-result">
+          {stale && (
+            <div className="panel panel-warning" role="alert">
+              <strong>Data changed since the preview</strong>
+              <p>Nothing was applied. Review the new preview before confirming.</p>
+              <button onClick={runPreview}>Reload preview</button>
+            </div>
+          )}
+          {showApiError && <ErrorPanel error={apiError} onReload={runPreview} />}
+          {preview && (
+            <div className="panel">
+              <ImpactPreview p={preview} />
+              <div className="actions newver-confirm">
+                <button onClick={() => setPreview(null)}>Cancel</button>
+                <button className="primary" onClick={apply} disabled={applyMut.isPending || preview.unchanged}>
+                  {applyMut.isPending ? 'Applying…' : 'Confirm and apply'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
 export function ContractsSection({ workerId, currentContract }: { workerId: number; currentContract: ContractOut | null }) {
   const [month, setMonth] = useState(currentMonth)
   const [applied, setApplied] = useState<ContractApplyOut | null>(null)
-  const contracts = useContracts(workerId, month)
+  // Previous month's data stays while another month loads, so the new-version form below is not unmounted.
+  const contracts = useContracts(workerId, month, { keepPrevious: true })
   const base = contracts.data?.resolved ?? currentContract
 
   return (
-    <section>
+    <section className="wd-contracts-section">
+      <div className="panel wd-contracts">
       <h3>Contract versions</h3>
       <div className="toolbar">
         <label>Show the contract in force for <input type="month" aria-label="Resolved for month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} /></label>
@@ -197,7 +226,10 @@ export function ContractsSection({ workerId, currentContract }: { workerId: numb
         </div>
       )}
       {contracts.error instanceof ApiError && contracts.error.status === 404 && <p>This worker no longer exists.</p>}
-      {contracts.data && <NewVersionForm key={contracts.data.versions.length} workerId={workerId} base={base} onApplied={setApplied} />}
+      </div>
+      {/* Re-filled when a version is added or the base it was copied from changes, so the change summary
+          always compares against the contract the form was filled from. */}
+      {contracts.data && <NewVersionForm key={`${contracts.data.versions.length}|${base?.id ?? 'none'}`} workerId={workerId} base={base} onApplied={setApplied} />}
     </section>
   )
 }

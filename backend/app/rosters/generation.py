@@ -25,12 +25,14 @@ from app.db import get_session
 from app.engine_pool import engine_pool
 from app.errors import EngineError, GenerationInProgressError, LockedShiftError, ValidationAppError
 from app.rosters.costs import compute_costs
+from app.rosters.evaluation import started_shift_rules
 from app.rosters.problem_builder import MONTH_PATTERN, build_problem, compute_fingerprint, is_history_month, parse_month
 from app.rosters.serialize import (
     assignment_to_out,
     costs_to_out,
     coverage_gap_to_out,
     coverage_status_to_out,
+    hour_overage_to_out,
     hour_shortfall_to_out,
     load_worker_refs,
     min_hours_status_to_out,
@@ -84,6 +86,7 @@ async def generate(
     no_contract_ids = {str(wid) for wid in built.no_contract_worker_ids}
 
     if isinstance(result, Solved):
+        preexisting, overages = started_shift_rules(built.problem, list(result.preexisting_violations))
         return GenerateOutcomeOut(
             outcome="solved",
             assignments=[assignment_to_out(a) for a in result.assignments],
@@ -92,7 +95,8 @@ async def generate(
             coverage=coverage_status_to_out(result.coverage),
             min_hours=min_hours_status_to_out(result.min_hours),
             lexicographically_optimal=result.lexicographically_optimal,
-            preexisting_violations=[violation_to_out(v, no_contract_ids) for v in result.preexisting_violations],
+            preexisting_violations=[violation_to_out(v, no_contract_ids) for v in preexisting],
+            hour_overages=[hour_overage_to_out(h) for h in overages],
             objective=ObjectiveOut(**vars(result.objective)),
             costs=costs_to_out(compute_costs(list(result.assignments), built.contract_by_worker_id)),
             workers=await load_worker_refs(session),

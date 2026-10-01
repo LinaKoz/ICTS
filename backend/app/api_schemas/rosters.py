@@ -13,6 +13,7 @@ from app.api_schemas.common import (
     CostsOut,
     CoverageGapOut,
     CoverageStatusOut,
+    HourOverageOut,
     HourShortfallOut,
     MinHoursStatusOut,
     Shift,
@@ -45,6 +46,7 @@ class GenerateOutcomeOut(BaseModel):
     min_hours: MinHoursStatusOut | None = None
     lexicographically_optimal: bool | None = None
     preexisting_violations: list[ViolationOut] | None = None
+    hour_overages: list[HourOverageOut] | None = None
     objective: ObjectiveOut | None = None
     costs: CostsOut | None = None
     workers: list[WorkerRefOut] | None = None  # name lookup for every worker id in this response
@@ -81,7 +83,7 @@ class ApprovalEventOut(BaseModel):
     """One approval and, if it ended, its revocation (audit trail, bonus 1).
 
     `approved_by` / `revoked_by` are user display names. The history is
-    ordered oldest first (approved_at, id).
+    ordered newest first (approved_at, id, both descending).
     """
 
     approved_by: str
@@ -93,6 +95,9 @@ class ApprovalEventOut(BaseModel):
     roster_version: int  # the roster's row_version when it was approved
     acknowledged_warnings: AcknowledgedWarningsOut | None = None  # None when approved with no shortages
     revoke_ref: str | None = None  # contract_version:{id}, worker:{id}, import:{id}; None for EDIT/REGENERATE/MANUAL
+    # Human reading of revoke_ref: "Alice Guard, contract v3 from 10/2026" (the worker's own
+    # version_no, not the row id) or the worker's name; None when there is nothing to resolve.
+    revoke_ref_label: str | None = None
     revoked_by: str | None = None
     revoke_reason: str | None = None  # the manager's free-text reason; only MANUAL revocations carry one
 
@@ -108,6 +113,7 @@ class RosterOut(BaseModel):
     violations: list[ViolationOut]
     coverage_gaps: list[CoverageGapOut]
     hour_shortfalls: list[HourShortfallOut]
+    hour_overages: list[HourOverageOut]
     costs: CostsOut
     workers: list[WorkerRefOut]  # name lookup for every worker id in this response
     updated_at: datetime  # last save/edit of this roster

@@ -63,6 +63,16 @@ class HourShortfallOut(BaseModel):
     missing_hours: int
 
 
+class HourOverageOut(BaseModel):
+    """Hours already worked above the contract maximum: a warning, since
+    no edit can undo them (hours that free shifts can fix stay MAX_HOURS)."""
+
+    worker_id: str
+    max_hours: int
+    worked_hours: int
+    over_hours: int
+
+
 class CoverageStatusOut(BaseModel):
     status: Literal["OPTIMAL", "FEASIBLE"]
     total_uncovered: int

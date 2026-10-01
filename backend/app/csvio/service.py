@@ -35,6 +35,7 @@ from app.changes.service import (
     ChangeSet,
     ContractDraft,
     WorkerUpdate,
+    affected_rosters,
     apply_change_set,
     is_retroactive,
     preview_change_set,
@@ -307,7 +308,9 @@ async def get_import(session: AsyncSession, import_id: int) -> CsvImport:
     return record
 
 
-async def _stale_reasons(session: AsyncSession, base: dict, approved: set[str], now: datetime) -> list[str]:
+async def _stale_reasons(
+    session: AsyncSession, base: dict, approved: set[str], cs: ChangeSet, now: datetime
+) -> list[str]:
     reasons: list[str] = []
     for nid, (wid, version, latest_cid) in base["workers"].items():
         if nid not in approved:
@@ -326,6 +329,11 @@ async def _stale_reasons(session: AsyncSession, base: dict, approved: set[str], 
         r = await session.get(Roster, int(rid))
         if r is None or r.row_version != version or r.status != status or _free_from(r.month, now) != free_from:
             reasons.append(f"roster {month[:7]} changed")
+    # A roster the approved rows touch now but the preview never showed (e.g.
+    # saved with one of these workers after the preview) is a moved base too.
+    for r in await affected_rosters(session, cs, now):
+        if str(r.id) not in base["rosters"]:
+            reasons.append(f"roster {r.month:%Y-%m} is now affected")
     return reasons
 
 
@@ -381,7 +389,9 @@ async def confirm_import(
             continue
         approved.append(_from_stored(raw, p))
 
-    reasons = await _stale_reasons(session, base, {c.row.national_id for c in approved}, now)
+    reasons = await _stale_reasons(
+        session, base, {c.row.national_id for c in approved}, _change_set(approved, actor_id, import_id), now
+    )
     if reasons:
         raise StaleImportError("the data changed since the preview; review the new preview", details=reasons)
 

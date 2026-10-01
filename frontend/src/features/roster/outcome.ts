@@ -1,4 +1,4 @@
-import type { GenerateOutcomeOut } from '../../api/schemas'
+import type { GenerateOutcomeOut, SaveRequest } from '../../api/schemas'
 
 export interface OutcomeSummary {
   kind: 'ok' | 'warning' | 'error'
@@ -32,4 +32,17 @@ export function describeOutcome(o: GenerateOutcomeOut): OutcomeSummary {
   if (o.min_hours?.status === 'FEASIBLE') messages.push('Minimum hours not proven optimal within the time limit')
   const warning = k >= 1 || cov?.status === 'FEASIBLE' || o.min_hours?.status === 'FEASIBLE'
   return { kind: warning ? 'warning' : 'ok', messages }
+}
+
+/** The save body for a usable preview, or null. `forbidUsed` is the flag the preview was generated with: the
+ * server fingerprints it, so sending the settings toggle's current value would fail as a stale preview. */
+export function saveRequest(preview: GenerateOutcomeOut, forbidUsed: boolean, existingVersion: number | null): SaveRequest | null {
+  if (preview.outcome !== 'solved' || preview.assignments == null || preview.fingerprint == null) return null
+  return {
+    assignments: preview.assignments,
+    fingerprint: preview.fingerprint,
+    expected_version: existingVersion,
+    replace_existing: existingVersion != null,
+    forbid_adjacent_shifts: forbidUsed,
+  }
 }

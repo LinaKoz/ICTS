@@ -11,6 +11,8 @@ describe('describeRevocation', () => {
   it('labels every cause and its reference', () => {
     expect(describeRevocation({ revoke_cause: null, revoke_ref: null })).toBeNull()
     expect(describeRevocation({ revoke_cause: 'EDIT', revoke_ref: null })).toBe('roster edited')
+    expect(describeRevocation({ revoke_cause: 'CONTRACT_CHANGE', revoke_ref: 'contract_version:92', revoke_ref_label: 'Worker 05, contract v3 from 10/2026' }))
+      .toBe('contract change (Worker 05, contract v3 from 10/2026)')
     expect(describeRevocation({ revoke_cause: 'REGENERATE', revoke_ref: null })).toBe('roster regenerated')
     expect(describeRevocation({ revoke_cause: 'CONTRACT_CHANGE', revoke_ref: 'contract_version:12' })).toBe('contract change (contract version 12)')
     expect(describeRevocation({ revoke_cause: 'CONTRACT_CHANGE', revoke_ref: 'import:4' })).toBe('contract change (CSV import 4)')
@@ -58,7 +60,7 @@ describe('canSubmitApproval / buildApproveBody', () => {
 
 describe('openApprovalId', () => {
   it('is the newest unrevoked approval, which a manual revoke is bound to', () => {
-    const history = [{ id: 1, revoked_at: '2099-01-02T10:00:00Z' }, { id: 2, revoked_at: null }]
+    const history = [{ id: 2, revoked_at: null }, { id: 1, revoked_at: '2099-01-02T10:00:00Z' }] // newest first
     expect(openApprovalId({ approval_history: history })).toBe(2)
   })
   it('is null when every approval was revoked', () => {

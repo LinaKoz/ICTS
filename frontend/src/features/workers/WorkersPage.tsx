@@ -90,10 +90,11 @@ export function WorkersPage() {
     del.mutate(w.id, { onError: (e) => { if (isWorkerInUse(e)) setInUse(w) } })
   }
 
-  const deleteFailed = del.isError && !isWorkerInUse(del.error)
+  const deleteGone = del.error instanceof ApiError && del.error.status === 404
+  const deleteFailed = del.isError && !isWorkerInUse(del.error) && !deleteGone
 
   return (
-    <div>
+    <div className="workers-page">
       <div className="toolbar">
         <h2 className="page-title">Workers</h2>
         <input placeholder="Search name or ID" aria-label="Search" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
@@ -144,7 +145,7 @@ export function WorkersPage() {
         )
       )}
       {workers.isFetching && !workers.isPending && <p className="muted" aria-live="polite">Updating…</p>}
-      {del.error instanceof ApiError && del.error.status === 404 && <p className="muted">That worker no longer exists.</p>}
+      {deleteGone && <p className="muted">That worker no longer exists.</p>}
     </div>
   )
 }

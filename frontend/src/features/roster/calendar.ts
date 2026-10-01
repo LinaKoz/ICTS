@@ -17,6 +17,9 @@ export function todayIso(now: Date = new Date()): string {
 
 export const monthOf = (date: string): string => date.slice(0, 7)
 
+/** This month (`YYYY-MM`) in Asia/Jerusalem, the same "today" as the calendar and the backend. */
+export const currentMonth = (now: Date = new Date()): string => monthOf(todayIso(now))
+
 export function daysInMonth(month: string): number {
   const [y, m] = month.split('-').map(Number) as [number, number]
   return new Date(Date.UTC(y, m, 0)).getUTCDate()

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../errors/ApiError'
 import type { AffectedRosterOut } from '../../api/schemas'
 import {
-  availabilitySummary, diffPatch, fieldErrors, formFromContract, isStalePreview, isWorkerInUse, lockedViolationWarnings,
+  availabilitySummary, contractChangeLines, contractFormChanged, diffPatch, setShiftDays, fieldErrors, formFromContract, isStalePreview, isWorkerInUse, lockedViolationWarnings,
   nationalIdError, normalizeAvailability, previewHeadline, rosterEffect, roleStatusChangeLines, toContractInput, toggleToken, validateContractForm, validateWorkerForm,
 } from './logic'
 
@@ -13,6 +13,12 @@ const roster = (over: Partial<AffectedRosterOut> = {}): AffectedRosterOut => ({
 const locked = { month: '2026-09', worker_id: '1', worker_name: 'A', date: '2026-09-10', shift: 'A', code: 'UNAVAILABLE', magnitude: 1 } as const
 
 describe('availability', () => {
+  it('selects or clears one shift on every day', () => {
+    const all = setShiftDays(['MON:A', 'TUE:B'], 'B', true)
+    expect(all.filter((t) => t.endsWith(':B'))).toHaveLength(7)
+    expect(all).toContain('MON:A')
+    expect(setShiftDays(all, 'B', false)).toEqual(['MON:A'])
+  })
   it('normalizes to weekday then shift order and drops unknown/duplicate tokens', () => {
     expect(normalizeAvailability(['SUN:B', 'MON:C', 'MON:A', 'MON:A', 'XXX:A', 'TUE:D'])).toEqual(['MON:A', 'MON:C', 'SUN:B'])
   })
@@ -51,6 +57,25 @@ describe('contract form', () => {
     const c = { hourly_rate_ils: '40.00', min_hours: 8, max_hours: 120, availability: ['WED:B', 'MON:A'] } as Parameters<typeof formFromContract>[0]
     expect(formFromContract(c, '2026-10')).toEqual({ effective_month: '2026-10', hourly_rate_ils: '40.00', min_hours: '8', max_hours: '120', availability: ['MON:A', 'WED:B'] })
     expect(formFromContract(null, '2026-10').availability).toEqual([])
+  })
+  it('lists what changed, per field and per shift', () => {
+    const c = { hourly_rate_ils: '40.00', min_hours: 8, max_hours: 192, availability: ['MON:A', 'THU:B', 'FRI:B'] } as Parameters<typeof formFromContract>[0]
+    const f = formFromContract(c, '2026-10')
+    expect(contractChangeLines(f, c)).toEqual([])
+    expect(contractChangeLines({ ...f, max_hours: '160', availability: ['MON:A', 'SUN:C'] }, c))
+      .toEqual(['Max hours 192 → 160', 'B: Thu, Fri removed', 'C: Sun added'])
+    expect(contractChangeLines({ ...f, hourly_rate_ils: '42' }, c)).toEqual(['Rate ₪40.00 → ₪42'])
+  })
+  it('detects a change only in values, not in the month alone', () => {
+    const c = { hourly_rate_ils: '40.00', min_hours: 8, max_hours: 120, availability: ['WED:B', 'MON:A'] } as Parameters<typeof formFromContract>[0]
+    const f = formFromContract(c, '2026-10')
+    expect(contractFormChanged(f, c)).toBe(false)
+    expect(contractFormChanged({ ...f, effective_month: '2027-01' }, c)).toBe(false)
+    expect(contractFormChanged({ ...f, hourly_rate_ils: '40' }, c)).toBe(false)
+    expect(contractFormChanged({ ...f, hourly_rate_ils: '41' }, c)).toBe(true)
+    expect(contractFormChanged({ ...f, max_hours: '100' }, c)).toBe(true)
+    expect(contractFormChanged({ ...f, availability: ['MON:A'] }, c)).toBe(true)
+    expect(contractFormChanged(formFromContract(null, '2026-10'), null)).toBe(true)
   })
 })
 

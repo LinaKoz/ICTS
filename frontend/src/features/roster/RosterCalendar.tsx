@@ -6,10 +6,11 @@ import { ViolationFix, type FixProps } from './FixPanel'
 import { type CalendarIndex, violatingWorkers, violationKey } from './calendarData'
 import { dropAction, explainViolation, isLockedShift, type CellRef, type DropAction, type DropTarget } from './edit'
 import { isFiltering, isSlotFiltering, NO_FILTER, slotMatches, type RosterFilter } from './filter'
+import { DayBand } from '../../components/DayBand'
 import { ils, SHIFT_INFO, violationLabel } from './names'
+import { roleLabel } from '../workers/labels'
 
 const ROLE_LABEL: Record<Role, string> = { GENERAL_GUARD: 'GG', SCREENER: 'SCR', SUPERVISOR: 'SUP' }
-const ROLE_NAME: Record<Role, string> = { GENERAL_GUARD: 'General guard', SCREENER: 'Screener', SUPERVISOR: 'Supervisor' }
 
 export interface CalendarEdit {
   onAssignment: (a: AssignmentOut) => void
@@ -119,7 +120,7 @@ function ShiftBlock({ date, shift, ctx, full }: { date: string; shift: Shift; ct
         const slotTarget: DropTarget = { kind: 'slot', slot: { date, shift, role: r } }
         return (
           <div key={r} className={`slot${full ? ' slot-full' : ''}${filtering ? (slotMatches(filter, shift, r) ? (isSlotFiltering(filter) ? ' slot-hit' : '') : ' slot-dim') : ''}${editable ? dnd.dropClass(slotTarget, slotKey) : ''}`} {...(editable ? dnd.dropProps(slotTarget, slotKey) : {})}>
-            <span className={`role role-${r}`} title={ROLE_NAME[r]}><i className="role-dot" aria-hidden="true" />{ROLE_LABEL[r]}</span>
+            <span className={`role role-${r}`} title={roleLabel(r)}><i className="role-dot" aria-hidden="true" />{ROLE_LABEL[r]}</span>
             {names.map((a) => {
               const name = index.nameOf(a.worker_id)
               const bad = violating.has(a.worker_id)
@@ -244,7 +245,7 @@ function WeekView({ ctx }: { ctx: Ctx }) {
         <tbody>
           {shifts.map((s) => (
             <tr key={s}>
-              <th scope="row" className={`shift-label shift-edge shift-${s}`}>Shift {s}<span className="shift-hours">{SHIFT_INFO[s].name}<br />{SHIFT_INFO[s].hours}</span></th>
+              <th scope="row" className={`shift-label shift-edge shift-${s}`}>Shift {s}<DayBand active={s} /><span className="shift-hours">{SHIFT_INFO[s].name}<br />{SHIFT_INFO[s].hours}</span></th>
               {days.map((d) => (
                 <td key={d} className={`cal-cell ${d === today ? 'col-today' : ''}${monthOf(d) !== targetMonth ? ' col-other' : ''}`}
                   tabIndex={0} aria-label={`Open shift ${s}, ${dayLabel(d)}`}

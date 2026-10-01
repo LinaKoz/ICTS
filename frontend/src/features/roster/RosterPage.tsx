@@ -9,7 +9,7 @@ import { ApprovalPanel } from './ApprovalPanel'
 import { EditErrors, EditPanel, type Selection } from './EditPanel'
 import { buildMoveBody, dropIds, explainEditError, IDS_UPDATING_MESSAGE, idLookup, idsForVersion, needsApprovalAck, type CellRef, type DropAction } from './edit'
 import { nameLookup } from './names'
-import { describeOutcome } from './outcome'
+import { describeOutcome, saveRequest } from './outcome'
 import { downloadCsv, rosterCsv } from './exportCsv'
 import { FilterBar } from './FilterBar'
 import { GenerationSettings } from './GenerationSettings'
@@ -43,6 +43,8 @@ export function RosterPage() {
   const month = monthOf(anchor)
   const [forbid, setForbid] = useState(false)
   const [preview, setPreview] = useState<GenerateOutcomeOut | null>(null)
+  // The "forbid back-to-back" flag the preview was generated with; saving must send it, not the toggle's current value.
+  const [previewForbid, setPreviewForbid] = useState(false)
   const [confirmReplace, setConfirmReplace] = useState(false)
   const [saved, setSaved] = useState(false)
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -97,19 +99,15 @@ export function RosterPage() {
 
   function runGenerate() {
     setSaved(false); setConfirmReplace(false); save.reset()
-    generate.mutate(forbid, { onSuccess: setPreview, onError: () => setPreview(null) })
+    const used = forbid
+    generate.mutate(used, { onSuccess: (p) => { setPreview(p); setPreviewForbid(used) }, onError: () => setPreview(null) })
   }
 
   function doSave() {
-    if (!preview || !previewUsable) return
+    const req = preview && saveRequest(preview, previewForbid, existing?.version ?? null)
+    if (!req) return
     save.mutate(
-      {
-        assignments: preview.assignments!,
-        fingerprint: preview.fingerprint!,
-        expected_version: existing?.version ?? null,
-        replace_existing: existing != null,
-        forbid_adjacent_shifts: forbid,
-      },
+      req,
       { onSuccess: () => { setPreview(null); setConfirmReplace(false); setSaved(true) } },
     )
   }
@@ -167,12 +165,12 @@ export function RosterPage() {
   // The calendar shows the unsaved preview when there is one, otherwise the stored roster.
   const shown = previewUsable
     ? {
-        assignments: preview!.assignments!, gaps: preview!.coverage_gaps ?? [], shortfalls: preview!.hour_shortfalls ?? [],
+        assignments: preview!.assignments!, gaps: preview!.coverage_gaps ?? [], shortfalls: preview!.hour_shortfalls ?? [], overages: preview!.hour_overages ?? [],
         costs: preview!.costs ?? null, workers: preview!.workers ?? null, violations: preview!.preexisting_violations ?? [], freeFrom: existing?.free_from ?? null,
       }
     : existing
       ? {
-          assignments: existing.assignments, gaps: existing.coverage_gaps, shortfalls: existing.hour_shortfalls,
+          assignments: existing.assignments, gaps: existing.coverage_gaps, shortfalls: existing.hour_shortfalls, overages: existing.hour_overages,
           costs: existing.costs, workers: existing.workers, violations: existing.violations, freeFrom: existing.free_from,
         }
       : null
@@ -201,7 +199,7 @@ export function RosterPage() {
   const focusWorker = shown?.workers?.find((w) => w.worker_id === focusId) ?? null
   const monthDates = Array.from({ length: daysInMonth(month) }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
   const focusShifts = focusWorker && meta.data ? shiftsOfWorker(index, focusWorker.worker_id, monthDates, meta.data.shifts, meta.data.roles) : []
-  const approvedEvent = existing?.status === 'APPROVED' ? [...existing.approval_history].reverse().find((e) => !e.revoked_at) : undefined
+  const approvedEvent = existing?.status === 'APPROVED' ? existing.approval_history.find((e) => !e.revoked_at) : undefined
   const exportCsv = () => {
     if (!shown) return
     downloadCsv(`roster-${month}${previewUsable ? '-preview' : ''}.csv`, rosterCsv(shown.assignments, nameLookup(shown.workers)))
@@ -262,7 +260,7 @@ export function RosterPage() {
       </div>
       {focusWorker && shown && (
         <WorkerFocusCard worker={focusWorker} month={month} costs={shown.costs} today={today} monthShifts={focusShifts} visibleDates={visibleDates(view, anchor)}
-          onOpenDay={(d) => { setView('day'); goTo(d) }} onClear={() => setFocusId(null)} />
+          onOpenDay={(d) => { setView('day'); goTo(d) }} />
       )}
 
       {generate.isPending && <div className="panel" role="status"><span className="spinner" /> Generating roster, this can take up to a minute…</div>}
@@ -326,9 +324,9 @@ export function RosterPage() {
             } : undefined}
           />
           <div className="cal-aside" aria-label={`Details for ${monthLabel(month)}`}>
-            {existing && !previewUsable && <ApprovalPanel month={month} roster={existing} />}
+            {existing && !previewUsable && <ApprovalPanel key={month} month={month} roster={existing} />}
             {shown && (
-              <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} costs={shown.costs} workers={shown.workers}
+              <SidePanel ref={violationsRef} onShowViolation={showViolation} flashViolations={flashViolations} violations={shown.violations} gaps={shown.gaps} shortfalls={shown.shortfalls} overages={shown.overages} costs={shown.costs} workers={shown.workers}
                 fix={canEdit && idsLoaded && existing ? { month, roster: existing, idOf } : undefined} />
             )}
           </div>

@@ -24,7 +24,7 @@ from app.rosters.generation import router as generate_router
 from app.rosters.models import Roster, RosterAssignment
 from app.rosters.problem_builder import MONTH_PATTERN, is_history_month, parse_month
 from app.rosters.save import router as save_router
-from app.rosters.serialize import assignment_to_out, coverage_gap_to_out, costs_to_out, hour_shortfall_to_out, load_worker_refs, violation_to_out
+from app.rosters.serialize import assignment_to_out, coverage_gap_to_out, costs_to_out, hour_overage_to_out, hour_shortfall_to_out, load_worker_refs, violation_to_out
 from app.scheduling import Assignment, Role, Shift
 
 router = APIRouter(prefix="/api/rosters", tags=["rosters"])
@@ -65,6 +65,7 @@ async def get_roster(
         violations=[violation_to_out(v, no_contract_ids) for v in ev.violations],
         coverage_gaps=[coverage_gap_to_out(g) for g in ev.metrics.coverage_gaps],
         hour_shortfalls=[hour_shortfall_to_out(h) for h in ev.metrics.hour_shortfalls],
+        hour_overages=[hour_overage_to_out(h) for h in ev.hour_overages],
         costs=costs_to_out(costs),
         workers=await load_worker_refs(session),
         updated_at=roster.updated_at,

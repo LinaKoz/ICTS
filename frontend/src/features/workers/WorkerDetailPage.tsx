@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ErrorPanel } from '../../errors/ErrorPanel'
-import type { ContractOut, Role, WorkerDetailOut, WorkerStatus, WorkerUpdateOut } from '../../api/schemas'
+import type { Role, WorkerDetailOut, WorkerStatus, WorkerUpdateOut } from '../../api/schemas'
 import { useUpdateWorker, useWorker } from './api'
 import { ContractsSection } from './ContractsSection'
 import { diffPatch, fieldErrors, roleStatusChangeLines, validateWorkerForm } from './logic'
@@ -28,7 +28,7 @@ function UpdateResult({ result }: { result: WorkerUpdateOut }) {
   )
 }
 
-function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: (r: WorkerUpdateOut) => void }) {
+function DetailsForm({ worker, onResult, onReload }: { worker: WorkerDetailOut; onResult: (r: WorkerUpdateOut) => void; onReload: () => void }) {
   const update = useUpdateWorker(worker.id)
   const [form, setForm] = useState({ national_id: worker.national_id, full_name: worker.full_name, role: worker.role as Role, status: worker.status as WorkerStatus })
   const [confirming, setConfirming] = useState<string[] | null>(null)
@@ -90,7 +90,7 @@ function DetailsForm({ worker, onResult }: { worker: WorkerDetailOut; onResult: 
           {patch && <button type="button" onClick={() => setForm({ national_id: worker.national_id, full_name: worker.full_name, role: worker.role, status: worker.status })}>Reset</button>}
         </div>
       )}
-      {otherError && <ErrorPanel error={update.error} onReload={() => { update.reset(); window.location.reload() }} />}
+      {otherError && <ErrorPanel error={update.error} onReload={() => { update.reset(); onReload() }} />}
     </form>
   )
 }
@@ -122,17 +122,27 @@ export function WorkerDetail({ id, embedded = false }: { id: number; embedded?: 
   const worker = useWorker(id)
   const [result, setResult] = useState<WorkerUpdateOut | null>(null)
   return (
-    <div>
+    <div className="worker-detail-wrap">
       {worker.isPending && <div className="skeleton" aria-busy="true" />}
       {worker.isError && <ErrorPanel error={worker.error} onRetry={() => worker.refetch()} />}
       {worker.data && (
         <>
-          {!embedded && <h2 className="page-title">{worker.data.full_name} <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : ''}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></h2>}
+          {!embedded && (
+            <header className="worker-head">
+              <h2 className="page-title">{worker.data.full_name}</h2>
+              <span className={`badge ${worker.data.status === 'ACTIVE' ? 'badge-approved' : 'badge-inactive'}`}>{worker.data.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
+              <p className="worker-sub">{roleLabel(worker.data.role)} · ID {worker.data.national_id}</p>
+            </header>
+          )}
           {/* keyed by version so a reload after a conflict resets the form to the stored values */}
-          <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} />
-          {result && <UpdateResult result={result} />}
-          <History worker={worker.data} />
-          <ContractsSection workerId={id} currentContract={worker.data.current_contract as ContractOut | null} />
+          <div className="worker-detail">
+            <div className="wd-details">
+              <DetailsForm key={worker.data.row_version} worker={worker.data} onResult={setResult} onReload={() => void worker.refetch()} />
+              {result && <UpdateResult result={result} />}
+            </div>
+            <div className="wd-history"><History worker={worker.data} /></div>
+            <ContractsSection key={id} workerId={id} currentContract={worker.data.current_contract} />
+          </div>
         </>
       )}
     </div>
@@ -143,8 +153,11 @@ export function WorkerDetailPage() {
   const id = Number(useParams().id)
   if (!Number.isInteger(id)) return <p>Unknown worker.</p>
   return (
-    <div>
-      <p><Link to="/workers">Back to workers</Link></p>
+    <div className="worker-detail-page">
+      <Link to="/workers" className="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        Back to workers
+      </Link>
       <WorkerDetail id={id} />
     </div>
   )

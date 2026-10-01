@@ -1,4 +1,5 @@
 import type { ApprovalEventOut, ApprovalPreviewOut, ApproveRequest, CoverageGapOut, HourShortfallOut } from '../../api/schemas'
+import { roleLabel } from '../workers/labels'
 
 type Cause = NonNullable<ApprovalEventOut['revoke_cause']>
 
@@ -11,11 +12,12 @@ const CAUSE_LABEL: Record<Cause, string> = {
   MANUAL: 'revoked by a manager',
 }
 
-/** "roster edited", "contract change (contract version 12)"; refs are `contract_version:{id}`, `worker:{id}`, `import:{id}`. */
-export function describeRevocation(ev: Pick<ApprovalEventOut, 'revoke_cause' | 'revoke_ref'>): string | null {
+/** "roster edited", "contract change (Alice Guard, contract v3 from 10/2026)". The server's
+ * `revoke_ref_label` wins; the raw ref (`contract_version:{id}`, `worker:{id}`, `import:{id}`) is the fallback. */
+export function describeRevocation(ev: Pick<ApprovalEventOut, 'revoke_cause' | 'revoke_ref' | 'revoke_ref_label'>): string | null {
   if (!ev.revoke_cause) return null
   const label = CAUSE_LABEL[ev.revoke_cause] ?? ev.revoke_cause
-  const ref = describeRef(ev.revoke_ref)
+  const ref = ev.revoke_ref_label ?? describeRef(ev.revoke_ref)
   return ref ? `${label} (${ref})` : label
 }
 
@@ -36,7 +38,7 @@ export function shortageLines(
 ): string[] {
   const gapLines = gaps
     .filter((g) => g.missing > 0)
-    .map((g) => `${g.date} ${g.shift} ${g.role.toLowerCase().replace('_', ' ')}: ${g.assigned}/${g.required}${g.locked ? ' (past)' : ''}`)
+    .map((g) => `${g.date} ${g.shift} ${roleLabel(g.role).toLowerCase()}: ${g.assigned}/${g.required}${g.locked ? ' (past)' : ''}`)
   const hourLines = shortfalls
     .filter((s) => s.missing_hours > 0)
     .map((s) => `${nameOf(s.worker_id)}: ${s.assigned_hours}/${s.min_hours} h (${s.missing_hours} h below minimum)`)
@@ -63,7 +65,7 @@ export function buildApproveBody(preview: ApprovalPreviewOut, acknowledged: bool
   }
 }
 
-/** Id of the roster's current (unrevoked) approval, the one a manual revoke targets; history is oldest first. */
+/** Id of the roster's current (unrevoked) approval, the one a manual revoke targets; history is newest first. */
 export function openApprovalId(roster: { approval_history: Pick<ApprovalEventOut, 'id' | 'revoked_at'>[] }): number | null {
-  return roster.approval_history.findLast((ev) => ev.revoked_at == null)?.id ?? null
+  return roster.approval_history.find((ev) => ev.revoked_at == null)?.id ?? null
 }

@@ -255,7 +255,7 @@ def test_reapprove_after_the_edit_keeps_the_full_audit_trail(manager, state):
     approve(manager, month)
     roster = get_roster(manager, month)
     causes = [e["revoke_cause"] for e in roster["approval_history"]]
-    assert causes == ["EDIT", None]
+    assert causes == [None, "EDIT"]  # newest first: the new approval, then the one the edit revoked
     state["version"] = roster["version"]
 
 
@@ -277,7 +277,7 @@ def test_contract_change_revokes_the_approval_with_contract_change(planner, mana
     roster = get_roster(planner, month)
     assert roster["status"] == "DRAFT"
     assert any(v["code"] == "MAX_HOURS" for v in roster["violations"])
-    event = roster["approval_history"][-1]
+    event = roster["approval_history"][0]  # newest first
     assert event["revoke_cause"] == "CONTRACT_CHANGE"
     assert event["revoke_ref"] == f"contract_version:{applied['contract']['id']}"
 
@@ -323,7 +323,7 @@ def test_csv_import_revokes_the_approval_with_the_import_reference(planner, mana
 
     roster = get_roster(planner, month)
     assert roster["status"] == "DRAFT"
-    event = roster["approval_history"][-1]
+    event = roster["approval_history"][0]  # newest first
     assert event["revoke_cause"] == "CONTRACT_CHANGE"
     assert event["revoke_ref"] == f"import:{preview['id']}"
 

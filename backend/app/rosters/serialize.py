@@ -5,6 +5,8 @@ excluded from the problem for lacking an applicable contract (P4).
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,7 @@ from app.api_schemas.common import (
     CostsOut,
     CoverageGapOut,
     CoverageStatusOut,
+    HourOverageOut,
     HourShortfallOut,
     MinHoursStatusOut,
     ViolationOut,
@@ -23,6 +26,9 @@ from app.api_schemas.common import (
 from app.rosters.costs import Costs
 from app.workers.models import Worker
 from app.scheduling import Assignment, CoverageGap, CoverageStatus, HourShortfall, MinHoursStatus, Violation, ViolationCode
+
+if TYPE_CHECKING:
+    from app.rosters.evaluation import HourOverage
 
 
 def assignment_to_out(a: Assignment) -> AssignmentOut:
@@ -57,6 +63,11 @@ def coverage_gap_to_out(g: CoverageGap) -> CoverageGapOut:
 def hour_shortfall_to_out(h: HourShortfall) -> HourShortfallOut:
     return HourShortfallOut(worker_id=h.worker_id, min_hours=h.min_hours, assigned_hours=h.assigned_hours,
                              missing_hours=h.missing_hours)
+
+
+def hour_overage_to_out(h: HourOverage) -> HourOverageOut:
+    return HourOverageOut(worker_id=h.worker_id, max_hours=h.max_hours, worked_hours=h.worked_hours,
+                          over_hours=h.over_hours)
 
 
 def coverage_status_to_out(c: CoverageStatus) -> CoverageStatusOut:

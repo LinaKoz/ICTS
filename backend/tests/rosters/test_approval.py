@@ -53,7 +53,7 @@ def _approve(client, month, version=1, **kw):
 
 def _open_approval_id(client, month) -> int | None:
     hist = client.get(f"/api/rosters/{month}").json()["approval_history"]
-    return next((h["id"] for h in reversed(hist) if h["revoked_at"] is None), None)
+    return next((h["id"] for h in hist if h["revoked_at"] is None), None)
 
 
 def _revoke(client, month, version=1, approval_id=None, **kw):
@@ -136,15 +136,30 @@ def test_no_contract_is_a_hard_violation_too(duo, db):
 def test_hard_violation_in_a_started_shift_blocks_approval(duo, db, freeze):
     freeze(datetime(2099, 1, 15, 10, 0))
     roster, _ = _sparse_roster(db, duo.planner_id)
-    off = insert_worker(db, "222222226", "Off Duty", GG)
-    insert_contract(db, off, duo.planner_id, effective_month=date(2026, 1, 1), availability=["TUE:A"])
-    insert_assignment(db, roster, off, date(2099, 1, 5), "A", GG)  # started long ago, cannot be edited
+    wrong = insert_worker(db, "222222226", "Wrong Slot", GG)
+    insert_contract(db, wrong, duo.planner_id, effective_month=date(2026, 1, 1))
+    insert_assignment(db, roster, wrong, date(2099, 1, 5), "A", "SCREENER")  # started long ago, cannot be edited
     client = duo.as_("manager")
     got = client.get("/api/rosters/2099-01").json()
-    assert got["free_from"][0] == "2099-01-15" and [v["code"] for v in got["violations"]] == ["UNAVAILABLE"]
+    assert got["free_from"][0] == "2099-01-15" and [v["code"] for v in got["violations"]] == ["WRONG_ROLE"]
     resp = _approve(client, "2099-01", **_ack_body(client, "2099-01"))
     assert resp.status_code == 422 and _code(resp) == "HARD_VIOLATIONS", resp.text
-    assert [v["code"] for v in resp.json()["error"]["details"]] == ["UNAVAILABLE"]
+    assert [v["code"] for v in resp.json()["error"]["details"]] == ["WRONG_ROLE"]
+
+
+@requires_db
+def test_unavailable_in_a_started_shift_is_not_a_violation(duo, db, freeze):
+    """Availability counts from the first free shift: a started shift the
+    worker is no longer available for neither shows nor blocks approval."""
+    freeze(datetime(2099, 1, 15, 10, 0))
+    roster, _ = _sparse_roster(db, duo.planner_id)
+    off = insert_worker(db, "333333334", "Off Duty", GG)
+    insert_contract(db, off, duo.planner_id, effective_month=date(2026, 1, 1), availability=["TUE:A"])
+    insert_assignment(db, roster, off, date(2099, 1, 5), "A", GG)
+    client = duo.as_("manager")
+    assert client.get("/api/rosters/2099-01").json()["violations"] == []
+    pv = client.get("/api/rosters/2099-01/approval-preview").json()
+    assert pv["hard_violations"] == [] and pv["can_approve"] is True
 
 
 # --- soft shortages -----------------------------------------------------------------
@@ -278,9 +293,9 @@ def test_manual_revoke_and_history_order(duo, db):
     assert rv.json()["event"]["revoke_cause"] == "MANUAL" and rv.json()["event"]["revoked_by"] == "manager"
     assert _approve(client, "2099-02").status_code == 200
     hist = client.get("/api/rosters/2099-02").json()["approval_history"]
-    assert [h["revoke_cause"] for h in hist] == ["MANUAL", None]  # every approval kept, oldest first
-    assert hist[0]["id"] < hist[1]["id"] and hist[0]["approved_at"] <= hist[1]["approved_at"]
-    assert hist[0]["revoked_at"] is not None and hist[1]["revoked_at"] is None
+    assert [h["revoke_cause"] for h in hist] == [None, "MANUAL"]  # every approval kept, newest first
+    assert hist[0]["id"] > hist[1]["id"] and hist[0]["approved_at"] >= hist[1]["approved_at"]
+    assert hist[0]["revoked_at"] is None and hist[1]["revoked_at"] is not None
 
 
 @requires_db
@@ -351,7 +366,7 @@ def test_edit_revokes_with_cause_edit_and_history_records_everything(duo, db):
     body = _ack_body(manager, "2099-02", reason="one guard short")
     r = _approve(manager, "2099-02", version=2, **body)
     assert r.status_code == 200, r.text
-    first, second = manager.get("/api/rosters/2099-02").json()["approval_history"]
+    second, first = manager.get("/api/rosters/2099-02").json()["approval_history"]
     assert (first["id"], second["id"]) == (ev["id"], r.json()["event"]["id"])
     assert second["roster_version"] == 2 and second["revoke_cause"] is None
     assert second["acknowledged_warnings"]["coverage_gaps"][0]["date"] == "2099-02-10"

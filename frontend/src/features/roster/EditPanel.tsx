@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { ErrorPanel } from '../../errors/ErrorPanel'
 import { mapError } from '../../errors/mapError'
-import type { AssignmentOut, Role, RosterOut, Shift } from '../../api/schemas'
+import type { AssignmentOut, RosterOut, Shift } from '../../api/schemas'
 import { useAddAssignment, useMoveAssignment, useRemoveAssignment, useSuggestions, type Slot } from './api'
 import { buildMoveBody, explainEditError, isApprovedEditError, moveUnchanged, needsApprovalAck, workersForRole } from './edit'
 import { daysInMonth } from './calendar'
 import { DatePicker } from './DatePicker'
 import { nameLookup } from './names'
+import { roleLabel } from '../workers/labels'
 
 export type Selection =
   | { kind: 'assignment'; assignment: AssignmentOut; id: number }
   | { kind: 'gap'; slot: Slot }
 
-const ROLE_NAME: Record<Role, string> = { GENERAL_GUARD: 'general guard', SCREENER: 'screener', SUPERVISOR: 'supervisor' }
 
 interface Props {
   month: string
@@ -72,7 +72,7 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
             {nameOf(selection.assignment.worker_id)}
             <button onClick={onClose} aria-label="Close">×</button>
           </h3>
-          <p className="muted">{selection.assignment.date} shift {selection.assignment.shift}, {ROLE_NAME[selection.assignment.role]}</p>
+          <p className="muted">{selection.assignment.date} shift {selection.assignment.shift}, {roleLabel(selection.assignment.role).toLowerCase()}</p>
           {target && (
             <>
               <label>Worker
@@ -108,7 +108,7 @@ export function EditPanel({ month, roster, selection, onClose }: Props) {
             Suggestions
             <button onClick={onClose} aria-label="Close">×</button>
           </h3>
-          <p className="muted">{selection.slot.date} shift {selection.slot.shift}, {ROLE_NAME[selection.slot.role]}</p>
+          <p className="muted">{selection.slot.date} shift {selection.slot.shift}, {roleLabel(selection.slot.role).toLowerCase()}</p>
           {suggestions.isPending && <p><span className="spinner" /> Loading…</p>}
           {suggestions.isError && <ErrorPanel error={suggestions.error} onRetry={() => suggestions.refetch()} />}
           {suggestions.data && suggestions.data.candidates.length === 0 && (

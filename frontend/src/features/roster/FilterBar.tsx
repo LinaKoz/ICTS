@@ -1,8 +1,8 @@
 import type { Role, Shift } from '../../api/schemas'
 import { isFiltering, NO_FILTER, type RosterFilter } from './filter'
 import { SHIFT_INFO } from './names'
+import { roleLabel } from '../workers/labels'
 
-const ROLE_NAME: Record<Role, string> = { GENERAL_GUARD: 'General guard', SCREENER: 'Screener', SUPERVISOR: 'Supervisor' }
 
 interface Props {
   filter: RosterFilter
@@ -19,7 +19,7 @@ export function FilterBar({ filter, roles, shifts, onChange }: Props) {
         <span className="sr-only">Role</span>
         <select value={filter.role} onChange={(e) => onChange({ ...filter, role: e.target.value as Role | 'ALL' })}>
           <option value="ALL">All roles</option>
-          {roles.map((r) => <option key={r} value={r}>{ROLE_NAME[r]}</option>)}
+          {roles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
         </select>
       </label>
       <label className={`filter-pill${filter.shift !== 'ALL' ? ' is-on' : ''}`}>
